@@ -272,8 +272,8 @@ static int getfirst (TTree *tree, const Charset *follow, Charset *firstset) {
       loopset(i, firstset->cs[i] = 0);
       return 0;
     }
-		case TThrow: {  /* (?)labeled failure: should always throw the label */
-      loopset(i, firstset->cs[i] = follow->cs[i]); /* follow = fullset? */
+		case TThrow: {  /* labeled failure: must always throw the label */
+      loopset(i, firstset->cs[i] = follow->cs[i]); /* follow = fullset(?) */
       return 1;
     }
     case TChoice: case TLabChoice: {  /*(?) labeled failure */
@@ -350,7 +350,7 @@ static int headfail (TTree *tree) {
       return 1;
     case TTrue: case TRep: case TRunTime: case TNot:
     case TBehind:
-    case TThrow: /* labeled failure: should always throw the label */
+    case TThrow: /* labeled failure: must always throw the label */
       return 0;
     case TCapture: case TGrammar: case TRule: case TAnd:
       tree = sib1(tree); goto tailcall;  /* return headfail(sib1(tree)); */
@@ -486,13 +486,12 @@ static int addthrowinstruction (CompileState *compst, Labelset ls) {
   return i;
 }
 
-static int addoffsetlabinst (CompileState *compst, Opcode op, Labelset ls) {
+static int addoffsetlabinst (CompileState *compst, Labelset ls) {
   int j;
-	int i = addinstruction(compst, op, 0);  /* instruction */
+	int i = addinstruction(compst, ILabChoice, 0);  /* instruction */
   addinstruction(compst, (Opcode)0, 0);  /* open space for offset */
   j = nextinstruction(compst);  /* open space for labels */
 	getinstr(compst, j).labels = ls;
-  assert(op == ILabChoice);
   return i; 
 }
 /* labeled failure end */
@@ -697,7 +696,7 @@ static void codelabchoice (CompileState *compst, TTree *p1, TTree *p2, int opt,
   	int emptyp2 = (p2->tag == TTrue);
 		int pcommit;
     int test = NOINST;
-    int pchoice = addoffsetlabinst(compst, ILabChoice, ls);
+    int pchoice = addoffsetlabinst(compst, ls);
     codegen(compst, p1, emptyp2, test, fullset);
     pcommit = addoffsetinst(compst, ICommit);
     jumptohere(compst, pchoice);
