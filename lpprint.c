@@ -165,7 +165,8 @@ static const char *tagnames[] = {
   "not", "and",
   "call", "opencall", "rule", "grammar",
   "behind",
-  "capture", "run-time"
+  "capture", "run-time",
+  "throw", "labeled-choice"  /* labeled failure */
 };
 
 
@@ -193,7 +194,7 @@ void printtree (TTree *tree, int ident) {
     }
     case TBehind: {
       printf(" %d\n", tree->u.n);
-        printtree(sib1(tree), ident + 2);
+       printtree(sib1(tree), ident + 2);
       break;
     }
     case TCapture: {
@@ -216,8 +217,15 @@ void printtree (TTree *tree, int ident) {
       assert(rule->tag == TTrue);  /* sentinel */
       break;
     }
+		case TThrow: { /* labeled failure */
+      printf(" labels: %d\n", tree->labels);
+      break;
+    }
     default: {
       int sibs = numsiblings[tree->tag];
+			if (tree->tag == TLabChoice) { /* labeled failure */
+      	printf(" labels: %d\n", tree->labels);
+			}
       printf("\n");
       if (sibs >= 1) {
         printtree(sib1(tree), ident + 2);
