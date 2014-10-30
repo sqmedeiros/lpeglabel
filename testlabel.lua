@@ -5,8 +5,7 @@ assert(p:match("abc") == nil)
 
 -- throws a label that is not caught by ordinary choice
 p = m.T(1) + m.P"a"
-local r = p:match("abc")
-assert(r == nil)
+assert(p:match("abc") == nil)
 
 -- again throws a label that is not caught by ordinary choice
 local g = m.P{
@@ -15,45 +14,93 @@ local g = m.P{
 	A = m.T(1),
 	B = m.P"a"
 }
-r = g:match("abc")
-assert(r == nil)
+assert(g:match("abc") == nil)
 
 -- throws a label that is not caught by labeled choice
 p = m.Lc(m.T(2), m.P"a", 1, 3)
-r = p:match("abc")
-assert(r == nil)
+assert(p:match("abc") == nil)
 
 -- modifies previous pattern
 -- adds another labeled choice to catch label "2"
 p = m.Lc(p, m.P"a", 2)
-r = p:match("abc")
-assert(r == 2)
+assert(p:match("abc") == 2)
 
 -- throws a label that is caught by labeled choice
 p = m.Lc(m.T(25), m.P"a", 25)
-r = p:match("abc")
-assert(r == 2)
+assert(p:match("abc") == 2)
 assert(p:match("bola") == nil)
 
--- labeled choice did not catch "fail" by default
+-- labeled choice does not catch "fail" by default
 p = m.Lc(m.P"b", m.P"a", 1)
-r = p:match("abc")
-assert(r == nil, r)
+assert(p:match("abc") == nil)
 assert(p:match("bola") == 2)
 
 -- "fail" is label "0"
 -- labeled choice can catch "fail"
 p = m.Lc(m.P"b", m.P"a", 0)
-r = p:match("abc")
-assert(r == 2, r)
+assert(p:match("abc") == 2)
 assert(p:match("bola") == 2)
 
 -- "fail" is label "0"
--- labeled choice can catch "fail" or "3"
+-- labeled choice catches "fail" or "3"
 p = m.Lc(m.P"a" * m.T(3), (m.P"a" + m.P"b"), 0, 3)
 assert(p:match("abc") == 2)
 assert(p:match("bac") == 2)
 assert(p:match("cab") == nil)
+
+-- tests related to predicates
+p = #m.T(1) + m.P"a"
+assert(p:match("abc") == nil)
+
+p = ##m.T(1) + m.P"a"
+assert(p:match("abc") == nil)
+
+p = #m.T(0) * m.P"a"
+assert(p:match("abc") == fail)
+
+p = #m.T(0) + m.P"a"
+assert(p:match("abc") == 2)
+
+p = -m.T(1) * m.P"a"
+assert(p:match("abc") == nil)
+
+p = -(-m.T(1)) * m.P"a"
+assert(p:match("abc") == nil)
+
+p = -m.T(0) * m.P"a"
+assert(p:match("abc") == 2)
+
+p = -m.T(0) + m.P"a"
+assert(p:match("abc") == 1)
+
+p = -(-m.T(0)) + m.P"a"
+assert(p:match("abc") == 2)
+
+p = m.Lc(-m.T(22), m.P"a", 22)
+assert(p:match("abc") == 2)
+
+p = m.Lc(-m.T(0), m.P"a", 0)
+assert(p:match("abc") == 1)
+
+p = m.Lc(#m.T(22), m.P"a", 22)
+assert(p:match("abc") == 2)
+
+p = m.Lc(#m.T(0), m.P"a", 0)
+assert(p:match("abc") == 2)
+
+-- tests related to repetition
+p = m.T(1)^0
+assert(p:match("ab") == nil)
+
+p = m.T(0)^0
+assert(p:match("ab") == 1)
+
+p = (m.P"a" + m.T(1))^0
+assert(p:match("aa") == nil)
+
+p = (m.P"a" + m.T(0))^0
+assert(p:match("aa") == 3)
+
 
 --[[
 S -> A /{1} 'a'
@@ -85,16 +132,13 @@ assert(g:match("a;a;") == 5)
 assert(g:match("a;a") == nil)
 
 
-
 -- %1 /{1,3} %2 /{2} 'a'
 p = m.Lc(m.Lc(m.T(1), m.T(2), 1, 3), m.P"a", 2)
-r = p:match("abc")
-assert(r == 2)
+assert(p:match("abc") == 2)
 assert(p:match("") == nil)
 
 p = m.Lc(m.T(1), m.Lc(m.T(2), m.P"a", 2), 1, 3)
-r = p:match("abc")
-assert(r == 2)
+assert(p:match("abc") == 2)
 assert(p:match("") == nil)
 
 print("+")
@@ -129,7 +173,6 @@ g = m.P{
 	I = sp * m.P"int",
 	Exp = sp * m.P"E",
 }
---g:pcode()
 
 local s = "a"
 assert(g:match(s) == #s + 1) --1
