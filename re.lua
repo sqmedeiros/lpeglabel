@@ -26,6 +26,7 @@ local any = m.P(1)
 
 -- Pre-defined names
 local Predef = { nl = m.P"\n" }
+local tlabels = {}
 
 
 local mem
@@ -177,7 +178,7 @@ local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
             + (m.V"Seq") * ("/" * m.V"Labels" * S * m.V"Seq")^1 / labchoice
             + m.Cf(m.V"Seq" * ("/" * S * m.V"Seq")^0, mt.__add) );
-  Labels = m.Ct(m.P"{" * S * num * (S * "," * S * num)^0 * S * "}");
+	Labels = m.Ct(m.P"{" * S * m.V"Label" * (S * "," * S * m.V"Label")^0 * S * "}");
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^0 , mt.__mul)
         * (#seq_follow + patt_error);
   Prefix = "&" * S * m.V"Prefix" / mt.__len
@@ -201,7 +202,7 @@ local exp = m.P{ "Exp",
             + String / mm.P
             + Class
             + defined
-            + "%{" * S * num * (S * "," * S * num)^0 * S * "}" / mm.T
+            + "%{" * S * m.V"Label" * (S * "," * S * m.V"Label")^0 * S * "}" / mm.T
             + "{:" * (name * ":" + m.Cc(nil)) * m.V"Exp" * ":}" /
                      function (n, p) return mm.Cg(p, n) end
             + "=" * name / function (n) return mm.Cmt(mm.Cb(n), equalcap) end
@@ -211,6 +212,7 @@ local exp = m.P{ "Exp",
             + "{" * m.V"Exp" * "}" / mm.C
             + m.P"." * m.Cc(any)
             + (name * -arrow + "<" * name * ">") * m.Cb("G") / NT;
+	Label = num + name / function (f) return tlabels[f] end;
   Definition = name * arrow * m.V"Exp";
   Grammar = m.Cg(m.Cc(true), "G") *
             m.Cf(m.V"Definition" / firstdef * m.Cg(m.V"Definition")^0,
@@ -261,6 +263,9 @@ local function gsub (s, p, rep)
   return cp:match(s)
 end
 
+local function setlabels (t)
+	tlabels = t
+end
 
 -- exported names
 local re = {
@@ -269,6 +274,7 @@ local re = {
   find = find,
   gsub = gsub,
   updatelocale = updatelocale,
+	setlabels = setlabels
 }
 
 if version == "Lua 5.1" then _G.re = re end
