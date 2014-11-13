@@ -1142,13 +1142,23 @@ static int lp_match (lua_State *L) {
   const char *s = luaL_checklstring(L, SUBJIDX, &l);
   size_t i = initposition(L, l);
   int ptop = lua_gettop(L);
+  Labelset labelf; /* labeled failure */
   lua_pushnil(L);  /* initialize subscache */
   lua_pushlightuserdata(L, capture);  /* initialize caplistidx */
   lua_getfenv(L, 1);  /* initialize penvidx */
-  r = match(L, s, s + i, s + l, code, capture, ptop);
+  r = match(L, s, s + i, s + l, code, capture, ptop, &labelf);
   if (r == NULL) {
+		int j = 0;
+		int n = 1;
     lua_pushnil(L);
-    return 1;
+		while (j < (int) MAXLABELS) {
+			if (labelf & (1 << j)) {	
+				lua_pushinteger(L, j);
+				n++;
+			}
+			j++;
+		}
+    return n;
   }
   return getcaptures(L, s, r, ptop);
 }

@@ -55,7 +55,7 @@ typedef union Instruction {
 int getposition (lua_State *L, int t, int i);
 void printpatt (Instruction *p, int n);
 const char *match (lua_State *L, const char *o, const char *s, const char *e,
-                   Instruction *op, Capture *capture, int ptop);
+                   Instruction *op, Capture *capture, int ptop, Labelset *labelf);
 int verify (lua_State *L, Instruction *op, const Instruction *p,
             Instruction *e, int postable, int rule);
 void checkrule (lua_State *L, Instruction *op, int from, int to,
