@@ -10,14 +10,12 @@
 </head>
 <body>
 
-<!-- $Id: lpeg.html,v 1.71 2013/04/11 19:17:41 roberto Exp $ -->
-
 <div id="container">
 	
 <div id="product">
   <div id="product_logo">
     <a href="https://github.com/sqmedeiros/lpeglabel">
-    <img alt="LPeg logo" src="lpeg-128.gif"/></a>
+    <img alt="LPegLabel logo" src="lpeglabel-logo.gif" width="128"/></a>
     
   </div>
   <div id="product_name"><big><strong>LPegLabel</strong></big></div>
@@ -86,14 +84,13 @@ provided by LpegLabel:
 			if the matching of <code>p1</code> gives one of l<sub>1</sub>, ..., l<sub>n</sub> 
       </td></tr>
 <tr><td><a href="#re-t"><code>%{l<sub>1</sub>, ..., l<sub>n</sub>}</code></a></td>
-  <td>Syntax of <em>re</em> module. Equivalent to <code>lpeg.T(l<sub>1</sub>, ..., l<sub>n</sub>)</code>
+  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.T(l<sub>1</sub>, ..., l<sub>n</sub>)</code>
       </td></tr>
 <tr><td><a href="#re-lc"><code>p1 /{l<sub>1</sub>, ..., l<sub>n</sub>} p2</code></a></td>
-  <td>Syntax of <em>re</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l<sub>1</sub>, ..., l<sub>n</sub>)</code>
+  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l<sub>1</sub>, ..., l<sub>n</sub>)</code>
       </td></tr>
-<tr><td><a href="#re-setl"><code>re.setlabels (tlabel)</code></a></td>
-  <td>Allows to specicify a table with labels. They keys of
-	<code>tlabel</code> must be integers, and the associated values usually are strings.
+<tr><td><a href="#re-setl"><code>relabel.setlabels (tlabel)</code></a></td>
+  <td>Allows to specicify a table with mnemonic labels. 
       </td></tr>
 </tbody></table>
 
@@ -136,13 +133,13 @@ labeled ordered choice pattern.
 
 <h3><a name="re-t"></a><code>%{l<sub>1</sub>, ..., l<sub>n</sub>}</code></h3>
 <p>
-Syntax of <em>re</em> module. Equivalent to <code>lpeg.T(l<sub>1</sub>, ..., l<sub>n</sub>)</code>.
+Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.T(l<sub>1</sub>, ..., l<sub>n</sub>)</code>.
 </p>
 
 
 <h3><a name="re-lc"></a><code>p1 /{l<sub>1</sub>, ..., l<sub>n</sub>} p2</code></h3>
 <p>
-Syntax of <em>re</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l<sub>1</sub>, ..., l<sub>n</sub>)</code>.
+Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l<sub>1</sub>, ..., l<sub>n</sub>)</code>.
 </p>
 
 <p>
@@ -152,8 +149,16 @@ The <code>/{}</code> operator is left-associative.
 <p>
 A grammar can use both choice operators (<code>/</code> and <code>/{}</code>),
 but a single choice can not mix them. That is, the parser
-of <code>re</code> module will not recognize a pattern as
+of <code>relabel</code> module will not recognize a pattern as
 <code>p1 / p2 /{l<sub>1</sub>} p3</code>.
+</p>
+
+
+<h3><a name="re-setl"></a><code>relabel.setlabels (tlabel)</code></h3>
+
+<p>Allows to specicify a table with labels. They keys of
+<code>tlabel</code> must be integers between <code>0</code> and <code>31</code>,
+and the associated values should be strings.
 </p>
 
 
@@ -181,11 +186,11 @@ function mymatch (g, s)
   local r, e = g:match(s)
   if not r then
     if e == 1 then
-      return r, "Error: expecting an identifier"
+      return "Error: expecting an identifier"
     elseif e == 2 then
-      return r, "Error: expecting ','"
+      return "Error: expecting ','"
     else
-      return r, "Error"
+      return "Error"
     end
   end
   return r
@@ -201,9 +206,8 @@ In this example we could think about writing rule <em>List</em> as follows:
 List = m.P(("," + m.T(2)) * m.V"Id")^0
 </pre>
 but this would give us an expression that when matching
-the end of input would result in a failure with a label
-different from 0, that is equivalent to the regular failure,
-and the result of the repetition would be this label.
+the end of input would result in a failure whose associated
+label would be <em>2</em>.
 </p>
 
 <p>
@@ -235,7 +239,7 @@ local g = m.P{
 function mymatch (g, s)
   local r, e = g:match(s)
   if not r then
-    return r, terror[e]
+    return terror[e]
   end
   return r
 end
@@ -245,14 +249,14 @@ print(mymatch(g, "a b"))
 print(mymatch(g, ", b"))
 </pre>
 
-<h3>Throwing a label using the <em>re</em> module</h3>
+<h3>Throwing a label using the <em>relabel</em> module</h3>
 
 <p>
-We can also rewrite the previous example using the <em>re</em> module
+We can also rewrite the previous example using the <em>relabel</em> module
 as follows:
 </p>
 <pre class="example">
-local re = require 're' 
+local re = require 'relabel' 
 
 local g = re.compile[[
   S    <- Id List
@@ -264,11 +268,11 @@ function mymatch (g, s)
   local r, e = g:match(s)
   if not r then
     if e == 1 then
-      return r, "Error: expecting an identifier"
+      return "Error: expecting an identifier"
     elseif e == 2 then
-      return r, "Error: expecting ','"
+      return "Error: expecting ','"
     else
-      return r, "Error"
+      return "Error"
     end
   end
   return r
@@ -280,12 +284,12 @@ print(mymatch(g, ", b"))
 </pre>
 
 <p>
-Another way to describe the previous example using the <em>re</em> module
-is by using a table with the description the errors (<em>terror</em>) and
-another table that associates a name to a given label (<em>tlabel</em>):
+Another way to describe the previous example using the <em>relabel</em> module
+is by using a table with the description of the errors (<em>terror</em>) and
+another table that associates a name to a given label (<em>tlabels</em>):
 </p>
 <pre class="example">
-local re = require 're' 
+local re = require 'relabel' 
 
 local errUndef, errId, errComma = 0, 1, 2
 
@@ -310,7 +314,7 @@ local g = re.compile[[
 function mymatch (g, s)
   local r, e = g:match(s)
   if not r then
-    return r, terror[e]
+    return terror[e]
   end
   return r
 end
@@ -369,7 +373,7 @@ a left-associative order as we did in the previous example that
 used <code>Lc</code>:
 </p>
 <pre class="example">
-local re = require're'
+local re = require'relabel'
 
 local terror = {} 
 
@@ -409,11 +413,11 @@ print(p:match(",b"))
 As a more complex example, below we have the grammar
 for the Tiny language, as described in 
 <a href="http://arxiv.org/abs/1405.6646">this</a> paper.
-The example below can also how the line where the syntactic
+The example below can also show the line where the syntactic
 error probably happened.
 </p>
 <pre class="example">
-local re = require 're'
+local re = require 'relabel'
 
 local terror = {}
 
@@ -523,8 +527,8 @@ local g = re.compile([[
 
 <h2><a name="download"></a>Download</h2>
 
-<p>LPeg 
-<a href="http://www.inf.puc-rio.br/~roberto/lpeg/lpeg-0.12.tar.gz">source code</a>.</p>
+<p>LPegLabel 
+<a href="https://github.com/sqmedeiros/lpeglabel/archive/master.zip">source code</a>.</p>
 
 
 <h2><a name="license">License</a></h2>
