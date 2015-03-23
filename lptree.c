@@ -1,5 +1,5 @@
 /*
-** $Id: lptree.c,v 1.10 2013/04/12 16:30:33 roberto Exp $
+** $Id: lptree.c,v 1.15 2015/03/04 17:23:00 roberto Exp $
 ** Copyright 2013, Lua.org & PUC-Rio  (see 'lpeg.html' for license)
 */
 
@@ -127,6 +127,189 @@ static void finalfix (lua_State *L, int postable, TTree *g, TTree *t) {
 }
 
 
+
+/*
+** {===================================================================
+** KTable manipulation
+**
+** - The ktable of a pattern 'p' can be shared by other patterns that
+** contain 'p' and no other constants. Because of this sharing, we
+** should not add elements to a 'ktable' unless it was freshly created
+** for the new pattern.
+**
+** - The maximum index in a ktable is USHRT_MAX, because trees and
+** patterns use unsigned shorts to store those indices.
+** ====================================================================
+*/
+
+/*
+** Create a new 'ktable' to the pattern at the top of the stack.
+*/
+static void newktable (lua_State *L, int n) {
+  lua_createtable(L, n, 0);  /* create a fresh table */
+  lua_setfenv(L, -2);  /* set it as 'ktable' for pattern */
+}
+
+
+/*
+** Add element 'idx' to 'ktable' of pattern at the top of the stack;
+** Return index of new element.
+** If new element is nil, does not add it to table (as it would be
+** useless) and returns 0, as ktable[0] is always nil.
+*/
+static int addtoktable (lua_State *L, int idx) {
+  if (lua_isnil(L, idx))  /* nil value? */
+    return 0;
+  else {
+    int n;
+    lua_getfenv(L, -1);  /* get ktable from pattern */
+    n = lua_objlen(L, -1);
+    if (n >= USHRT_MAX)
+      luaL_error(L, "too many Lua values in pattern");
+    lua_pushvalue(L, idx);  /* element to be added */
+    lua_rawseti(L, -2, ++n);
+    lua_pop(L, 1);  /* remove 'ktable' */
+    return n;
+  }
+}
+
+
+/*
+** Return the number of elements in the ktable at 'idx'.
+** In Lua 5.2/5.3, default "environment" for patterns is nil, not
+** a table. Treat it as an empty table. In Lua 5.1, assumes that
+** the environment has no numeric indices (len == 0)
+*/
+static int ktablelen (lua_State *L, int idx) {
+  if (!lua_istable(L, idx)) return 0;
+  else return lua_objlen(L, idx);
+}
+
+
+/*
+** Concatentate the contents of table 'idx1' into table 'idx2'.
+** (Assume that both indices are negative.)
+** Return the original length of table 'idx2' (or 0, if no
+** element was added, as there is no need to correct any index).
+*/
+static int concattable (lua_State *L, int idx1, int idx2) {
+  int i;
+  int n1 = ktablelen(L, idx1);
+  int n2 = ktablelen(L, idx2);
+  if (n1 + n2 > USHRT_MAX)
+    luaL_error(L, "too many Lua values in pattern");
+  if (n1 == 0) return 0;  /* nothing to correct */
+  for (i = 1; i <= n1; i++) {
+    lua_rawgeti(L, idx1, i);
+    lua_rawseti(L, idx2 - 1, n2 + i);  /* correct 'idx2' */
+  }
+  return n2;
+}
+
+
+/*
+** When joining 'ktables', constants from one of the subpatterns must
+** be renumbered; 'correctkeys' corrects their indices (adding 'n'
+** to each of them)
+*/
+static void correctkeys (TTree *tree, int n) {
+  if (n == 0) return;  /* no correction? */
+ tailcall:
+  switch (tree->tag) {
+    case TOpenCall: case TCall: case TRunTime: case TRule: {
+      if (tree->key > 0)
+        tree->key += n;
+      break;
+    }
+    case TCapture: {
+      if (tree->key > 0 && tree->cap != Carg && tree->cap != Cnum)
+        tree->key += n;
+      break;
+    }
+    default: break;
+  }
+  switch (numsiblings[tree->tag]) {
+    case 1:  /* correctkeys(sib1(tree), n); */
+      tree = sib1(tree); goto tailcall;
+    case 2:
+      correctkeys(sib1(tree), n);
+      tree = sib2(tree); goto tailcall;  /* correctkeys(sib2(tree), n); */
+    default: assert(numsiblings[tree->tag] == 0); break;
+  }
+}
+
+
+/*
+** Join the ktables from p1 and p2 the ktable for the new pattern at the
+** top of the stack, reusing them when possible.
+*/
+static void joinktables (lua_State *L, int p1, TTree *t2, int p2) {
+  int n1, n2;
+  lua_getfenv(L, p1);  /* get ktables */
+  lua_getfenv(L, p2);
+  n1 = ktablelen(L, -2);
+  n2 = ktablelen(L, -1);
+  if (n1 == 0 && n2 == 0)  /* are both tables empty? */
+    lua_pop(L, 2);  /* nothing to be done; pop tables */
+  else if (n2 == 0 || lua_equal(L, -2, -1)) {  /* 2nd table empty or equal? */
+    lua_pop(L, 1);  /* pop 2nd table */
+    lua_setfenv(L, -2);  /* set 1st ktable into new pattern */
+  }
+  else if (n1 == 0) {  /* first table is empty? */
+    lua_setfenv(L, -3);  /* set 2nd table into new pattern */
+    lua_pop(L, 1);  /* pop 1st table */
+  }
+  else {
+    lua_createtable(L, n1 + n2, 0);  /* create ktable for new pattern */
+    /* stack: new p; ktable p1; ktable p2; new ktable */
+    concattable(L, -3, -1);  /* from p1 into new ktable */
+    concattable(L, -2, -1);  /* from p2 into new ktable */
+    lua_setfenv(L, -4);  /* new ktable becomes 'p' environment */
+    lua_pop(L, 2);  /* pop other ktables */
+    correctkeys(t2, n1);  /* correction for indices from p2 */
+  }
+}
+
+
+/*
+** copy 'ktable' of element 'idx' to new tree (on top of stack)
+*/
+static void copyktable (lua_State *L, int idx) {
+  lua_getfenv(L, idx);
+  lua_setfenv(L, -2);
+}
+
+
+/*
+** merge 'ktable' from 'stree' at stack index 'idx' into 'ktable'
+** from tree at the top of the stack, and correct corresponding
+** tree.
+*/
+static void mergektable (lua_State *L, int idx, TTree *stree) {
+  int n;
+  lua_getfenv(L, -1);  /* get ktables */
+  lua_getfenv(L, idx);
+  n = concattable(L, -1, -2);
+  lua_pop(L, 2);  /* remove both ktables */
+  correctkeys(stree, n);
+}
+
+
+/*
+** Create a new 'ktable' to the pattern at the top of the stack, adding
+** all elements from pattern 'p' (if not 0) plus element 'idx' to it.
+** Return index of new element.
+*/
+static int addtonewktable (lua_State *L, int p, int idx) {
+  newktable(L, 1);
+  if (p)
+    mergektable(L, p, NULL);
+  return addtoktable(L, idx);
+}
+
+/* }====================================================== */
+
+
 /*
 ** {======================================================
 ** Tree generation
@@ -218,29 +401,6 @@ static TTree *seqaux (TTree *tree, TTree *sib, int sibsize) {
 
 
 /*
-** Add element 'idx' to 'ktable' of pattern at the top of the stack;
-** create new 'ktable' if necessary. Return index of new element.
-*/
-static int addtoktable (lua_State *L, int idx) {
-  if (idx == 0 || lua_isnil(L, idx))  /* no actual value to insert? */
-    return 0;
-  else {
-    int n;
-    lua_getfenv(L, -1);  /* get ktable from pattern */
-    n = lua_objlen(L, -1);
-    if (n == 0) {  /* is it empty/non-existent? */
-      lua_pop(L, 1);  /* remove it */
-      lua_createtable(L, 1, 0);  /* create a fresh table */
-    }
-    lua_pushvalue(L, idx);  /* element to be added */
-    lua_rawseti(L, -2, n + 1);
-    lua_setfenv(L, -2);  /* set it as ktable for pattern */
-    return n + 1;
-  }
-}
-
-
-/*
 ** Build a sequence of 'n' nodes, each with tag 'tag' and 'u.n' got
 ** from the array 's' (or 0 if array is NULL). (TSeq is binary, so it
 ** must build a sequence of sequence of sequence...)
@@ -315,7 +475,7 @@ static TTree *getpatt (lua_State *L, int idx, int *len) {
     case LUA_TFUNCTION: {
       tree = newtree(L, 2);
       tree->tag = TRunTime;
-      tree->key = addtoktable(L, idx);
+      tree->key = addtonewktable(L, 0, idx);
       sib1(tree)->tag = TTrue;
       break;
     }
@@ -327,123 +487,6 @@ static TTree *getpatt (lua_State *L, int idx, int *len) {
   if (len)
     *len = getsize(L, idx);
   return tree;
-}
-
-
-/*
-** Return the number of elements in the ktable of pattern at 'idx'.
-** In Lua 5.2, default "environment" for patterns is nil, not
-** a table. Treat it as an empty table. In Lua 5.1, assumes that
-** the environment has no numeric indices (len == 0)
-*/
-static int ktablelen (lua_State *L, int idx) {
-  if (!lua_istable(L, idx)) return 0;
-  else return lua_objlen(L, idx);
-}
-
-
-/*
-** Concatentate the contents of table 'idx1' into table 'idx2'.
-** (Assume that both indices are negative.)
-** Return the original length of table 'idx2'
-*/
-static int concattable (lua_State *L, int idx1, int idx2) {
-  int i;
-  int n1 = ktablelen(L, idx1);
-  int n2 = ktablelen(L, idx2);
-  if (n1 == 0) return 0;  /* nothing to correct */
-  for (i = 1; i <= n1; i++) {
-    lua_rawgeti(L, idx1, i);
-    lua_rawseti(L, idx2 - 1, n2 + i);  /* correct 'idx2' */
-  }
-  return n2;
-}
-
-
-/*
-** Make a merge of ktables from p1 and p2 the ktable for the new
-** pattern at the top of the stack.
-*/
-static int joinktables (lua_State *L, int p1, int p2) {
-  int n1, n2;
-  lua_getfenv(L, p1);  /* get ktables */
-  lua_getfenv(L, p2);
-  n1 = ktablelen(L, -2);
-  n2 = ktablelen(L, -1);
-  if (n1 == 0 && n2 == 0) {  /* are both tables empty? */
-    lua_pop(L, 2);  /* nothing to be done; pop tables */
-    return 0;  /* nothing to correct */
-  }
-  if (n2 == 0 || lua_equal(L, -2, -1)) {  /* second table is empty or equal? */
-    lua_pop(L, 1);  /* pop 2nd table */
-    lua_setfenv(L, -2);  /* set 1st ktable into new pattern */
-    return 0;  /* nothing to correct */
-  }
-  if (n1 == 0) {  /* first table is empty? */
-    lua_setfenv(L, -3);  /* set 2nd table into new pattern */
-    lua_pop(L, 1);  /* pop 1st table */
-    return 0;  /* nothing to correct */
-  }
-  else {
-    lua_createtable(L, n1 + n2, 0);  /* create ktable for new pattern */
-    /* stack: new p; ktable p1; ktable p2; new ktable */
-    concattable(L, -3, -1);  /* from p1 into new ktable */
-    concattable(L, -2, -1);  /* from p2 into new ktable */
-    lua_setfenv(L, -4);  /* new ktable becomes p env */
-    lua_pop(L, 2);  /* pop other ktables */
-    return n1;  /* correction for indices from p2 */
-  }
-}
-
-
-static void correctkeys (TTree *tree, int n) {
-  if (n == 0) return;  /* no correction? */
- tailcall:
-  switch (tree->tag) {
-    case TOpenCall: case TCall: case TRunTime: case TRule: {
-      if (tree->key > 0)
-        tree->key += n;
-      break;
-    }
-    case TCapture: {
-      if (tree->key > 0 && tree->cap != Carg && tree->cap != Cnum)
-        tree->key += n;
-      break;
-    }
-    default: break;
-  }
-  switch (numsiblings[tree->tag]) {
-    case 1:  /* correctkeys(sib1(tree), n); */
-      tree = sib1(tree); goto tailcall;
-    case 2:
-      correctkeys(sib1(tree), n);
-      tree = sib2(tree); goto tailcall;  /* correctkeys(sib2(tree), n); */
-    default: assert(numsiblings[tree->tag] == 0); break;
-  }
-}
-
-
-/*
-** copy 'ktable' of element 'idx' to new tree (on top of stack)
-*/
-static void copyktable (lua_State *L, int idx) {
-  lua_getfenv(L, idx);
-  lua_setfenv(L, -2);
-}
-
-
-/*
-** merge 'ktable' from rule at stack index 'idx' into 'ktable'
-** from tree at the top of the stack, and correct corresponding
-** tree.
-*/
-static void mergektable (lua_State *L, int idx, TTree *rule) {
-  int n;
-  lua_getfenv(L, -1);  /* get ktables */
-  lua_getfenv(L, idx);
-  n = concattable(L, -1, -2);
-  lua_pop(L, 2);  /* remove both ktables */
-  correctkeys(rule, n);
 }
 
 
@@ -475,7 +518,7 @@ static TTree *newroot2sib (lua_State *L, int tag) {
   tree->u.ps =  1 + s1;
   memcpy(sib1(tree), tree1, s1 * sizeof(TTree));
   memcpy(sib2(tree), tree2, s2 * sizeof(TTree));
-  correctkeys(sib2(tree), joinktables(L, 1, 2));
+  joinktables(L, 1, sib2(tree), 2);
   return tree;
 }
 
@@ -535,8 +578,8 @@ static int lp_choice (lua_State *L) {
 */
 static int lp_star (lua_State *L) {
   int size1;
-  int n = luaL_checkint(L, 2);
-  TTree *tree1 = gettree(L, 1, &size1);
+  int n = (int)luaL_checkinteger(L, 2);
+  TTree *tree1 = getpatt(L, 1, &size1);
   if (n >= 0) {  /* seq tree1 (seq tree1 ... (seq tree1 (rep tree1))) */
     TTree *tree = newtree(L, (n + 1) * (size1 + 1));
     if (nullable(tree1))
@@ -604,7 +647,7 @@ static int lp_sub (lua_State *L) {
     sib1(tree)->tag = TNot;  /* ...not... */
     memcpy(sib1(sib1(tree)), t2, s2 * sizeof(TTree));  /* ...t2 */
     memcpy(sib2(tree), t1, s1 * sizeof(TTree));  /* ... and t1 */
-    correctkeys(sib1(tree), joinktables(L, 1, 2));
+    joinktables(L, 1, sib1(tree), 2);
   }
   return 1;
 }
@@ -645,8 +688,8 @@ static int lp_behind (lua_State *L) {
   TTree *tree;
   TTree *tree1 = getpatt(L, 1, NULL);
   int n = fixedlen(tree1);
-  luaL_argcheck(L, !hascaptures(tree1), 1, "pattern have captures");
   luaL_argcheck(L, n > 0, 1, "pattern may not have fixed length");
+  luaL_argcheck(L, !hascaptures(tree1), 1, "pattern have captures");
   luaL_argcheck(L, n <= MAXBEHIND, 1, "pattern too long to look behind");
   tree = newroot1sib(L, TBehind);
   tree->u.n = n;
@@ -697,7 +740,7 @@ static int lp_labchoice (lua_State *L) {
 static int lp_V (lua_State *L) {
   TTree *tree = newleaf(L, TOpenCall);
   luaL_argcheck(L, !lua_isnoneornil(L, 1), 1, "non-nil value expected");
-  tree->key = addtoktable(L, 1);
+  tree->key = addtonewktable(L, 0, 1);
   return 1;
 }
 
@@ -710,7 +753,7 @@ static int lp_V (lua_State *L) {
 static int capture_aux (lua_State *L, int cap, int labelidx) {
   TTree *tree = newroot1sib(L, TCapture);
   tree->cap = cap;
-  tree->key = addtoktable(L, labelidx);
+  tree->key = (labelidx == 0) ? 0 : addtonewktable(L, 1, labelidx);
   return 1;
 }
 
@@ -718,10 +761,9 @@ static int capture_aux (lua_State *L, int cap, int labelidx) {
 /*
 ** Fill a tree with an empty capture, using an empty (TTrue) sibling.
 */
-static TTree *auxemptycap (lua_State *L, TTree *tree, int cap, int idx) {
+static TTree *auxemptycap (TTree *tree, int cap) {
   tree->tag = TCapture;
   tree->cap = cap;
-  tree->key = addtoktable(L, idx);
   sib1(tree)->tag = TTrue;
   return tree;
 }
@@ -730,8 +772,18 @@ static TTree *auxemptycap (lua_State *L, TTree *tree, int cap, int idx) {
 /*
 ** Create a tree for an empty capture
 */
-static TTree *newemptycap (lua_State *L, int cap, int idx) {
-  return auxemptycap(L, newtree(L, 2), cap, idx);
+static TTree *newemptycap (lua_State *L, int cap) {
+  return auxemptycap(newtree(L, 2), cap);
+}
+
+
+/*
+** Create a tree for an empty capture with an associated Lua value
+*/
+static TTree *newemptycapkey (lua_State *L, int cap, int idx) {
+  TTree *tree = auxemptycap(newtree(L, 2), cap);
+  tree->key = addtonewktable(L, 0, idx);
+  return tree;
 }
 
 
@@ -789,14 +841,14 @@ static int lp_simplecapture (lua_State *L) {
 
 
 static int lp_poscapture (lua_State *L) {
-  newemptycap(L, Cposition, 0);
+  newemptycap(L, Cposition);
   return 1;
 }
 
 
 static int lp_argcapture (lua_State *L) {
-  int n = luaL_checkint(L, 1);
-  TTree *tree = newemptycap(L, Carg, 0);
+  int n = (int)luaL_checkinteger(L, 1);
+  TTree *tree = newemptycap(L, Carg);
   tree->key = n;
   luaL_argcheck(L, 0 < n && n <= SHRT_MAX, 1, "invalid argument index");
   return 1;
@@ -805,7 +857,7 @@ static int lp_argcapture (lua_State *L) {
 
 static int lp_backref (lua_State *L) {
   luaL_checkstring(L, 1);
-  newemptycap(L, Cbackref, 1);
+  newemptycapkey(L, Cbackref, 1);
   return 1;
 }
 
@@ -819,9 +871,10 @@ static int lp_constcapture (lua_State *L) {
   if (n == 0)  /* no values? */
     newleaf(L, TTrue);  /* no capture */
   else if (n == 1)
-    newemptycap(L, Cconst, 1);  /* single constant capture */
+    newemptycapkey(L, Cconst, 1);  /* single constant capture */
   else {  /* create a group capture with all values */
     TTree *tree = newtree(L, 1 + 3 * (n - 1) + 2);
+    newktable(L, n);  /* create a 'ktable' for new tree */
     tree->tag = TCapture;
     tree->cap = Cgroup;
     tree->key = 0;
@@ -829,10 +882,12 @@ static int lp_constcapture (lua_State *L) {
     for (i = 1; i <= n - 1; i++) {
       tree->tag = TSeq;
       tree->u.ps = 3;  /* skip TCapture and its sibling */
-      auxemptycap(L, sib1(tree), Cconst, i);
+      auxemptycap(sib1(tree), Cconst);
+      sib1(tree)->key = addtoktable(L, i);
       tree = sib2(tree);
     }
-    auxemptycap(L, tree, Cconst, i);
+    auxemptycap(tree, Cconst);
+    tree->key = addtoktable(L, i);
   }
   return 1;
 }
@@ -842,7 +897,7 @@ static int lp_matchtime (lua_State *L) {
   TTree *tree;
   luaL_checktype(L, 2, LUA_TFUNCTION);
   tree = newroot1sib(L, TRunTime);
-  tree->key = addtoktable(L, 2);
+  tree->key = addtonewktable(L, 1, 2);
   return 1;
 }
 
@@ -1146,20 +1201,20 @@ static int lp_match (lua_State *L) {
   lua_pushnil(L);  /* initialize subscache */
   lua_pushlightuserdata(L, capture);  /* initialize caplistidx */
   lua_getfenv(L, 1);  /* initialize penvidx */
-  r = match(L, s, s + i, s + l, code, capture, ptop, &labelf);
-  if (r == NULL) {
-		int j = 0;
-		int n = 1;
+  r = match(L, s, s + i, s + l, code, capture, ptop, &labelf); /* labeled failure */
+  if (r == NULL) { /* labeled failure begin */
+    int j = 0;
+    int n = 1;
     lua_pushnil(L);
-		while (j < (int) MAXLABELS) {
-			if (labelf & (1 << j)) {	
-				lua_pushinteger(L, j);
-				n++;
-			}
-			j++;
-		}
+    while (j < (int) MAXLABELS) {
+      if (labelf & (1 << j)) {	
+        lua_pushinteger(L, j);
+        n++;
+      }
+      j++;
+    }
     return n;
-  }
+  }  /* labeled failure end */
   return getcaptures(L, s, r, ptop);
 }
 
@@ -1197,7 +1252,7 @@ static int lp_type (lua_State *L) {
 int lp_gc (lua_State *L) {
   Pattern *p = getpattern(L, 1);
   if (p->codesize > 0)
-    reallocprog(L, p, 0);
+    realloccode(L, p, 0);
   return 0;
 }
 
@@ -1258,8 +1313,8 @@ static struct luaL_Reg pattreg[] = {
   {"version", lp_version},
   {"setmaxstack", lp_setmax},
   {"type", lp_type},
-	{"T", lp_throw}, /* labeled failure throw */
-	{"Lc", lp_labchoice}, /* labeled failure choice */
+  {"T", lp_throw}, /* labeled failure throw */
+  {"Lc", lp_labchoice}, /* labeled failure choice */
   {NULL, NULL}
 };
 
@@ -1277,13 +1332,13 @@ static struct luaL_Reg metareg[] = {
 };
 
 
-int luaopen_lpeglabel (lua_State *L);
-int luaopen_lpeglabel (lua_State *L) {
+int luaopen_lpeglabel (lua_State *L);  /* labeld failure */
+int luaopen_lpeglabel (lua_State *L) { /* labeled failure */
   luaL_newmetatable(L, PATTERN_T);
   lua_pushnumber(L, MAXBACK);  /* initialize maximum backtracking */
   lua_setfield(L, LUA_REGISTRYINDEX, MAXSTACKIDX);
   luaL_register(L, NULL, metareg);
-  luaL_register(L, "lpeglabel", pattreg);
+  luaL_register(L, "lpeglabel", pattreg); /* labeled failure */
   lua_pushvalue(L, -1);
   lua_setfield(L, -3, "__index");
   return 1;

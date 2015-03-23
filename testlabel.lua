@@ -279,7 +279,7 @@ local terror = { ['cmdSeq'] = "Missing ';' in CmdSeq",
                  ['factor'] = "Error matching 'Factor'",
                  ['openParExp'] = "Error matching expression after '('",
                  ['closePar'] = "Error matching ')'",
-                 ['undefined'] = "Error undefined'"}
+                 ['undefined'] = "Undefined Error"}
 
 g = re.compile([[
   Tiny       <- CmdSeq /{1} '' -> cmdSeq /{2} '' -> ifExp /{3} '' -> ifThen /{4} '' -> ifThenCmdSeq
@@ -292,7 +292,7 @@ g = re.compile([[
   Cmd        <- IfCmd / RepeatCmd / ReadCmd / WriteCmd  / AssignCmd 
   IfCmd      <- IF  (Exp / %{2})  (THEN / %{3})  (CmdSeq / %{4})  (ELSE (CmdSeq / %{5}) / '') (END / %{6})
   RepeatCmd  <- REPEAT  (CmdSeq / %{7})  (UNTIL / %{8})  (Exp / %{9})
-  AssignCmd  <- !RESERVED NAME  (ASSIGNMENT / %{10})  (Exp / %{11})
+  AssignCmd  <- NAME  (ASSIGNMENT / %{10})  (Exp / %{11})
   ReadCmd    <- READ  (NAME / %{12})
   WriteCmd   <- WRITE  (Exp / %{13})
   Exp        <- SimpleExp  ((LESS / EQUAL) (SimpleExp / %{14}) / '')
@@ -309,7 +309,7 @@ g = re.compile([[
   EQUAL      <- Sp '='
   LESS       <- Sp '<'
   MUL        <- Sp '*'
-  NAME       <- Sp [a-z]+
+  NAME       <- !RESERVED Sp [a-z]+
   NUMBER     <- Sp [0-9]+
   OPENPAR    <- Sp '('
   READ       <- Sp 'read'
@@ -319,7 +319,7 @@ g = re.compile([[
   THEN       <- Sp 'then'
   UNTIL      <- Sp 'until'
   WRITE      <- Sp 'write'
-	RESERVED   <- IF / ELSE / END / READ / REPEAT / THEN / UNTIL / WRITE
+	RESERVED   <- (IF / ELSE / END / READ / REPEAT / THEN / UNTIL / WRITE) ![a-z]+
   Sp         <- (%s / %nl)*	
 ]], terror)
 

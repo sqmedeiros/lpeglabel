@@ -1,8 +1,8 @@
 LIBNAME = lpeglabel
-LUADIR = /usr/include/lua5.1/
+LUADIR = ../lua/
 
-#COPT = -O2
-COPT = -DLPEG_DEBUG -g
+COPT = -O2
+# COPT = -DLPEG_DEBUG -g
 
 CWARNS = -Wall -Wextra -pedantic \
 	-Waggregate-return \
@@ -22,7 +22,7 @@ CWARNS = -Wall -Wextra -pedantic \
 # -Wunreachable-code \
 
 
-CFLAGS = $(CWARNS) $(COPT) -ansi -I$(LUADIR) -fPIC
+CFLAGS = $(CWARNS) $(COPT) -std=c99 -I$(LUADIR) -fPIC
 CC = gcc
 
 FILES = lpvm.o lpcap.o lptree.o lpcode.o lpprint.o

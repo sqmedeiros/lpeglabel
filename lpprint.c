@@ -52,7 +52,7 @@ static void printjmp (const Instruction *op, const Instruction *p) {
 }
 
 
-void printinst (const Instruction *op, const Instruction *p) {
+static void printinst (const Instruction *op, const Instruction *p) {
   const char *const names[] = {
     "any", "char", "set",
     "testany", "testchar", "testset",
@@ -60,8 +60,8 @@ void printinst (const Instruction *op, const Instruction *p) {
     "ret", "end",
     "choice", "jmp", "call", "open_call",
     "commit", "partial_commit", "back_commit", "failtwice", "fail", "giveup",
-     "fullcapture", "opencapture", "closecapture", "closeruntime", 
-     "throw", "labeled_choice" /* labeled failure */
+     "fullcapture", "opencapture", "closecapture", "closeruntime",
+    "throw", "labeled_choice" /* labeled failure */
   };
   printf("%02ld: %s ", (long)(p - op), names[p->i.code]);
   switch ((Opcode)p->i.code) {
@@ -103,12 +103,12 @@ void printinst (const Instruction *op, const Instruction *p) {
       printf("%d", p->i.aux);
       break;
     }
-	  case IJmp: case ICall: case ICommit: case IChoice:
+    case IJmp: case ICall: case ICommit: case IChoice:
     case IPartialCommit: case IBackCommit: case ITestAny: {
       printjmp(op, p);
       break;
     }
-		case IThrow: { /* labeled failure */
+    case IThrow: { /* labeled failure */
       printf("%d", (p + 1)->labels);
       break;
     }
@@ -117,7 +117,6 @@ void printinst (const Instruction *op, const Instruction *p) {
 			printf(" %d", (p + 2)->labels);
       break;
     }
-
     default: break;
   }
   printf("\n");
@@ -194,7 +193,7 @@ void printtree (TTree *tree, int ident) {
     }
     case TBehind: {
       printf(" %d\n", tree->u.n);
-       printtree(sib1(tree), ident + 2);
+        printtree(sib1(tree), ident + 2);
       break;
     }
     case TCapture: {
@@ -217,16 +216,16 @@ void printtree (TTree *tree, int ident) {
       assert(rule->tag == TTrue);  /* sentinel */
       break;
     }
-		case TThrow: { /* labeled failure */
+    case TThrow: { /* labeled failure */
       printf(" labels: %d\n", tree->labels);
       break;
     }
     default: {
       int sibs = numsiblings[tree->tag];
-			if (tree->tag == TLabChoice) { /* labeled failure */
+      printf("\n");
+      if (tree->tag == TLabChoice) { /* labeled failure */
       	printf(" labels: %d\n", tree->labels);
 			}
-      printf("\n");
       if (sibs >= 1) {
         printtree(sib1(tree), ident + 2);
         if (sibs >= 2)
