@@ -196,7 +196,7 @@ assert(g:match(s) == nil)
 
 print("+")
 
-local re = require 're'
+local re = require 'relabel'
 
 g = re.compile[['a' /{4,9} [a-z]
 ]]
