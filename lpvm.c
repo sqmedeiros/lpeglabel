@@ -146,7 +146,7 @@ static int removedyncap (lua_State *L, Capture *capture,
 ** Opcode interpreter
 */
 const char *match (lua_State *L, const char *o, const char *s, const char *e,
-                   Instruction *op, Capture *capture, int ptop, Labelset *labelf) { /* labeled failure */
+                   Instruction *op, Capture *capture, int ptop, Labelset *labelf, const char **sfail) { /* labeled failure */
   Stack stackbase[INITBACK];
   Stack *stacklimit = stackbase + INITBACK;
   Stack *stack = stackbase;  /* point to first empty slot in stack */
@@ -184,6 +184,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         if (s < e) { p++; s++; }
         else {
           *labelf = LFAIL; /* labeled failure */
+					*sfail = s;
           goto fail;
         }
         continue;
@@ -197,6 +198,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         if ((byte)*s == p->i.aux && s < e) { p++; s++; }
         else {
           *labelf = LFAIL; /* labeled failure */
+					*sfail = s;
           goto fail;
         }
         continue;
@@ -212,6 +214,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
           { p += CHARSETINSTSIZE; s++; }
         else {
           *labelf = LFAIL; /* labeled failure */
+					*sfail = s;
           goto fail;
         }
         continue;
@@ -227,6 +230,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         int n = p->i.aux;
         if (n > s - o) {
           *labelf = LFAIL; /* labeled failure */
+					*sfail = s;
           goto fail;
         }
         s -= n; p++;
@@ -297,6 +301,8 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
       }
       case IThrow: { /* labeled failure */
         *labelf = (p+1)->labels;
+				*sfail = s;
+				/*printf("s = %s, sfail = %s\n", s, *sfail);*/
         goto fail;
       }
       case IFailTwice:
@@ -305,6 +311,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         /* go through */
       case IFail:
       *labelf = LFAIL; /* labeled failure */
+			*sfail = s;
       fail: { /* pattern failed: try to backtrack */
         do {  /* remove pending calls */
           assert(stack > getstackbase(L, ptop));
@@ -327,6 +334,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         res = resdyncaptures(L, fr, s - o, e - o);  /* get result */
         if (res == -1) { /* fail? */
           *labelf = LFAIL; /* labeled failure */
+					*sfail = (const char *) s; /* TODO: ??? */
           goto fail;
         }
         s = o + res;  /* else update current position */

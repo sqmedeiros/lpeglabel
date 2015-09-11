@@ -1198,10 +1198,12 @@ static int lp_match (lua_State *L) {
   size_t i = initposition(L, l);
   int ptop = lua_gettop(L);
   Labelset labelf; /* labeled failure */
+  const char *sfail = NULL; /* labeled failure */
   lua_pushnil(L);  /* initialize subscache */
   lua_pushlightuserdata(L, capture);  /* initialize caplistidx */
   lua_getfenv(L, 1);  /* initialize penvidx */
-  r = match(L, s, s + i, s + l, code, capture, ptop, &labelf); /* labeled failure */
+  r = match(L, s, s + i, s + l, code, capture, ptop, &labelf, &sfail); /* labeled failure */
+	/*printf("sfail = %s\n", sfail);*/
   if (r == NULL) { /* labeled failure begin */
     int j = 0;
     int n = 1;
@@ -1210,10 +1212,12 @@ static int lp_match (lua_State *L) {
       if (labelf & (1 << j)) {	
         lua_pushinteger(L, j);
         n++;
+				break; /* Changing the semantics: only one label */
       }
       j++;
     }
-    return n;
+		lua_pushstring(L, sfail); /* Pushing the subject where the failure occurred */
+    return n + 1;
   }  /* labeled failure end */
   return getcaptures(L, s, r, ptop);
 }
