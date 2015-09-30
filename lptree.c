@@ -706,7 +706,7 @@ static int lp_throw (lua_State *L) {
 	Labelset ls = 0;
 	int i;
 	for (i = 1; i <= n; i++) {
-		int d = luaL_checkinteger(L, i);
+		int d = (int)luaL_checkinteger(L, i);
 		luaL_argcheck(L, d >= 0 && d < (int)MAXLABELS, i, "invalid label index");
 		setlabel(ls, d);
 	}
@@ -723,7 +723,7 @@ static int lp_labchoice (lua_State *L) {
 	int i;
 	Labelset ls = 0;
 	for (i = 3; i <= n; i++) {
-		int d = luaL_checkinteger(L, i);
+		int d = (int)luaL_checkinteger(L, i);
 		luaL_argcheck(L, d >= 0 && d < (int)MAXLABELS, i, "invalid label index");
 		setlabel(ls, d);
 	}
