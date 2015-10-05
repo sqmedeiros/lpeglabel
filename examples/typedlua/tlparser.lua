@@ -4,8 +4,9 @@ local lpeg = require "lpeglabel"
 lpeg.locale(lpeg)
 
 local tllexer = require "tllexer"
+local tlerror = require "tlerror"
 
-local function chainl1 (pat, sep)
+local function chainl1 (pat, sep, label)
   return pat * (sep * pat)^0
 end
 
@@ -14,7 +15,7 @@ local G = lpeg.P { "TypedLua";
   -- type language
   Type = lpeg.V("NilableType");
   NilableType = lpeg.V("UnionType") * tllexer.symb("?")^-1;
-  UnionType = lpeg.V("PrimaryType") * (tllexer.symb("|") * lpeg.V("PrimaryType"))^0;
+  UnionType = lpeg.V("PrimaryType") * (tllexer.symb("|") * tllexer.try(lpeg.V("PrimaryType"), "UnionType"))^0;
   PrimaryType = lpeg.V("LiteralType") +
                 lpeg.V("BaseType") +
                 lpeg.V("NilType") +
@@ -24,73 +25,74 @@ local G = lpeg.P { "TypedLua";
                 lpeg.V("FunctionType") +
                 lpeg.V("TableType") +
                 lpeg.V("VariableType");
-  LiteralType = tllexer.token("false") +
-                tllexer.token("true") +
-                tllexer.token(tllexer.Number) +
-                tllexer.token(tllexer.String);
-  BaseType = tllexer.token("boolean") +
-             tllexer.token("number") +
-             tllexer.token("string") +
-             tllexer.token("integer");
-  NilType = tllexer.token("nil");
-  ValueType = tllexer.token("value");
-  AnyType = tllexer.token("any");
-  SelfType = tllexer.token("self");
-  FunctionType = lpeg.V("InputType") * tllexer.symb("->") * lpeg.V("NilableTuple");
-  MethodType = lpeg.V("InputType") * tllexer.symb("=>") * lpeg.V("NilableTuple");
-  InputType = tllexer.symb("(") * lpeg.V("TupleType")^-1 * tllexer.symb(")");
+  LiteralType = tllexer.token("false", "false") +
+                tllexer.token("true", "true") +
+                tllexer.token(tllexer.Number, "Number") +
+                tllexer.token(tllexer.String, "String");
+  BaseType = tllexer.token("boolean", "boolean") +
+             tllexer.token("number", "number") +
+             tllexer.token("string", "string") +
+             tllexer.token("integer", "integer");
+  NilType = tllexer.token("nil", "nil");
+  ValueType = tllexer.token("value", "value");
+  AnyType = tllexer.token("any", "any");
+  SelfType = tllexer.token("self", "self");
+  FunctionType = lpeg.V("InputType") * tllexer.symb("->") * tllexer.try(lpeg.V("NilableTuple"), "FunctionType");
+  MethodType = lpeg.V("InputType") * tllexer.symb("=>") * tllexer.try(lpeg.V("NilableTuple"), "MethodType");
+  InputType = tllexer.symb("(") * lpeg.V("TupleType")^-1 * tllexer.try(tllexer.symb(")"), "MissingCP");
   NilableTuple = lpeg.V("UnionlistType") * tllexer.symb("?")^-1;
-  UnionlistType = lpeg.V("OutputType") * (tllexer.symb("|") * lpeg.V("OutputType"))^0;
-  OutputType = tllexer.symb("(") * lpeg.V("TupleType")^-1 * tllexer.symb(")");
-  TupleType = lpeg.V("Type") * (tllexer.symb(",") * lpeg.V("Type"))^0 * tllexer.symb("*")^-1;
-  TableType = tllexer.symb("{") * lpeg.V("TableTypeBody")^-1 * tllexer.symb("}");
+  UnionlistType = lpeg.V("OutputType") * (tllexer.symb("|") * tllexer.try(lpeg.V("OutputType"), "UnionType"))^0;
+  OutputType = tllexer.symb("(") * lpeg.V("TupleType")^-1 * tllexer.try(tllexer.symb(")"), "MissingCP");
+  TupleType = lpeg.V("Type") * (tllexer.symb(",") * tllexer.try(lpeg.V("Type"), "TupleType"))^0 * tllexer.symb("*")^-1;
+  TableType = tllexer.symb("{") * lpeg.V("TableTypeBody")^-1 * tllexer.try(tllexer.symb("}"), "MissingCC");
   TableTypeBody = lpeg.V("RecordType") +
                   lpeg.V("HashType") +
                   lpeg.V("ArrayType");
   RecordType = lpeg.V("RecordField") * (tllexer.symb(",") * lpeg.V("RecordField"))^0 *
                (tllexer.symb(",") * (lpeg.V("HashType") + lpeg.V("ArrayType")))^-1;
   RecordField = tllexer.kw("const")^-1 *
-                lpeg.V("LiteralType") * tllexer.symb(":") * lpeg.V("Type");
-  HashType = lpeg.V("KeyType") * tllexer.symb(":") * lpeg.V("FieldType");
+                lpeg.V("LiteralType") * tllexer.symb(":") * tllexer.try(lpeg.V("Type"), "Type");
+  HashType = lpeg.V("KeyType") * tllexer.symb(":") * tllexer.try(lpeg.V("FieldType"), "Type");
   ArrayType = lpeg.V("FieldType");
   KeyType = lpeg.V("BaseType") + lpeg.V("ValueType") + lpeg.V("AnyType");
   FieldType = lpeg.V("Type");
-  VariableType = tllexer.token(tllexer.Name);
+  VariableType = tllexer.token(tllexer.Name, "Name");
   RetType = lpeg.V("NilableTuple") +
             lpeg.V("Type");
-  Id = tllexer.token(tllexer.Name);
+  Id = tllexer.token(tllexer.Name, "Name");
   TypeDecId = (tllexer.kw("const") * lpeg.V("Id")) +
               lpeg.V("Id");
-  IdList = lpeg.V("TypeDecId") * (tllexer.symb(",") * lpeg.V("TypeDecId"))^0;
-  IdDec = lpeg.V("IdList") * tllexer.symb(":") *
-          (lpeg.V("Type") + lpeg.V("MethodType"));
+  IdList = lpeg.V("TypeDecId") * (tllexer.symb(",") * tllexer.try(lpeg.V("TypeDecId"), "TupleType"))^0;
+  IdDec = lpeg.V("IdList") * tllexer.symb(":") * tllexer.try((lpeg.V("Type") + lpeg.V("MethodType")), "Type");
   IdDecList = (lpeg.V("IdDec")^1)^-1;
-  TypeDec = tllexer.token(tllexer.Name) * lpeg.V("IdDecList") * tllexer.kw("end");
+  TypeDec = tllexer.token(tllexer.Name, "Name") * lpeg.V("IdDecList") * tllexer.try(tllexer.kw("end"), "TypeDecEnd");
   Interface = tllexer.kw("interface") * lpeg.V("TypeDec") +
-              tllexer.kw("typealias") * tllexer.token(tllexer.Name) * tllexer.symb("=") * lpeg.V("Type");
+              tllexer.kw("typealias") *
+                tllexer.try(tllexer.token(tllexer.Name, "Name"), "TypeAliasName") *
+                tllexer.try(tllexer.symb("="), "MissingEqTypeAlias") * lpeg.V("Type");
   -- parser
   Chunk = lpeg.V("Block");
   StatList = (tllexer.symb(";") + lpeg.V("Stat"))^0;
   Var = lpeg.V("Id");
-  TypedId = tllexer.token(tllexer.Name) * (tllexer.symb(":") * lpeg.V("Type"))^-1;
+  TypedId = tllexer.token(tllexer.Name, "Name") * (tllexer.symb(":") * tllexer.try(lpeg.V("Type"), "Type"))^-1;
   FunctionDef = tllexer.kw("function") * lpeg.V("FuncBody");
   FieldSep = tllexer.symb(",") + tllexer.symb(";");
-  Field = ((tllexer.symb("[") * lpeg.V("Expr") * tllexer.symb("]")) +
-          (tllexer.token(tllexer.Name))) *
+  Field = ((tllexer.symb("[") * lpeg.V("Expr") * tllexer.try(tllexer.symb("]"), "MissingCB")) +
+          (tllexer.token(tllexer.Name, "Name"))) *
           tllexer.symb("=") * lpeg.V("Expr") +
           lpeg.V("Expr");
   TField = (tllexer.kw("const") * lpeg.V("Field")) +
            lpeg.V("Field");
   FieldList = (lpeg.V("TField") * (lpeg.V("FieldSep") * lpeg.V("TField"))^0 *
               lpeg.V("FieldSep")^-1)^-1;
-  Constructor = tllexer.symb("{") * lpeg.V("FieldList") * tllexer.symb("}");
+  Constructor = tllexer.symb("{") * lpeg.V("FieldList") * tllexer.try(tllexer.symb("}"), "MissingCC");
   NameList = lpeg.V("TypedId") * (tllexer.symb(",") * lpeg.V("TypedId"))^0;
   ExpList = lpeg.V("Expr") * (tllexer.symb(",") * lpeg.V("Expr"))^0;
   FuncArgs = tllexer.symb("(") *
              (lpeg.V("Expr") * (tllexer.symb(",") * lpeg.V("Expr"))^0)^-1 *
-             tllexer.symb(")") +
+             tllexer.try(tllexer.symb(")"), "MissingCP") +
              lpeg.V("Constructor") +
-             tllexer.token(tllexer.String);
+             tllexer.token(tllexer.String, "String");
   OrOp = tllexer.kw("or");
   AndOp = tllexer.kw("and");
   RelOp = tllexer.symb("~=") +
@@ -131,8 +133,8 @@ local G = lpeg.P { "TypedLua";
   SubExpr_11 = lpeg.V("UnOp") * lpeg.V("SubExpr_11") +
                lpeg.V("SubExpr_12");
   SubExpr_12 = lpeg.V("SimpleExp") * (lpeg.V("PowOp") * lpeg.V("SubExpr_11"))^-1;
-  SimpleExp = tllexer.token(tllexer.Number) +
-              tllexer.token(tllexer.String) +
+  SimpleExp = tllexer.token(tllexer.Number, "Number") +
+              tllexer.token(tllexer.String, "String") +
               tllexer.kw("nil") +
               tllexer.kw("false") +
               tllexer.kw("true") +
@@ -141,49 +143,49 @@ local G = lpeg.P { "TypedLua";
               lpeg.V("Constructor") +
               lpeg.V("SuffixedExp");
   SuffixedExp = lpeg.V("PrimaryExp") * (
-                (tllexer.symb(".") * tllexer.token(tllexer.Name)) / "index" +
-                (tllexer.symb("[") * lpeg.V("Expr") * tllexer.symb("]")) / "index" +
-                (tllexer.symb(":") * tllexer.token(tllexer.Name) * lpeg.V("FuncArgs")) / "call" +
+                (tllexer.symb(".") * tllexer.try(tllexer.token(tllexer.Name, "Name"), "DotIndex")) / "index" +
+                (tllexer.symb("[") * lpeg.V("Expr") * tllexer.try(tllexer.symb("]"), "MissingCB")) / "index" +
+                (tllexer.symb(":") * tllexer.try(tllexer.token(tllexer.Name, "Name"), "MethodName") * tllexer.try(lpeg.V("FuncArgs"), "MethodCall")) / "call" +
                 lpeg.V("FuncArgs") / "call")^0 / function (...) local l = {...}; return l[#l] end;
   PrimaryExp = lpeg.V("Var") / "var" +
-               tllexer.symb("(") * lpeg.V("Expr") * tllexer.symb(")");
+               tllexer.symb("(") * lpeg.V("Expr") * tllexer.try(tllexer.symb(")"), "MissingCP");
   Block = lpeg.V("StatList") * lpeg.V("RetStat")^-1;
-  IfStat = tllexer.kw("if") * lpeg.V("Expr") * tllexer.kw("then") * lpeg.V("Block") *
-           (tllexer.kw("elseif") * lpeg.V("Expr") * tllexer.kw("then") * lpeg.V("Block"))^0 *
+  IfStat = tllexer.kw("if") * lpeg.V("Expr") * tllexer.try(tllexer.kw("then"), "Then") * lpeg.V("Block") *
+           (tllexer.kw("elseif") * lpeg.V("Expr") * tllexer.try(tllexer.kw("then"), "Then") * lpeg.V("Block"))^0 *
            (tllexer.kw("else") * lpeg.V("Block"))^-1 *
-           tllexer.kw("end");
+           tllexer.try(tllexer.kw("end"), "IfEnd");
   WhileStat = tllexer.kw("while") * lpeg.V("Expr") *
-              tllexer.kw("do") * lpeg.V("Block") * tllexer.kw("end");
-  DoStat = tllexer.kw("do") * lpeg.V("Block") * tllexer.kw("end");
-  ForBody = tllexer.kw("do") * lpeg.V("Block");
+              tllexer.try(tllexer.kw("do"), "WhileDo") * lpeg.V("Block") * tllexer.try(tllexer.kw("end"), "WhileEnd");
+  DoStat = tllexer.kw("do") * lpeg.V("Block") * tllexer.try(tllexer.kw("end"), "BlockEnd");
+  ForBody = tllexer.try(tllexer.kw("do"), "ForDo") * lpeg.V("Block");
   ForNum = lpeg.V("Id") * tllexer.symb("=") * lpeg.V("Expr") * tllexer.symb(",") *
            lpeg.V("Expr") * (tllexer.symb(",") * lpeg.V("Expr"))^-1 *
            lpeg.V("ForBody");
   ForGen = lpeg.V("NameList") * tllexer.kw("in") *
            lpeg.V("ExpList") * lpeg.V("ForBody");
-  ForStat = tllexer.kw("for") * (lpeg.V("ForNum") + lpeg.V("ForGen")) * tllexer.kw("end");
+  ForStat = tllexer.kw("for") * (lpeg.V("ForNum") + lpeg.V("ForGen")) * tllexer.try(tllexer.kw("end"), "ForEnd");
   RepeatStat = tllexer.kw("repeat") * lpeg.V("Block") *
-               tllexer.kw("until") * lpeg.V("Expr");
+               tllexer.try(tllexer.kw("until"), "Until") * lpeg.V("Expr");
   FuncName = lpeg.V("Id") * (tllexer.symb(".") *
-             (tllexer.token(tllexer.Name)))^0 *
-             (tllexer.symb(":") * (tllexer.token(tllexer.Name)))^-1;
-  ParList = lpeg.V("NameList") * (tllexer.symb(",") * lpeg.V("TypedVarArg"))^-1 +
+             (tllexer.token(tllexer.Name, "Name")))^0 *
+             (tllexer.symb(":") * (tllexer.token(tllexer.Name, "Name")))^-1;
+  ParList = lpeg.V("NameList") * (tllexer.symb(",") * tllexer.try(lpeg.V("TypedVarArg"), "ParList"))^-1 +
             lpeg.V("TypedVarArg");
-  TypedVarArg = tllexer.symb("...") * (tllexer.symb(":") * lpeg.V("Type"))^-1;
-  FuncBody = tllexer.symb("(") * lpeg.V("ParList")^-1 * tllexer.symb(")") *
-             (tllexer.symb(":") * lpeg.V("RetType"))^-1 *
-             lpeg.V("Block") * tllexer.kw("end");
+  TypedVarArg = tllexer.symb("...") * (tllexer.symb(":") * tllexer.try(lpeg.V("Type"), "Type"))^-1;
+  FuncBody = tllexer.symb("(") * lpeg.V("ParList")^-1 * tllexer.try(tllexer.symb(")"), "MissingCP") *
+             (tllexer.symb(":") * tllexer.try(lpeg.V("RetType"), "Type"))^-1 *
+             lpeg.V("Block") * tllexer.try(tllexer.kw("end"), "FuncEnd");
   FuncStat = tllexer.kw("const")^-1 *
              tllexer.kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody");
   LocalFunc = tllexer.kw("function") *
               lpeg.V("Id") * lpeg.V("FuncBody");
   LocalAssign = lpeg.V("NameList") *
-                ((tllexer.symb("=") * lpeg.V("ExpList")))^-1;
+                ((tllexer.symb("=") * tllexer.try(lpeg.V("ExpList"), "LocalAssign")))^-1;
   LocalStat = tllexer.kw("local") *
               (lpeg.V("LocalTypeDec") + lpeg.V("LocalFunc") + lpeg.V("LocalAssign"));
-  LabelStat = tllexer.symb("::") * tllexer.token(tllexer.Name) * tllexer.symb("::");
+  LabelStat = tllexer.symb("::") * tllexer.try(tllexer.token(tllexer.Name, "Name"), "Label1") * tllexer.try(tllexer.symb("::"), "Label2");
   BreakStat = tllexer.kw("break");
-  GoToStat = tllexer.kw("goto") * tllexer.token(tllexer.Name);
+  GoToStat = tllexer.kw("goto") * tllexer.token(tllexer.Name, "Name");
   RetStat = tllexer.kw("return") *
             (lpeg.V("Expr") * (tllexer.symb(",") * lpeg.V("Expr"))^0)^-1 *
             tllexer.symb(";")^-1;
@@ -214,12 +216,27 @@ local G = lpeg.P { "TypedLua";
          lpeg.V("TypeDecStat") + lpeg.V("ExprStat");
 }
 
+local function lineno (s, i)
+  if i == 1 then return 1, 1 end
+  local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
+  local r = #rest
+  return 1 + num, r ~= 0 and r or 1
+end
+
 function tlparser.parse (subject, filename, strict, integer)
   local errorinfo = {}
   lpeg.setmaxstack(1000)
   local ast, label, _ = lpeg.match(G, subject, nil, errorinfo, strict, integer)
   if not ast then
-    return nil
+    local line, col = lineno(subject, errorinfo.ffp)
+    local error_msg = string.format("%s:%d:%d: ", filename, line, col)
+    if label ~= 0 then
+      error_msg = error_msg .. tlerror.errors[label].msg
+    else
+      local u = lpeg.match(lpeg.C(tllexer.OneWord) + lpeg.Cc("EOF"), subject, errorinfo.ffp)
+      error_msg = error_msg .. string.format("unexpected '%s', expecting %s", u, errorinfo.expected)
+    end
+    return nil, error_msg
   else
     return true
   end

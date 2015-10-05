@@ -14,5 +14,7 @@ end
 
 local filename = arg[1]
 local subject = getcontents(filename)
+local r, msg = tlparser.parse(subject, filename, false, true)
+if not r then print(msg) end
 
-print(tlparser.parse(subject, filename, false, true))
+os.exit(0)
