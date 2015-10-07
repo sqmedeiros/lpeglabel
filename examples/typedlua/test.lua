@@ -1757,7 +1757,7 @@ a = 3 / / 2
 test.lua:1:9: syntax error, unexpected '/', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:1:9: unexpected '/', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:1:9: malformed multiplication expression
 ]=]
 
 r, m = parse(s)
@@ -1772,7 +1772,7 @@ b = 1 && 1
 test.lua:1:8: syntax error, unexpected '&', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:1:8: unexpected '&', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:1:8: malformed '&' expression
 ]=]
 
 r, m = parse(s)
@@ -1785,7 +1785,7 @@ b = 1 <> 0
 test.lua:1:8: syntax error, unexpected '>', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:1:8: unexpected '>', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:1:8: malformed relational expression
 ]=]
 
 r, m = parse(s)
@@ -1798,7 +1798,7 @@ b = 1 < < 0
 test.lua:1:9: syntax error, unexpected '<', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:1:9: unexpected '<', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:1:9: malformed relational expression
 ]=]
 
 r, m = parse(s)
@@ -1973,7 +1973,7 @@ end
 test.lua:7:1: syntax error, unexpected 'end', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:7:1: missing 'end' to close if statement
+test.lua:7:1: expecting <exp> after 'elseif'
 ]=]
 
 r, m = parse(s)

@@ -7,7 +7,7 @@ local tllexer = require "tllexer"
 local tlerror = require "tlerror"
 
 local function chainl1 (pat, sep, label)
-  return pat * (sep * pat)^0
+  return pat * (sep * tllexer.try(pat, label))^0
 end
 
 local G = lpeg.P { "TypedLua";
@@ -102,7 +102,7 @@ local G = lpeg.P { "TypedLua";
           tllexer.symb("<") +
           tllexer.symb(">");
   BOrOp = tllexer.symb("|");
-  BXorOp = tllexer.symb("~");
+  BXorOp = tllexer.symb("~") * -lpeg.P("=");
   BAndOp = tllexer.symb("&");
   ShiftOp = tllexer.symb("<<") +
             tllexer.symb(">>");
@@ -119,20 +119,20 @@ local G = lpeg.P { "TypedLua";
          tllexer.symb("#");
   PowOp = tllexer.symb("^");
   Expr = lpeg.V("SubExpr_1");
-  SubExpr_1 = chainl1(lpeg.V("SubExpr_2"), lpeg.V("OrOp"));
-  SubExpr_2 = chainl1(lpeg.V("SubExpr_3"), lpeg.V("AndOp"));
-  SubExpr_3 = chainl1(lpeg.V("SubExpr_4"), lpeg.V("RelOp"));
-  SubExpr_4 = chainl1(lpeg.V("SubExpr_5"), lpeg.V("BOrOp"));
-  SubExpr_5 = chainl1(lpeg.V("SubExpr_6"), lpeg.V("BXorOp"));
-  SubExpr_6 = chainl1(lpeg.V("SubExpr_7"), lpeg.V("BAndOp"));
-  SubExpr_7 = chainl1(lpeg.V("SubExpr_8"), lpeg.V("ShiftOp"));
-  SubExpr_8 = lpeg.V("SubExpr_9") * lpeg.V("ConOp") * lpeg.V("SubExpr_8") +
+  SubExpr_1 = chainl1(lpeg.V("SubExpr_2"), lpeg.V("OrOp"), "SubExpr_1");
+  SubExpr_2 = chainl1(lpeg.V("SubExpr_3"), lpeg.V("AndOp"), "SubExpr_2");
+  SubExpr_3 = chainl1(lpeg.V("SubExpr_4"), lpeg.V("RelOp"), "SubExpr_3");
+  SubExpr_4 = chainl1(lpeg.V("SubExpr_5"), lpeg.V("BOrOp"), "SubExpr_4");
+  SubExpr_5 = chainl1(lpeg.V("SubExpr_6"), lpeg.V("BXorOp"), "SubExpr_5");
+  SubExpr_6 = chainl1(lpeg.V("SubExpr_7"), lpeg.V("BAndOp"), "SubExpr_6");
+  SubExpr_7 = chainl1(lpeg.V("SubExpr_8"), lpeg.V("ShiftOp"), "SubExpr_7");
+  SubExpr_8 = lpeg.V("SubExpr_9") * lpeg.V("ConOp") * tllexer.try(lpeg.V("SubExpr_8"), "SubExpr_8") +
               lpeg.V("SubExpr_9");
-  SubExpr_9 = chainl1(lpeg.V("SubExpr_10"), lpeg.V("AddOp"));
-  SubExpr_10 = chainl1(lpeg.V("SubExpr_11"), lpeg.V("MulOp"));
-  SubExpr_11 = lpeg.V("UnOp") * lpeg.V("SubExpr_11") +
+  SubExpr_9 = chainl1(lpeg.V("SubExpr_10"), lpeg.V("AddOp"), "SubExpr_9");
+  SubExpr_10 = chainl1(lpeg.V("SubExpr_11"), lpeg.V("MulOp"), "SubExpr_10");
+  SubExpr_11 = lpeg.V("UnOp") * tllexer.try(lpeg.V("SubExpr_11"), "SubExpr_11") +
                lpeg.V("SubExpr_12");
-  SubExpr_12 = lpeg.V("SimpleExp") * (lpeg.V("PowOp") * lpeg.V("SubExpr_11"))^-1;
+  SubExpr_12 = lpeg.V("SimpleExp") * (lpeg.V("PowOp") * tllexer.try(lpeg.V("SubExpr_11"), "SubExpr_12"))^-1;
   SimpleExp = tllexer.token(tllexer.Number, "Number") +
               tllexer.token(tllexer.String, "String") +
               tllexer.kw("nil") +
@@ -151,7 +151,7 @@ local G = lpeg.P { "TypedLua";
                tllexer.symb("(") * lpeg.V("Expr") * tllexer.try(tllexer.symb(")"), "MissingCP");
   Block = lpeg.V("StatList") * lpeg.V("RetStat")^-1;
   IfStat = tllexer.kw("if") * lpeg.V("Expr") * tllexer.try(tllexer.kw("then"), "Then") * lpeg.V("Block") *
-           (tllexer.kw("elseif") * lpeg.V("Expr") * tllexer.try(tllexer.kw("then"), "Then") * lpeg.V("Block"))^0 *
+           (tllexer.kw("elseif") * tllexer.try(lpeg.V("Expr"), "ElseIf") * tllexer.try(tllexer.kw("then"), "Then") * lpeg.V("Block"))^0 *
            (tllexer.kw("else") * lpeg.V("Block"))^-1 *
            tllexer.try(tllexer.kw("end"), "IfEnd");
   WhileStat = tllexer.kw("while") * lpeg.V("Expr") *
