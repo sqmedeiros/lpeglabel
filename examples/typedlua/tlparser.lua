@@ -161,7 +161,7 @@ local G = lpeg.P { "TypedLua";
   ForNum = lpeg.V("Id") * tllexer.symb("=") * lpeg.V("Expr") * tllexer.symb(",") *
            lpeg.V("Expr") * (tllexer.symb(",") * lpeg.V("Expr"))^-1 *
            lpeg.V("ForBody");
-  ForGen = lpeg.V("NameList") * tllexer.kw("in") *
+  ForGen = lpeg.V("NameList") * tllexer.try(tllexer.kw("in"), "ForGen") *
            lpeg.V("ExpList") * lpeg.V("ForBody");
   ForStat = tllexer.kw("for") * (lpeg.V("ForNum") + lpeg.V("ForGen")) * tllexer.try(tllexer.kw("end"), "ForEnd");
   RepeatStat = tllexer.kw("repeat") * lpeg.V("Block") *
@@ -172,13 +172,13 @@ local G = lpeg.P { "TypedLua";
   ParList = lpeg.V("NameList") * (tllexer.symb(",") * tllexer.try(lpeg.V("TypedVarArg"), "ParList"))^-1 +
             lpeg.V("TypedVarArg");
   TypedVarArg = tllexer.symb("...") * (tllexer.symb(":") * tllexer.try(lpeg.V("Type"), "Type"))^-1;
-  FuncBody = tllexer.symb("(") * lpeg.V("ParList")^-1 * tllexer.try(tllexer.symb(")"), "MissingCP") *
+  FuncBody = tllexer.try(tllexer.symb("("), "MissingOP") * lpeg.V("ParList")^-1 * tllexer.try(tllexer.symb(")"), "MissingCP") *
              (tllexer.symb(":") * tllexer.try(lpeg.V("RetType"), "Type"))^-1 *
              lpeg.V("Block") * tllexer.try(tllexer.kw("end"), "FuncEnd");
   FuncStat = tllexer.kw("const")^-1 *
              tllexer.kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody");
   LocalFunc = tllexer.kw("function") *
-              lpeg.V("Id") * lpeg.V("FuncBody");
+              tllexer.try(lpeg.V("Id"), "LocalFunc") * lpeg.V("FuncBody");
   LocalAssign = lpeg.V("NameList") *
                 ((tllexer.symb("=") * tllexer.try(lpeg.V("ExpList"), "LocalAssign")))^-1;
   LocalStat = tllexer.kw("local") *

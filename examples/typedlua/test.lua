@@ -1828,7 +1828,7 @@ for k;v in pairs(t) do end
 test.lua:1:6: syntax error, unexpected ';', expecting 'in', ',', ':', '='
 ]=]
 e = [=[
-test.lua:1:6: unexpected ';', expecting 'in', ',', ':', '='
+test.lua:1:6: expecting 'in'
 ]=]
 
 r, m = parse(s)
@@ -1910,7 +1910,7 @@ function a.b:c:d () end
 test.lua:1:15: syntax error, unexpected ':', expecting '('
 ]=]
 e = [=[
-test.lua:1:15: unexpected ':', expecting '('
+test.lua:1:15: missing '('
 ]=]
 
 r, m = parse(s)
@@ -2030,7 +2030,7 @@ local function t.a() end
 test.lua:1:17: syntax error, unexpected '.', expecting '('
 ]=]
 e = [=[
-test.lua:1:17: unexpected '.', expecting '('
+test.lua:1:17: missing '('
 ]=]
 
 r, m = parse(s)
@@ -2069,7 +2069,7 @@ local function (a, b, c, ...) end
 test.lua:1:16: syntax error, unexpected '(', expecting 'Name'
 ]=]
 e = [=[
-test.lua:1:16: unexpected '(', expecting 'Name'
+test.lua:1:16: expecting <name> in local function declaration
 ]=]
 
 r, m = parse(s)

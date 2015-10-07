@@ -8,6 +8,7 @@ new_error("Number", "malformed <number>")
 new_error("String", "malformed <string>")
 new_error("LongString", "unfinished long string")
 new_error("LongComment", "unfinished long comment")
+new_error("MissingOP", "missing '('")
 new_error("MissingCP", "missing ')'")
 new_error("MissingCC", "missing '}'")
 new_error("MissingCB", "missing ']'")
@@ -35,6 +36,8 @@ new_error("MethodCall", "expecting '(' for method call")
 new_error("Label1", "expecting <name> after '::'")
 new_error("Label2", "expecting '::' to close label declaration")
 new_error("LocalAssign", "expecting expression list after '='")
+new_error("ForGen", "expecting 'in'")
+new_error("LocalFunc", "expecting <name> in local function declaration")
 
 local labels = {}
 for k, v in ipairs(errors) do
