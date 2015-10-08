@@ -9,6 +9,10 @@ function tllexer.try (pat, label)
   return pat + lpeg.T(tlerror.labels[label])
 end
 
+function tllexer.catch (pat, label)
+  return lpeg.Lc(pat, lpeg.P(false), tlerror.labels[label])
+end
+
 local function setffp (s, i, t, n)
   if not t.ffp or i > t.ffp then
     t.ffp = i
@@ -75,7 +79,7 @@ end
 
 local Hex = (lpeg.P("0x") + lpeg.P("0X")) * tllexer.try(lpeg.xdigit^1, "Number")
 local Expo = lpeg.S("eE") * lpeg.S("+-")^-1 * tllexer.try(lpeg.digit^1, "Number")
-local Float = (((lpeg.digit^1 * lpeg.P(".") * lpeg.digit^0) +
+local Float = (((lpeg.digit^1 * lpeg.P(".") * lpeg.digit^0 * tllexer.try(-lpeg.P("."), "Number")) +
               (lpeg.P(".") * lpeg.digit^1)) * Expo^-1) +
               (lpeg.digit^1 * Expo)
 local Int = lpeg.digit^1

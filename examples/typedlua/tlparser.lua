@@ -11,7 +11,7 @@ local function chainl1 (pat, sep, label)
 end
 
 local G = lpeg.P { "TypedLua";
-  TypedLua = tllexer.Shebang^-1 * tllexer.Skip * lpeg.V("Chunk") * -1;
+  TypedLua = tllexer.Shebang^-1 * tllexer.Skip * lpeg.V("Chunk") * tllexer.try(-1, "Stat");
   -- type language
   Type = lpeg.V("NilableType");
   NilableType = lpeg.V("UnionType") * tllexer.symb("?")^-1;
@@ -179,14 +179,14 @@ local G = lpeg.P { "TypedLua";
              tllexer.kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody");
   LocalFunc = tllexer.kw("function") *
               tllexer.try(lpeg.V("Id"), "LocalFunc") * lpeg.V("FuncBody");
-  LocalAssign = lpeg.V("NameList") *
-                ((tllexer.symb("=") * tllexer.try(lpeg.V("ExpList"), "LocalAssign")))^-1;
+  LocalAssign = lpeg.V("NameList") * tllexer.symb("=") * tllexer.try(lpeg.V("ExpList"), "LocalAssign1") +
+                lpeg.V("NameList") * (#(-tllexer.symb("=") * (lpeg.V("Stat") + -1)) * lpeg.P(true)) + lpeg.T(tlerror.labels["LocalAssign2"]);
   LocalStat = tllexer.kw("local") *
               (lpeg.V("LocalTypeDec") + lpeg.V("LocalFunc") + lpeg.V("LocalAssign"));
   LabelStat = tllexer.symb("::") * tllexer.try(tllexer.token(tllexer.Name, "Name"), "Label1") * tllexer.try(tllexer.symb("::"), "Label2");
   BreakStat = tllexer.kw("break");
   GoToStat = tllexer.kw("goto") * tllexer.token(tllexer.Name, "Name");
-  RetStat = tllexer.kw("return") *
+  RetStat = tllexer.kw("return") * tllexer.try(-lpeg.V("Stat"), "RetStat") *
             (lpeg.V("Expr") * (tllexer.symb(",") * lpeg.V("Expr"))^0)^-1 *
             tllexer.symb(";")^-1;
   TypeDecStat = lpeg.V("Interface");
