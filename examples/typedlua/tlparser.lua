@@ -226,9 +226,9 @@ end
 function tlparser.parse (subject, filename, strict, integer)
   local errorinfo = {}
   lpeg.setmaxstack(1000)
-  local ast, label, _ = lpeg.match(G, subject, nil, errorinfo, strict, integer)
+  local ast, label, suffix = lpeg.match(G, subject, nil, errorinfo, strict, integer)
   if not ast then
-    local line, col = lineno(subject, errorinfo.ffp)
+    local line, col = lineno(subject, string.len(subject) - string.len(suffix))
     local error_msg = string.format("%s:%d:%d: ", filename, line, col)
     if label ~= 0 then
       error_msg = error_msg .. tlerror.errors[label].msg

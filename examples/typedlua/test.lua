@@ -290,7 +290,7 @@ local f = 9e
 test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 e = [=[
-test.lua:1:11: malformed <number>
+test.lua:1:12: malformed <number>
 ]=]
 
 r, m = parse(s)
@@ -303,7 +303,7 @@ local f = 5.e
 test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 e = [=[
-test.lua:1:11: malformed <number>
+test.lua:1:13: malformed <number>
 ]=]
 
 r, m = parse(s)
@@ -316,7 +316,7 @@ local f = .9e-
 test.lua:1:14: syntax error, unexpected '-', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 e = [=[
-test.lua:1:11: malformed <number>
+test.lua:1:14: malformed <number>
 ]=]
 
 r, m = parse(s)
@@ -329,7 +329,7 @@ local f = 5.9e+
 test.lua:1:15: syntax error, unexpected '+', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 e = [=[
-test.lua:1:11: malformed <number>
+test.lua:1:15: malformed <number>
 ]=]
 
 r, m = parse(s)
@@ -346,7 +346,7 @@ local hex = 0xG
 test.lua:4:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 e = [=[
-test.lua:3:13: malformed <number>
+test.lua:3:14: malformed <number>
 ]=]
 
 r, m = parse(s)
@@ -373,7 +373,7 @@ long string
 test.lua:5:13: syntax error, unexpected '[', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:5:13: unfinished long string
+test.lua:14:1: unfinished long string
 ]=]
 
 r, m = parse(s)
@@ -392,7 +392,7 @@ local ss6 = "testing unfinished string
 test.lua:3:13: syntax error, unexpected '"', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:3:13: malformed <string>
+test.lua:6:1: malformed <string>
 ]=]
 
 r, m = parse(s)
@@ -409,7 +409,7 @@ comment
 test.lua:3:1: syntax error, unexpected 'comment', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 e = [=[
-test.lua:4:1: unfinished long comment
+test.lua:1:1: unfinished long comment
 ]=]
 
 r, m = parse(s)
@@ -1703,7 +1703,7 @@ a = function (a,b,) end
 test.lua:1:19: syntax error, unexpected ')', expecting '...', 'Name'
 ]=]
 e = [=[
-test.lua:1:19: expecting '...'
+test.lua:1:18: expecting '...'
 ]=]
 
 r, m = parse(s)
@@ -1716,7 +1716,7 @@ a = function (...,a) end
 test.lua:1:18: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 e = [=[
-test.lua:1:18: missing ')'
+test.lua:1:17: missing ')'
 ]=]
 
 r, m = parse(s)
@@ -1729,7 +1729,7 @@ local a = function (1) end
 test.lua:1:21: syntax error, unexpected '1', expecting ')', '...', 'Name'
 ]=]
 e = [=[
-test.lua:1:21: missing ')'
+test.lua:1:20: missing ')'
 ]=]
 
 r, m = parse(s)
@@ -1757,7 +1757,7 @@ a = 3 / / 2
 test.lua:1:9: syntax error, unexpected '/', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:1:9: malformed multiplication expression
+test.lua:1:8: malformed multiplication expression
 ]=]
 
 r, m = parse(s)
@@ -1772,7 +1772,7 @@ b = 1 && 1
 test.lua:1:8: syntax error, unexpected '&', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:1:8: malformed '&' expression
+test.lua:1:7: malformed '&' expression
 ]=]
 
 r, m = parse(s)
@@ -1785,7 +1785,7 @@ b = 1 <> 0
 test.lua:1:8: syntax error, unexpected '>', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:1:8: malformed relational expression
+test.lua:1:7: malformed relational expression
 ]=]
 
 r, m = parse(s)
@@ -1798,7 +1798,7 @@ b = 1 < < 0
 test.lua:1:9: syntax error, unexpected '<', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:1:9: malformed relational expression
+test.lua:1:8: malformed relational expression
 ]=]
 
 r, m = parse(s)
@@ -1813,7 +1813,7 @@ concat2 = 2^3..1
 test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '|', '~', '&', '>>', '<<', '..', '-', '+', '%', '/', '//', '*', '^'
 ]=]
 e = [=[
-test.lua:1:13: malformed <number>
+test.lua:1:14: malformed <number>
 ]=]
 
 r, m = parse(s)
@@ -1828,7 +1828,7 @@ for k;v in pairs(t) do end
 test.lua:1:6: syntax error, unexpected ';', expecting 'in', ',', ':', '='
 ]=]
 e = [=[
-test.lua:1:6: expecting 'in'
+test.lua:1:5: expecting 'in'
 ]=]
 
 r, m = parse(s)
@@ -1841,7 +1841,7 @@ for k,v in pairs(t:any) do end
 test.lua:1:23: syntax error, unexpected ')', expecting 'String', '{', '('
 ]=]
 e = [=[
-test.lua:1:23: expecting '(' for method call
+test.lua:1:22: expecting '(' for method call
 ]=]
 
 r, m = parse(s)
@@ -1856,7 +1856,7 @@ for i=1,10, do end
 test.lua:1:13: syntax error, unexpected 'do', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
 ]=]
 e = [=[
-test.lua:1:13: missing 'do' in for statement
+test.lua:1:10: missing 'do' in for statement
 ]=]
 
 r, m = parse(s)
@@ -1869,7 +1869,7 @@ for i=1,n:number do end
 test.lua:1:18: syntax error, unexpected 'do', expecting 'String', '{', '('
 ]=]
 e = [=[
-test.lua:1:18: expecting '(' for method call
+test.lua:1:17: expecting '(' for method call
 ]=]
 
 r, m = parse(s)
@@ -1884,7 +1884,7 @@ function func(a,b,c,) end
 test.lua:1:21: syntax error, unexpected ')', expecting '...', 'Name'
 ]=]
 e = [=[
-test.lua:1:21: expecting '...'
+test.lua:1:20: expecting '...'
 ]=]
 
 r, m = parse(s)
@@ -1897,7 +1897,7 @@ function func(...,a) end
 test.lua:1:18: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 e = [=[
-test.lua:1:18: missing ')'
+test.lua:1:17: missing ')'
 ]=]
 
 r, m = parse(s)
@@ -1910,7 +1910,7 @@ function a.b:c:d () end
 test.lua:1:15: syntax error, unexpected ':', expecting '('
 ]=]
 e = [=[
-test.lua:1:15: missing '('
+test.lua:1:14: missing '('
 ]=]
 
 r, m = parse(s)
@@ -1986,7 +1986,7 @@ if a:any then else end
 test.lua:1:10: syntax error, unexpected 'then', expecting 'String', '{', '('
 ]=]
 e = [=[
-test.lua:1:10: expecting '(' for method call
+test.lua:1:9: expecting '(' for method call
 ]=]
 
 r, m = parse(s)
@@ -2002,7 +2002,7 @@ s = [=[
 test.lua:2:4: syntax error, unexpected 'not', expecting 'Name'
 ]=]
 e = [=[
-test.lua:2:4: expecting <name> after '::'
+test.lua:2:3: expecting <name> after '::'
 ]=]
 
 r, m = parse(s)
@@ -2030,7 +2030,7 @@ local function t.a() end
 test.lua:1:17: syntax error, unexpected '.', expecting '('
 ]=]
 e = [=[
-test.lua:1:17: missing '('
+test.lua:1:16: missing '('
 ]=]
 
 r, m = parse(s)
@@ -2043,7 +2043,7 @@ local function test (a,) end
 test.lua:1:24: syntax error, unexpected ')', expecting '...', 'Name'
 ]=]
 e = [=[
-test.lua:1:24: expecting '...'
+test.lua:1:23: expecting '...'
 ]=]
 
 r, m = parse(s)
@@ -2056,7 +2056,7 @@ local function test(...,a) end
 test.lua:1:24: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 e = [=[
-test.lua:1:24: missing ')'
+test.lua:1:23: missing ')'
 ]=]
 
 r, m = parse(s)
@@ -2069,7 +2069,7 @@ local function (a, b, c, ...) end
 test.lua:1:16: syntax error, unexpected '(', expecting 'Name'
 ]=]
 e = [=[
-test.lua:1:16: expecting <name> in local function declaration
+test.lua:1:15: expecting <name> in local function declaration
 ]=]
 
 r, m = parse(s)
@@ -2121,7 +2121,7 @@ t = { , }
 test.lua:1:7: syntax error, unexpected ',', expecting '}', '(', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not', 'Name', '[', 'const'
 ]=]
 e = [=[
-test.lua:1:7: missing '}'
+test.lua:1:6: missing '}'
 ]=]
 
 r, m = parse(s)
@@ -2139,7 +2139,7 @@ end
 test.lua:3:3: syntax error, unexpected 'i', expecting 'do', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '|', '~', '&', '>>', '<<', '..', '-', '+', '%', '/', '//', '*', '^', 'String', '{', '(', ':', '[', '.'
 ]=]
 e = [=[
-test.lua:3:3: missing 'do' in while statement
+test.lua:3:2: missing 'do' in while statement
 ]=]
 
 r, m = parse(s)
@@ -2154,7 +2154,7 @@ t[x:any] = 1
 test.lua:1:8: syntax error, unexpected ']', expecting 'String', '{', '('
 ]=]
 e = [=[
-test.lua:1:8: expecting '(' for method call
+test.lua:1:7: expecting '(' for method call
 ]=]
 
 r, m = parse(s)
@@ -2167,7 +2167,7 @@ x:number, y, z:boolean = 1, nil, true
 test.lua:1:9: syntax error, unexpected ',', expecting 'String', '{', '('
 ]=]
 e = [=[
-test.lua:1:9: expecting '(' for method call
+test.lua:1:8: expecting '(' for method call
 ]=]
 
 r, m = parse(s)
@@ -2193,7 +2193,7 @@ x = ...:any
 test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '|', '~', '&', '>>', '<<', '..', '-', '+', '%', '/', '//', '*', '^'
 ]=]
 e = [=[
-test.lua:1:8: invalid statement
+test.lua:1:7: invalid statement
 ]=]
 
 r, m = parse(s)
@@ -2206,7 +2206,7 @@ f(x:any)
 test.lua:1:8: syntax error, unexpected ')', expecting 'String', '{', '('
 ]=]
 e = [=[
-test.lua:1:8: expecting '(' for method call
+test.lua:1:7: expecting '(' for method call
 ]=]
 
 r, m = parse(s)
@@ -2219,7 +2219,7 @@ f(...:any)
 test.lua:1:6: syntax error, unexpected ':', expecting ')', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '|', '~', '&', '>>', '<<', '..', '-', '+', '%', '/', '//', '*', '^'
 ]=]
 e = [=[
-test.lua:1:6: missing ')'
+test.lua:1:5: missing ')'
 ]=]
 
 r, m = parse(s)
@@ -2232,7 +2232,7 @@ local x:number*
 test.lua:1:15: syntax error, unexpected '*', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ',', '?', '|'
 ]=]
 e = [=[
-test.lua:1:15: invalid local declaration
+test.lua:1:6: invalid local declaration
 ]=]
 
 r, m = parse(s)
@@ -2258,7 +2258,7 @@ local x:number?|string?
 test.lua:1:16: syntax error, unexpected '|', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ','
 ]=]
 e = [=[
-test.lua:1:16: invalid local declaration
+test.lua:1:6: invalid local declaration
 ]=]
 
 r, m = parse(s)
@@ -2271,7 +2271,7 @@ local x:() -> number
 test.lua:1:15: syntax error, unexpected 'number', expecting '('
 ]=]
 e = [=[
-test.lua:1:15: expecting <type> after '->'
+test.lua:1:14: expecting <type> after '->'
 ]=]
 
 r, m = parse(s)
@@ -2284,7 +2284,7 @@ local x:() -> (number)? | (string)?
 test.lua:1:35: syntax error, unexpected '?', expecting '->'
 ]=]
 e = [=[
-test.lua:1:35: expecting <type> after '|'
+test.lua:1:26: expecting <type> after '|'
 ]=]
 
 r, m = parse(s)
@@ -2297,7 +2297,7 @@ local x:{()->():string}
 test.lua:1:16: syntax error, unexpected ':', expecting '}', '?', '|'
 ]=]
 e = [=[
-test.lua:1:16: missing '}'
+test.lua:1:15: missing '}'
 ]=]
 
 r, m = parse(s)
@@ -2310,7 +2310,7 @@ local x:{string:t 1}
 test.lua:1:19: syntax error, unexpected '1', expecting '}', '?', '|'
 ]=]
 e = [=[
-test.lua:1:19: missing '}'
+test.lua:1:18: missing '}'
 ]=]
 
 r, m = parse(s)
