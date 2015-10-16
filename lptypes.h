@@ -111,14 +111,14 @@ typedef struct Charset {
 
 
 /* labeled failure begin */
-typedef int Labelset;
+typedef long long int Labelset;
 
-#define MAXLABELS (sizeof(int) * 8)
+#define MAXLABELS (sizeof(long long int) * 8)
 
 #define LFAIL 1
 
 /* set bit 'b' in set 's' */
-#define setlabel(s, b) ((s) |= (1 << (b)))
+#define setlabel(s, b) ((s) |= (1ULL << (b)))
 /* labeled failure end */
 
 
