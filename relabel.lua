@@ -3,7 +3,7 @@
 -- imported functions and modules
 local tonumber, type, print, error = tonumber, type, print, error
 local setmetatable = setmetatable
-local unpack = table.unpack
+local unpack = table.unpack or unpack
 local m = require"lpeglabel"
 
 -- 'm' will be used to parse expressions, and 'mm' will be used to
