@@ -120,8 +120,8 @@ local Def = name * m.Carg(1)
 
 local num = m.C(m.R"09"^1) * S / tonumber
 
-local String = "'" * m.C((any - "'")^0) * "'" +
-               '"' * m.C((any - '"')^0) * '"'
+local String = "'" * m.C((any - "'")^0) * ("'" + m.T(31)) +
+               '"' * m.C((any - '"')^0) * ('"' + m.T(30))
 
 
 local defined = "%" * Def / function (c,Defs)
@@ -137,9 +137,9 @@ local item = defined + Range + m.C(any)
 local Class =
     "["
   * (m.C(m.P"^"^-1))    -- optional complement symbol
-  * m.Cf(item * (item - "]")^0, mt.__add) /
+  * m.Cf((item + m.T(24)) * (item - "]")^0, mt.__add) /
                           function (c, p) return c == "^" and any - p or p end
-  * "]"
+  * ("]" + m.T(25))
 
 local function adddef (t, k, exp)
   if t[k] then
@@ -176,13 +176,12 @@ end
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"Seq") * ("/" * m.V"Labels" * S * m.V"Seq")^1 / labchoice
-            + m.Cf(m.V"Seq" * ("/" * S * m.V"Seq")^0, mt.__add) );
-	Labels = m.Ct(m.P"{" * S * m.V"Label" * (S * "," * S * m.V"Label")^0 * S * "}");
-  Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^0 , mt.__mul)
-        * (#seq_follow + patt_error);
-  Prefix = "&" * S * m.V"Prefix" / mt.__len
-         + "!" * S * m.V"Prefix" / mt.__unm
+            + (m.V"Seq") * ("/" * m.V"Labels" * S * (m.V"Seq" + m.T(3)))^1 / labchoice
+            + m.Cf(m.V"Seq" * ("/" * S * (m.V"Seq" + m.T(4)))^0, mt.__add) );
+	Labels = m.Ct(m.P"{" * S * (m.V"Label" + m.T(27)) * (S * "," * S * (m.V"Label" + m.T(28)))^0 * S * ("}" + m.T(29)));
+  Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^1 , mt.__mul);
+  Prefix = "&" * S * (m.V"Prefix" + m.T(5)) / mt.__len
+         + "!" * S * (m.V"Prefix" + m.T(6)) / mt.__unm
          + m.V"Suffix";
   Suffix = m.Cf(m.V"Primary" * S *
           ( ( m.P"+" * m.Cc(1, mt.__pow)
@@ -190,42 +189,45 @@ local exp = m.P{ "Exp",
             + m.P"?" * m.Cc(-1, mt.__pow)
             + "^" * ( m.Cg(num * m.Cc(mult))
                     + m.Cg(m.C(m.S"+-" * m.R"09"^1) * m.Cc(mt.__pow))
+                    + m.T(7)
                     )
             + "->" * S * ( m.Cg((String + num) * m.Cc(mt.__div))
-                         + m.P"{}" * m.Cc(nil, m.Ct)
+                         + m.P"{" * (m.P"}" + m.T(8)) * m.Cc(nil, m.Ct)
                          + m.Cg(Def / getdef * m.Cc(mt.__div))
+                         + m.T(9)
                          )
-            + "=>" * S * m.Cg(Def / getdef * m.Cc(m.Cmt))
+            + "=>" * S * (m.Cg(Def / getdef * m.Cc(m.Cmt)) + m.T(10))
             ) * S
           )^0, function (a,b,f) return f(a,b) end );
-  Primary = "(" * m.V"Exp" * ")"
+  Primary = "(" * (m.V"Exp" + m.T(11)) * (")" + m.T(12))
             + String / mm.P
             + Class
             + defined
-            + "%{" * S * m.V"Label" * (S * "," * S * m.V"Label")^0 * S * "}" / mm.T
-            + "{:" * (name * ":" + m.Cc(nil)) * m.V"Exp" * ":}" /
+            + "%{" * S * (m.V"Label" + m.T(27)) * (S * "," * S * (m.V"Label" + m.T(28)))^0 * S * ("}" + m.T(29)) / mm.T
+            + ("%" * m.T(13))
+            + "{:" * (name * ":" + m.Cc(nil)) * (m.V"Exp" + m.T(14)) * (":}" + m.T(15)) /
                      function (n, p) return mm.Cg(p, n) end
-            + "=" * name / function (n) return mm.Cmt(mm.Cb(n), equalcap) end
+            + "=" * (name / function (n) return mm.Cmt(mm.Cb(n), equalcap) end + m.T(16))
             + m.P"{}" / mm.Cp
-            + "{~" * m.V"Exp" * "~}" / mm.Cs
-            + "{|" * m.V"Exp" * "|}" / mm.Ct
-            + "{" * m.V"Exp" * "}" / mm.C
+            + "{~" * (m.V"Exp" + m.T(17)) * ("~}" + m.T(18)) / mm.Cs
+            + "{|" * (m.V"Exp" + m.T(32)) * ("|}" + m.T(33)) / mm.Ct
+            + "{" * (m.V"Exp" + m.T(19)) * ("}" + m.T(20)) / mm.C
             + m.P"." * m.Cc(any)
-            + (name * -arrow + "<" * name * ">") * m.Cb("G") / NT;
+            + (name * -arrow + "<" * (name + m.T(21)) * (">" + m.T(22))) * m.Cb("G") / NT;
 	Label = num + name / function (f) return tlabels[f] end;
-  Definition = name * arrow * m.V"Exp";
+  Definition = name * arrow * (m.V"Exp" + m.T(23));
   Grammar = m.Cg(m.Cc(true), "G") *
             m.Cf(m.V"Definition" / firstdef * m.Cg(m.V"Definition")^0,
               adddef) / mm.P
 }
 
-local pattern = S * m.Cg(m.Cc(false), "G") * exp / mm.P * (-any + patt_error)
+local pattern = S * m.Cg(m.Cc(false), "G") * (exp + m.T(1)) / mm.P * (-any + m.T(2))
 
 
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
-  local cp = pattern:match(p, 1, defs)
-  if not cp then error("incorrect pattern", 3) end
+  local cp, label = pattern:match(p, 1, defs)
+  if not cp then error("incorrect pattern " .. label, 3) end
   return cp
 end
 
