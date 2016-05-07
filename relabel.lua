@@ -230,12 +230,48 @@ local function lineno (s, i)
   return 1 + num, r ~= 0 and r or 1
 end
 
+local errorMessages = {
+  "No pattern found",
+  "Unexpected characters after the pattern",
+  "Expected a pattern after labels",
+  "Expected a pattern after `/`",
+  "Expected a pattern after `&`",
+  "Expected a pattern after `!`",
+  "Expected a valid number after `^`",
+  "Expected `}` right after `{`",
+  "Expected a string, number, `{}` or name after `->`",
+  "Expected a name after `=>`",
+  "Expected a pattern after `(`",
+  "Missing the closing `)` after pattern",
+  "Expected a name or labels right after `%` (without any space)",
+  "Expected a pattern after `{:` or `:`",
+  "Missing the closing `:}` after pattern",
+  "Expected a name after `=` (without any space)",
+  "Expected a pattern after `{~`",
+  "Missing the closing `~}` after pattern",
+  "Expected a pattern or closing `}` after `{`",
+  "Missing the closing `}` after pattern",
+  "Expected a name right after `<`",
+  "Missing the closing `>` after the name",
+  "Expected a pattern after `<-`",
+  "Expected at least one item after `[` or `^`",
+  "Missing the closing `]` after the items",
+  "Expected an item after the `-` (except `]`)",
+  "Expected at least one label after the `{`",
+  "Expected a label after the comma",
+  "Missing closing `}` after the labels",
+  "Missing closing double quote in string",
+  "Missing closing single quote in string",
+  "Expected a pattern after `{|`",
+  "Missing the closing `|}` after pattern",
+}
+
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
   local cp, label, suffix = pattern:match(p, 1, defs)
   if not cp then
     local line, col = lineno(p, p:len() - suffix:len())
-    error("incorrect pattern on line " .. line .. " col " .. col .. ": " .. label, 3)
+    error("Line" .. line .. ", Col " .. col .. ": " .. errorMessages[label], 3)
   end
   return cp
 end
