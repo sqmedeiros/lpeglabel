@@ -223,11 +223,20 @@ local exp = m.P{ "Exp",
 
 local pattern = S * m.Cg(m.Cc(false), "G") * (exp + m.T(1)) / mm.P * (-any + m.T(2))
 
+local function lineno (s, i)
+  if i == 1 then return 1, 1 end
+  local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
+  local r = #rest
+  return 1 + num, r ~= 0 and r or 1
+end
 
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
-  local cp, label = pattern:match(p, 1, defs)
-  if not cp then error("incorrect pattern " .. label, 3) end
+  local cp, label, suffix = pattern:match(p, 1, defs)
+  if not cp then
+    local line, col = lineno(p, p:len() - suffix:len())
+    error("incorrect pattern on line " .. line .. " col " .. col .. ": " .. label, 3)
+  end
   return cp
 end
 
