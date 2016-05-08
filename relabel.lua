@@ -1,9 +1,10 @@
 -- $Id: re.lua,v 1.44 2013/03/26 20:11:40 roberto Exp $
 
 -- imported functions and modules
-local tonumber, type, print, error = tonumber, type, print, error
+local tonumber, type, print, error, ipairs = tonumber, type, print, error, ipairs
 local setmetatable = setmetatable
 local unpack = table.unpack or unpack
+local tinsert = table.insert
 local m = require"lpeglabel"
 
 -- 'm' will be used to parse expressions, and 'mm' will be used to
@@ -23,6 +24,15 @@ if version == "Lua 5.2" then _ENV = nil end
 
 local any = m.P(1)
 
+local errors
+
+local function throw(label)
+  local record = function (input, pos)
+    tinsert(errors, {label, pos})
+    return true
+  end
+  return m.Cmt("", record) * m.T(label)
+end
 
 -- Pre-defined names
 local Predef = { nl = m.P"\n" }
@@ -120,8 +130,8 @@ local Def = name * m.Carg(1)
 
 local num = m.C(m.R"09"^1) * S / tonumber
 
-local String = "'" * m.C((any - "'")^0) * ("'" + m.T(31)) +
-               '"' * m.C((any - '"')^0) * ('"' + m.T(30))
+local String = "'" * m.C((any - "'")^0) * ("'" + throw(31)) +
+               '"' * m.C((any - '"')^0) * ('"' + throw(30))
 
 
 local defined = "%" * Def / function (c,Defs)
@@ -137,9 +147,9 @@ local item = defined + Range + m.C(any)
 local Class =
     "["
   * (m.C(m.P"^"^-1))    -- optional complement symbol
-  * m.Cf((item + m.T(24)) * (item - "]")^0, mt.__add) /
+  * m.Cf((item + throw(24)) * (item - "]")^0, mt.__add) /
                           function (c, p) return c == "^" and any - p or p end
-  * ("]" + m.T(25))
+  * ("]" + throw(25))
 
 local function adddef (t, k, exp)
   if t[k] then
@@ -176,12 +186,12 @@ end
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"Seq") * ("/" * m.V"Labels" * S * (m.V"Seq" + m.T(3)))^1 / labchoice
-            + m.Cf(m.V"Seq" * ("/" * S * (m.V"Seq" + m.T(4)))^0, mt.__add) );
-	Labels = m.Ct(m.P"{" * S * (m.V"Label" + m.T(27)) * (S * "," * S * (m.V"Label" + m.T(28)))^0 * S * ("}" + m.T(29)));
+            + (m.V"Seq") * ("/" * m.V"Labels" * S * (m.V"Seq" + throw(3)))^1 / labchoice
+            + m.Cf(m.V"Seq" * ("/" * S * m.Lc(m.V"Seq" + throw(4), (-m.P"/" * any)^0, 4, 5, 6, 7, 8, 9, 10))^0, mt.__add) );
+	Labels = m.Ct(m.P"{" * S * (m.V"Label" + throw(27)) * (S * "," * S * (m.V"Label" + throw(28)))^0 * S * ("}" + throw(29)));
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^1 , mt.__mul);
-  Prefix = "&" * S * (m.V"Prefix" + m.T(5)) / mt.__len
-         + "!" * S * (m.V"Prefix" + m.T(6)) / mt.__unm
+  Prefix = "&" * S * (m.V"Prefix" + throw(5)) / mt.__len
+         + "!" * S * (m.V"Prefix" + throw(6)) / mt.__unm
          + m.V"Suffix";
   Suffix = m.Cf(m.V"Primary" * S *
           ( ( m.P"+" * m.Cc(1, mt.__pow)
@@ -189,39 +199,39 @@ local exp = m.P{ "Exp",
             + m.P"?" * m.Cc(-1, mt.__pow)
             + "^" * ( m.Cg(num * m.Cc(mult))
                     + m.Cg(m.C(m.S"+-" * m.R"09"^1) * m.Cc(mt.__pow))
-                    + m.T(7)
+                    + throw(7)
                     )
             + "->" * S * ( m.Cg((String + num) * m.Cc(mt.__div))
-                         + m.P"{" * (m.P"}" + m.T(8)) * m.Cc(nil, m.Ct)
+                         + m.P"{" * (m.P"}" + throw(8)) * m.Cc(nil, m.Ct)
                          + m.Cg(Def / getdef * m.Cc(mt.__div))
-                         + m.T(9)
+                         + throw(9)
                          )
-            + "=>" * S * (m.Cg(Def / getdef * m.Cc(m.Cmt)) + m.T(10))
+            + "=>" * S * (m.Cg(Def / getdef * m.Cc(m.Cmt)) + throw(10))
             ) * S
           )^0, function (a,b,f) return f(a,b) end );
-  Primary = "(" * (m.V"Exp" + m.T(11)) * (")" + m.T(12))
+  Primary = "(" * (m.V"Exp" + throw(11)) * (")" + throw(12))
             + String / mm.P
             + Class
             + defined
-            + "%{" * S * (m.V"Label" + m.T(27)) * (S * "," * S * (m.V"Label" + m.T(28)))^0 * S * ("}" + m.T(29)) / mm.T
-            + ("%" * m.T(13))
-            + "{:" * (name * ":" + m.Cc(nil)) * (m.V"Exp" + m.T(14)) * (":}" + m.T(15)) /
+            + "%{" * S * (m.V"Label" + throw(27)) * (S * "," * S * (m.V"Label" + throw(28)))^0 * S * ("}" + throw(29)) / mm.T
+            + ("%" * throw(13))
+            + "{:" * (name * ":" + m.Cc(nil)) * (m.V"Exp" + throw(14)) * (":}" + throw(15)) /
                      function (n, p) return mm.Cg(p, n) end
-            + "=" * (name / function (n) return mm.Cmt(mm.Cb(n), equalcap) end + m.T(16))
+            + "=" * (name / function (n) return mm.Cmt(mm.Cb(n), equalcap) end + throw(16))
             + m.P"{}" / mm.Cp
-            + "{~" * (m.V"Exp" + m.T(17)) * ("~}" + m.T(18)) / mm.Cs
-            + "{|" * (m.V"Exp" + m.T(32)) * ("|}" + m.T(33)) / mm.Ct
-            + "{" * (m.V"Exp" + m.T(19)) * ("}" + m.T(20)) / mm.C
+            + "{~" * (m.V"Exp" + throw(17)) * ("~}" + throw(18)) / mm.Cs
+            + "{|" * (m.V"Exp" + throw(32)) * ("|}" + throw(33)) / mm.Ct
+            + "{" * (m.V"Exp" + throw(19)) * ("}" + throw(20)) / mm.C
             + m.P"." * m.Cc(any)
-            + (name * -arrow + "<" * (name + m.T(21)) * (">" + m.T(22))) * m.Cb("G") / NT;
+            + (name * -arrow + "<" * (name + throw(21)) * (">" + throw(22))) * m.Cb("G") / NT;
 	Label = num + name / function (f) return tlabels[f] end;
-  Definition = name * arrow * (m.V"Exp" + m.T(23));
+  Definition = name * arrow * (m.V"Exp" + throw(23));
   Grammar = m.Cg(m.Cc(true), "G") *
             m.Cf(m.V"Definition" / firstdef * m.Cg(m.V"Definition")^0,
               adddef) / mm.P
 }
 
-local pattern = S * m.Cg(m.Cc(false), "G") * (exp + m.T(1)) / mm.P * (-any + m.T(2))
+local pattern = S * m.Cg(m.Cc(false), "G") * (exp + throw(1)) / mm.P * (-any + throw(2))
 
 local function lineno (s, i)
   if i == 1 then return 1, 1 end
@@ -268,10 +278,15 @@ local errorMessages = {
 
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
+  errors = {}
   local cp, label, suffix = pattern:match(p, 1, defs)
-  if not cp then
-    local line, col = lineno(p, p:len() - suffix:len())
-    error("Line" .. line .. ", Col " .. col .. ": " .. errorMessages[label], 3)
+  if #errors > 0 then
+    local errmsg = ""
+    for i, err in ipairs(errors) do
+      local line, col = lineno(p, err[2])
+      errmsg = errmsg .. "Line" .. line .. ", Col " .. col .. ": " .. errorMessages[err[1]] .. "\n"
+    end
+    error(errmsg, 3)
   end
   return cp
 end
