@@ -90,13 +90,6 @@ local function getdef (id, defs)
 end
 
 
-local function patt_error (s, i)
-  local msg = (#s < i + 20) and s:sub(i)
-                             or s:sub(i,i+20) .. "..."
-  msg = ("pattern error near '%s'"):format(msg)
-  error(msg, 2)
-end
-
 local function mult (p, n)
   local np = mm.P(true)
   while n >= 1 do
