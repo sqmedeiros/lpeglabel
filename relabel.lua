@@ -188,9 +188,14 @@ end
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"Seq" * ("/" * (m.V"Labels" + m.Cc(nil)) * S
-               * m.Lc(m.V"Seq" + throw(4), (-m.P"/" * any)^0, 4, 5, 6, 7, 8, 9, 10))^0) / labchoice );
+            + (m.V"SeqLC" * ("/" * (m.V"Labels" + m.Cc(nil)) * S
+               * m.Lc(m.V"SeqLC" + throw(4), m.V"SkipToSlash", 4))^0) / labchoice );
 	Labels = m.Ct(m.P"{" * S * (m.V"Label" + throw(27)) * (S * "," * S * (m.V"Label" + throw(28)))^0 * S * ("}" + throw(29)));
+  SkipToSlash = (-m.P"/" * m.V"Stuff")^0 * m.Cc(mm.P"");
+  Stuff = m.V"GroupedStuff" + any;
+  GroupedStuff = "(" * (-m.P")" * m.V"Stuff")^0 * ")"
+               + "{" * (-m.P"}" * m.V"Stuff")^0 * "}";
+  SeqLC = m.Lc(m.V"Seq", m.V"SkipToSlash", 5, 6, 7, 8, 9, 10);
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^1 , mt.__mul);
   Prefix = "&" * S * (m.V"Prefix" + throw(5)) / mt.__len
          + "!" * S * (m.V"Prefix" + throw(6)) / mt.__unm

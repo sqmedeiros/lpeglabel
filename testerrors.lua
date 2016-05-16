@@ -100,7 +100,7 @@ local patterns = {
   [[{|@|}]],
   [['p' {| 'q' / 'r' }]],
   -- 71-75
-  [['a'/{1}'b'/'c']],
+  [['a'/{1}'b'/'c']], -- should not fail anymore
   [[x <- {:x:}]],
   [[&'p'/&/!/'p'^'q']],
   [[
@@ -113,7 +113,7 @@ local patterns = {
     A <- 'A again'
     A <- 'and again'
   ]],
-  -- 76 - 79
+  -- 76 - 80
   [[names not in grammar]],
   [[
     A <- %nosuch %def
@@ -121,7 +121,12 @@ local patterns = {
     A <- 'and again'
   ]],
   [[ A <- %nosuch ('error' ]],
-  [[A <- Unknown Rules]]
+  [[A <- Unknown Rules]],
+  [['a' / &@ ('c' / 'd')]],
+  -- 81 - 83
+  [['x' / & / 'y']],
+  [[&/'p'/!/'q']],
+  [['p'//'q']],
 }
 
 for i, patt in ipairs(patterns) do
