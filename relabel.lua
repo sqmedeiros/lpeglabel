@@ -3,8 +3,7 @@
 -- imported functions and modules
 local tonumber, type, print, error, ipairs = tonumber, type, print, error, ipairs
 local setmetatable = setmetatable
-local unpack = table.unpack or unpack
-local tinsert = table.insert
+local unpack, tinsert, concat = table.unpack or unpack, table.insert, table.concat
 local m = require"lpeglabel"
 
 -- 'm' will be used to parse expressions, and 'mm' will be used to
@@ -286,16 +285,16 @@ local function compile (p, defs)
   errors = {}
   local cp, label, suffix = pattern:match(p, 1, defs)
   if #errors > 0 then
-    local errmsg = ""
+    local errmsgs = {}
     for i, err in ipairs(errors) do
       if #err == 1 then
-        errmsg = errmsg .. err[1] .. "\n"
+        tinsert(errmsgs, err[1])
       else
         local line, col = lineno(p, err[2])
-        errmsg = errmsg .. "Line" .. line .. ", Col " .. col .. ": " .. errorMessages[err[1]] .. "\n"
+        tinsert(errmsgs, "Line" .. line .. ", Col " .. col .. ": " .. errorMessages[err[1]])
       end
     end
-    error(errmsg)
+    error(concat(errmsgs, "\n"))
   end
   return cp
 end
