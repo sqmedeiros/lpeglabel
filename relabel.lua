@@ -113,14 +113,9 @@ end
 
 local S = (Predef.space + "--" * (any - Predef.nl)^0)^0
 
-local name = m.R("AZ", "az", "__") * m.R("AZ", "az", "__", "09")^0
+local name = m.C(m.R("AZ", "az", "__") * m.R("AZ", "az", "__", "09")^0)
 
 local arrow = S * "<-"
-
-local seq_follow = m.P"/" + ")" + "}" + ":}" + "~}" + "|}" + (name * arrow) + -1
-
-name = m.C(name)
-
 
 -- a defined name only have meaning in a given environment
 local Def = name * m.Carg(1)
