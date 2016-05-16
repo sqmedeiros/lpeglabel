@@ -102,7 +102,12 @@ local patterns = {
   -- 71-73
   [['a'/{1}'b'/'c']],
   [[x <- {:x:}]],
-  [[&'p'/&/!/'p'^'q']]
+  [[&'p'/&/!/'p'^'q']],
+  [[
+    A <- 'a' (B 'b'
+    B <- 'x' / !
+    C <- 'c'
+  ]]
 }
 
 for i, patt in ipairs(patterns) do

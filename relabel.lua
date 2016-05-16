@@ -34,6 +34,10 @@ local function throw(label)
   return m.Cmt("", record) * m.T(label)
 end
 
+local ignore = m.Cmt(any, function (input, pos)
+  return errors[#errors][2], mm.P""
+end)
+
 -- Pre-defined names
 local Predef = { nl = m.P"\n" }
 local tlabels = {}
@@ -186,7 +190,7 @@ local exp = m.P{ "Exp",
   Prefix = "&" * S * (m.V"Prefix" + throw(5)) / mt.__len
          + "!" * S * (m.V"Prefix" + throw(6)) / mt.__unm
          + m.V"Suffix";
-  Suffix = m.Cf(m.V"Primary" * S *
+  Suffix = m.Cf(m.V"PrimaryLC" * S *
           ( ( m.P"+" * m.Cc(1, mt.__pow)
             + m.P"*" * m.Cc(0, mt.__pow)
             + m.P"?" * m.Cc(-1, mt.__pow)
@@ -202,6 +206,7 @@ local exp = m.P{ "Exp",
             + "=>" * S * (m.Cg(Def / getdef * m.Cc(m.Cmt)) + throw(10))
             ) * S
           )^0, function (a,b,f) return f(a,b) end );
+  PrimaryLC = m.Lc(m.V"Primary", ignore, 12, 15, 18, 20, 25, 29, 33);
   Primary = "(" * (m.V"Exp" + throw(11)) * (")" + throw(12))
             + String / mm.P
             + Class
