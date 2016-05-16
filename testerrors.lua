@@ -123,10 +123,14 @@ local patterns = {
   [[ A <- %nosuch ('error' ]],
   [[A <- Unknown Rules]],
   [['a' / &@ ('c' / 'd')]],
-  -- 81 - 83
+  -- 81 - 84
   [['x' / & / 'y']],
   [[&/'p'/!/'q']],
   [['p'//'q']],
+  [[
+    S <- 'forgot to close / T
+    T <- 'T' & / 't'
+  ]]
 }
 
 for i, patt in ipairs(patterns) do

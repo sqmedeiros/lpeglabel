@@ -129,8 +129,8 @@ local Def = name * m.Carg(1)
 
 local num = m.C(m.R"09"^1) * S / tonumber
 
-local String = "'" * m.C((any - "'")^0) * ("'" + throw(31)) +
-               '"' * m.C((any - '"')^0) * ('"' + throw(30))
+local String = "'" * m.C((any - "'" - m.P"\n")^0) * ("'" + throw(31)) +
+               '"' * m.C((any - '"' - m.P"\n")^0) * ('"' + throw(30))
 
 
 local defined = "%" * Def / function (c,Defs)
@@ -195,7 +195,7 @@ local exp = m.P{ "Exp",
   Stuff = m.V"GroupedStuff" + any;
   GroupedStuff = "(" * (-m.P")" * m.V"Stuff")^0 * ")"
                + "{" * (-m.P"}" * m.V"Stuff")^0 * "}";
-  SeqLC = m.Lc(m.V"Seq", m.V"SkipToSlash", 5, 6, 7, 8, 9, 10);
+  SeqLC = m.Lc(m.V"Seq", m.V"SkipToSlash", 5, 6, 7, 8, 9, 10, 31, 30);
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^1 , mt.__mul);
   Prefix = "&" * S * (m.V"Prefix" + throw(5)) / mt.__len
          + "!" * S * (m.V"Prefix" + throw(6)) / mt.__unm
