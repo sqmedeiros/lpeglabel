@@ -4,6 +4,7 @@
 local tonumber, type, print, error, ipairs = tonumber, type, print, error, ipairs
 local setmetatable = setmetatable
 local unpack, tinsert, concat = table.unpack or unpack, table.insert, table.concat
+local rep = string.rep
 local m = require"lpeglabel"
 
 -- 'm' will be used to parse expressions, and 'mm' will be used to
@@ -285,6 +286,8 @@ local function compile (p, defs)
   errors = {}
   local cp, label, suffix = pattern:match(p, 1, defs)
   if #errors > 0 then
+    local lines = {}
+    for line in p:gmatch("[^\r\n]+") do tinsert(lines, line) end
     local errmsgs = {}
     for i, err in ipairs(errors) do
       if #err == 1 then
@@ -292,6 +295,8 @@ local function compile (p, defs)
       else
         local line, col = lineno(p, err[2])
         tinsert(errmsgs, "Line" .. line .. ", Col " .. col .. ": " .. errorMessages[err[1]])
+        tinsert(errmsgs, lines[line])
+        tinsert(errmsgs, rep(" ", col-1) .. "^")
       end
     end
     error(concat(errmsgs, "\n"))
