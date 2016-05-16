@@ -282,6 +282,7 @@ local errorMessages = {
 
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
+  p = p .. " " -- for better reporting of column numbers in errors when at EOF
   errors = {}
   local cp, label, suffix = pattern:match(p, 1, defs)
   if #errors > 0 then
