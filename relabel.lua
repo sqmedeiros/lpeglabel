@@ -179,7 +179,7 @@ local function labchoice (...)
 	local p = t[1] 
 	local i = 2
 	while i + 1 <= n do
-		p = mm.Lc(p, t[i+1], unpack(t[i]))
+		p = t[i] and mm.Lc(p, t[i+1], unpack(t[i])) or mt.__add(p, t[i+1])
 		i = i + 2	
 	end
 
@@ -188,7 +188,7 @@ end
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"Seq" * ("/" * (m.V"Labels" + m.Cc({0})) * S
+            + (m.V"Seq" * ("/" * (m.V"Labels" + m.Cc(nil)) * S
                * m.Lc(m.V"Seq" + throw(4), (-m.P"/" * any)^0, 4, 5, 6, 7, 8, 9, 10))^0) / labchoice );
 	Labels = m.Ct(m.P"{" * S * (m.V"Label" + throw(27)) * (S * "," * S * (m.V"Label" + throw(28)))^0 * S * ("}" + throw(29)));
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^1 , mt.__mul);
