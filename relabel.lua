@@ -186,11 +186,10 @@ local function labchoice (...)
 	return p
 end
 
-
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"Seq") * ("/" * m.V"Labels" * S * (m.V"Seq" + throw(3)))^1 / labchoice
-            + m.Cf(m.V"Seq" * ("/" * S * m.Lc(m.V"Seq" + throw(4), (-m.P"/" * any)^0, 4, 5, 6, 7, 8, 9, 10))^0, mt.__add) );
+            + (m.V"Seq" * ("/" * (m.V"Labels" + m.Cc({0})) * S
+               * m.Lc(m.V"Seq" + throw(4), (-m.P"/" * any)^0, 4, 5, 6, 7, 8, 9, 10))^0) / labchoice );
 	Labels = m.Ct(m.P"{" * S * (m.V"Label" + throw(27)) * (S * "," * S * (m.V"Label" + throw(28)))^0 * S * ("}" + throw(29)));
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^1 , mt.__mul);
   Prefix = "&" * S * (m.V"Prefix" + throw(5)) / mt.__len
