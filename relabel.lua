@@ -42,6 +42,10 @@ end)
 local Predef = { nl = m.P"\n" }
 local tlabels = {}
 
+local function adderror(message)
+  tinsert(errors, {message})
+end
+
 
 local mem
 local fmem
@@ -89,7 +93,10 @@ local I = m.P(function (s,i) print(i, s:sub(1, i-1)); return i end)
 
 local function getdef (id, defs)
   local c = defs and defs[id]
-  if not c then error("undefined name: " .. id) end
+  if not c then
+    adderror("undefined name: " .. id)
+    return nil
+  end
   return c
 end
 
@@ -128,7 +135,10 @@ local String = "'" * m.C((any - "'")^0) * ("'" + throw(31)) +
 
 local defined = "%" * Def / function (c,Defs)
   local cat =  Defs and Defs[c] or Predef[c]
-  if not cat then error ("name '" .. c .. "' undefined") end
+  if not cat then 
+    adderror ("name '" .. c .. "' undefined")
+    return mm.P""
+  end
   return cat
 end
 
@@ -145,7 +155,7 @@ local Class =
 
 local function adddef (t, k, exp)
   if t[k] then
-    error("'"..k.."' already defined as a rule")
+    adderror("'"..k.."' already defined as a rule")
   else
     t[k] = exp
   end
@@ -157,7 +167,8 @@ local function firstdef (n, r) return adddef({n}, n, r) end
 
 local function NT (n, b)
   if not b then
-    error("rule '"..n.."' used outside a grammar")
+    adderror("rule '"..n.."' used outside a grammar")
+    return mm.P""
   else return mm.V(n)
   end
 end
@@ -276,10 +287,14 @@ local function compile (p, defs)
   if #errors > 0 then
     local errmsg = ""
     for i, err in ipairs(errors) do
-      local line, col = lineno(p, err[2])
-      errmsg = errmsg .. "Line" .. line .. ", Col " .. col .. ": " .. errorMessages[err[1]] .. "\n"
+      if #err == 1 then
+        errmsg = errmsg .. err[1] .. "\n"
+      else
+        local line, col = lineno(p, err[2])
+        errmsg = errmsg .. "Line" .. line .. ", Col " .. col .. ": " .. errorMessages[err[1]] .. "\n"
+      end
     end
-    error(errmsg, 3)
+    error(errmsg)
   end
   return cp
 end

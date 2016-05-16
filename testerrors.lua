@@ -99,7 +99,7 @@ local patterns = {
   [[{||}]],
   [[{|@|}]],
   [['p' {| 'q' / 'r' }]],
-  -- 71-73
+  -- 71-75
   [['a'/{1}'b'/'c']],
   [[x <- {:x:}]],
   [[&'p'/&/!/'p'^'q']],
@@ -107,7 +107,21 @@ local patterns = {
     A <- 'a' (B 'b'
     B <- 'x' / !
     C <- 'c'
-  ]]
+  ]],
+  [[
+    A <- %nosuch %def
+    A <- 'A again'
+    A <- 'and again'
+  ]],
+  -- 76 - 79
+  [[names not in grammar]],
+  [[
+    A <- %nosuch %def
+    A <- 'A again'
+    A <- 'and again'
+  ]],
+  [[ A <- %nosuch ('error' ]],
+  [[A <- Unknown Rules]]
 }
 
 for i, patt in ipairs(patterns) do
