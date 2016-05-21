@@ -24,27 +24,84 @@ if version == "Lua 5.2" then _ENV = nil end
 
 local any = m.P(1)
 
-local errors
 
-local function throw(label)
+local errinfo = {
+  {"NoPatt", "no pattern found"},
+  {"ExtraChars", "unexpected characters after the pattern"},
+
+  {"ExpPatt1", "expected a pattern after '/' or the label(s)"},
+
+  {"ExpPatt2", "expected a pattern after '&'"},
+  {"ExpPatt3", "expected a pattern after '!'"},
+  
+  {"ExpPatt4", "expected a pattern after '('"},
+  {"ExpPatt5", "expected a pattern after ':'"},
+  {"ExpPatt6", "expected a pattern after '{~'"},
+  {"ExpPatt7", "expected a pattern after '{|'"},
+
+  {"ExpPatt8", "expected a pattern after '<-'"},
+
+  {"ExpPattOrClose", "expected a pattern or closing '}' after '{'"},
+
+  {"ExpNum", "expected a number after '^', '+' or '-' (no space)"},
+  {"ExpCap", "expected a string, number, '{}' or name after '->'"},
+
+  {"ExpName1", "expected the name of a rule after '=>'"},
+  {"ExpName2", "expected the name of a rule after '=' (no space)"},
+  {"ExpName3", "expected the name of a rule after '<' (no space)"},
+
+  {"ExpLab1", "expected at least one label after '{'"},
+  {"ExpLab2", "expected a label after the comma"},
+
+  {"ExpNameOrLab", "expected a name or label after '%' (no space)"},
+
+  {"ExpItem", "expected at least one item after '[' or '^'"},
+
+  {"MisClose1", "missing closing ')'"},
+  {"MisClose2", "missing closing ':}'"},
+  {"MisClose3", "missing closing '~}'"},
+  {"MisClose4", "missing closing '|}'"},
+  {"MisClose5", "missing closing '}'"},  -- for the captures
+
+  {"MisClose6", "missing closing '>'"},
+  {"MisClose7", "missing closing '}'"},  -- for the labels
+
+  {"MisClose8", "missing closing ']'"},
+
+  {"MisTerm1", "missing terminating single quote"},
+  {"MisTerm2", "missing terminating double quote"},
+}
+
+local errmsgs = {}
+local labels = {}
+
+for i, err in ipairs(errinfo) do
+  errmsgs[i] = err[2]
+  labels[err[1]] = i
+end
+
+local errfound
+
+local function expect(pattern, labelname)
+  local label = labels[labelname]
   local record = function (input, pos)
-    tinsert(errors, {label, pos})
+    tinsert(errfound, {label, pos})
     return true
   end
-  return m.Cmt("", record) * m.T(label)
+  return pattern + m.Cmt("", record) * m.T(label)
 end
 
 local ignore = m.Cmt(any, function (input, pos)
-  return errors[#errors][2], mm.P""
+  return errfound[#errfound][2], mm.P""
 end)
+
+local function adderror(message)
+  tinsert(errfound, {message})
+end
 
 -- Pre-defined names
 local Predef = { nl = m.P"\n" }
 local tlabels = {}
-
-local function adderror(message)
-  tinsert(errors, {message})
-end
 
 
 local mem
@@ -129,8 +186,8 @@ local Def = name * m.Carg(1)
 
 local num = m.C(m.R"09"^1) * S / tonumber
 
-local String = "'" * m.C((any - "'" - m.P"\n")^0) * ("'" + throw(31)) +
-               '"' * m.C((any - '"' - m.P"\n")^0) * ('"' + throw(30))
+local String = "'" * m.C((any - "'" - m.P"\n")^0) * expect("'", "MisTerm1") +
+               '"' * m.C((any - '"' - m.P"\n")^0) * expect('"', "MisTerm2")
 
 
 local defined = "%" * Def / function (c,Defs)
@@ -149,9 +206,9 @@ local item = defined + Range + m.C(any)
 local Class =
     "["
   * (m.C(m.P"^"^-1))    -- optional complement symbol
-  * m.Cf((item + throw(24)) * (item - "]")^0, mt.__add) /
+  * m.Cf(expect(item, "ExpItem") * (item - "]")^0, mt.__add) /
                           function (c, p) return c == "^" and any - p or p end
-  * ("]" + throw(25))
+  * expect("]", "MisClose8")
 
 local function adddef (t, k, exp)
   if t[k] then
@@ -186,60 +243,80 @@ local function labchoice (...)
 	return p
 end
 
+local function labify(labelnames)
+  for i, l in ipairs(labelnames) do
+    labelnames[i] = labels[l]
+  end
+  return labelnames
+end
+
+local labelset1 = labify {
+  "ExpPatt2", "ExpPatt3",
+  "ExpNum", "ExpCap", "ExpName1",
+  "MisTerm1", "MisTerm2"
+}
+
+local labelset2 = labify {
+  "MisClose1", "MisClose2", "MisClose3", "MisClose4", "MisClose5",
+  "MisClose7", "MisClose8"
+}
+
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
             + (m.V"SeqLC" * ("/" * (m.V"Labels" + m.Cc(nil)) * S
-               * m.Lc(m.V"SeqLC" + throw(4), m.V"SkipToSlash", 4))^0) / labchoice );
-	Labels = m.Ct(m.P"{" * S * (m.V"Label" + throw(27)) * (S * "," * S * (m.V"Label" + throw(28)))^0 * S * ("}" + throw(29)));
+               * m.Lc(expect(m.V"SeqLC", "ExpPatt1"), m.V"SkipToSlash", labels["ExpPatt1"]))^0) / labchoice );
+	Labels = m.Ct(m.P"{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S 
+               * expect(m.V"Label", "ExpLab2"))^0 * S * expect("}", "MisClose7"));
   SkipToSlash = (-m.P"/" * m.V"Stuff")^0 * m.Cc(mm.P"");
   Stuff = m.V"GroupedStuff" + any;
   GroupedStuff = "(" * (-m.P")" * m.V"Stuff")^0 * ")"
                + "{" * (-m.P"}" * m.V"Stuff")^0 * "}";
-  SeqLC = m.Lc(m.V"Seq", m.V"SkipToSlash", 5, 6, 7, 8, 9, 10, 31, 30);
+  SeqLC = m.Lc(m.V"Seq", m.V"SkipToSlash", unpack(labelset1));
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^1 , mt.__mul);
-  Prefix = "&" * S * (m.V"Prefix" + throw(5)) / mt.__len
-         + "!" * S * (m.V"Prefix" + throw(6)) / mt.__unm
+  Prefix = "&" * S * expect(m.V"Prefix", "ExpPatt2") / mt.__len
+         + "!" * S * expect(m.V"Prefix", "ExpPatt3") / mt.__unm
          + m.V"Suffix";
   Suffix = m.Cf(m.V"PrimaryLC" * S *
           ( ( m.P"+" * m.Cc(1, mt.__pow)
             + m.P"*" * m.Cc(0, mt.__pow)
             + m.P"?" * m.Cc(-1, mt.__pow)
-            + "^" * ( m.Cg(num * m.Cc(mult))
-                    + m.Cg(m.C(m.S"+-" * m.R"09"^1) * m.Cc(mt.__pow))
-                    + throw(7)
-                    )
-            + "->" * S * ( m.Cg((String + num) * m.Cc(mt.__div))
-                         + m.P"{" * (m.P"}" + throw(8)) * m.Cc(nil, m.Ct)
-                         + m.Cg(Def / getdef * m.Cc(mt.__div))
-                         + throw(9)
-                         )
-            + "=>" * S * (m.Cg(Def / getdef * m.Cc(m.Cmt)) + throw(10))
+            + "^" * expect( m.Cg(num * m.Cc(mult))
+                          + m.Cg(m.C(m.S"+-" * m.R"09"^1) * m.Cc(mt.__pow)),
+                          "ExpNum"
+                          )
+            + "->" * S * expect( m.Cg((String + num) * m.Cc(mt.__div))
+                               + m.P"{}" * m.Cc(nil, m.Ct)
+                               + m.Cg(Def / getdef * m.Cc(mt.__div)),
+                               "ExpCap"
+                               )
+            + "=>" * S * expect(m.Cg(Def / getdef * m.Cc(m.Cmt)), "ExpName1")
             ) * S
           )^0, function (a,b,f) return f(a,b) end );
-  PrimaryLC = m.Lc(m.V"Primary", ignore, 12, 15, 18, 20, 25, 29, 33);
-  Primary = "(" * (m.V"Exp" + throw(11)) * (")" + throw(12))
+  PrimaryLC = m.Lc(m.V"Primary", ignore, unpack(labelset2));
+  Primary = "(" * expect(m.V"Exp", "ExpPatt4") * expect(")", "MisClose1")
             + String / mm.P
             + Class
             + defined
-            + "%{" * S * (m.V"Label" + throw(27)) * (S * "," * S * (m.V"Label" + throw(28)))^0 * S * ("}" + throw(29)) / mm.T
-            + ("%" * throw(13))
-            + "{:" * (name * ":" + m.Cc(nil)) * (m.V"Exp" + throw(14)) * (":}" + throw(15)) /
-                     function (n, p) return mm.Cg(p, n) end
-            + "=" * (name / function (n) return mm.Cmt(mm.Cb(n), equalcap) end + throw(16))
+            + "%{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S 
+               * expect(m.V"Label", "ExpLab2"))^0 * S * expect("}", "MisClose7") / mm.T
+            + "%" * expect(m.P(false), "ExpNameOrLab")
+            + "{:" * (name * ":" + m.Cc(nil)) * expect(m.V"Exp", "ExpPatt5") * expect(":}", "MisClose2")
+                     / function (n, p) return mm.Cg(p, n) end
+            + "=" * expect(name, "ExpName2") / function (n) return mm.Cmt(mm.Cb(n), equalcap) end
             + m.P"{}" / mm.Cp
-            + "{~" * (m.V"Exp" + throw(17)) * ("~}" + throw(18)) / mm.Cs
-            + "{|" * (m.V"Exp" + throw(32)) * ("|}" + throw(33)) / mm.Ct
-            + "{" * (m.V"Exp" + throw(19)) * ("}" + throw(20)) / mm.C
+            + "{~" * expect(m.V"Exp", "ExpPatt6") * expect("~}", "MisClose3") / mm.Cs
+            + "{|" * expect(m.V"Exp", "ExpPatt7") * expect("|}", "MisClose4") / mm.Ct
+            + "{" * expect(m.V"Exp", "ExpPattOrClose") * expect("}", "MisClose5") / mm.C
             + m.P"." * m.Cc(any)
-            + (name * -arrow + "<" * (name + throw(21)) * (">" + throw(22))) * m.Cb("G") / NT;
+            + (name * -arrow + "<" * expect(name, "ExpName3") * expect(">", "MisClose6")) * m.Cb("G") / NT;
 	Label = num + name / function (f) return tlabels[f] end;
-  Definition = name * arrow * (m.V"Exp" + throw(23));
+  Definition = name * arrow * expect(m.V"Exp", "ExpPatt8");
   Grammar = m.Cg(m.Cc(true), "G") *
             m.Cf(m.V"Definition" / firstdef * m.Cg(m.V"Definition")^0,
               adddef) / mm.P
 }
 
-local pattern = S * m.Cg(m.Cc(false), "G") * (exp + throw(1)) / mm.P * (-any + throw(2))
+local pattern = S * m.Cg(m.Cc(false), "G") * expect(exp, "NoPatt") / mm.P * expect(-any, "ExtraChars")
 
 local function lineno (s, i)
   if i == 1 then return 1, 1 end
@@ -248,62 +325,26 @@ local function lineno (s, i)
   return 1 + num, r ~= 0 and r or 1
 end
 
-local errorMessages = {
-  "No pattern found",
-  "Unexpected characters after the pattern",
-  "Expected a pattern after labels",
-  "Expected a pattern after `/`",
-  "Expected a pattern after `&`",
-  "Expected a pattern after `!`",
-  "Expected a valid number after `^`",
-  "Expected `}` right after `{`",
-  "Expected a string, number, `{}` or name after `->`",
-  "Expected a name after `=>`",
-  "Expected a pattern after `(`",
-  "Missing the closing `)` after pattern",
-  "Expected a name or labels right after `%` (without any space)",
-  "Expected a pattern after `{:` or `:`",
-  "Missing the closing `:}` after pattern",
-  "Expected a name after `=` (without any space)",
-  "Expected a pattern after `{~`",
-  "Missing the closing `~}` after pattern",
-  "Expected a pattern or closing `}` after `{`",
-  "Missing the closing `}` after pattern",
-  "Expected a name right after `<`",
-  "Missing the closing `>` after the name",
-  "Expected a pattern after `<-`",
-  "Expected at least one item after `[` or `^`",
-  "Missing the closing `]` after the items",
-  "Expected an item after the `-` (except `]`)",
-  "Expected at least one label after the `{`",
-  "Expected a label after the comma",
-  "Missing closing `}` after the labels",
-  "Missing closing double quote in string",
-  "Missing closing single quote in string",
-  "Expected a pattern after `{|`",
-  "Missing the closing `|}` after pattern",
-}
-
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
   p = p .. " " -- for better reporting of column numbers in errors when at EOF
-  errors = {}
+  errfound = {}
   local cp, label, suffix = pattern:match(p, 1, defs)
-  if #errors > 0 then
+  if #errfound > 0 then
     local lines = {}
     for line in p:gmatch("[^\r\n]+") do tinsert(lines, line) end
-    local errmsgs = {}
-    for i, err in ipairs(errors) do
+    local errors = {}
+    for i, err in ipairs(errfound) do
       if #err == 1 then
-        tinsert(errmsgs, err[1])
+        tinsert(errors, err[1])
       else
         local line, col = lineno(p, err[2])
-        tinsert(errmsgs, "Line" .. line .. ", Col " .. col .. ": " .. errorMessages[err[1]])
-        tinsert(errmsgs, lines[line])
-        tinsert(errmsgs, rep(" ", col-1) .. "^")
+        tinsert(errors, "Line" .. line .. ", Col " .. col .. ": " .. errmsgs[err[1]])
+        tinsert(errors, lines[line])
+        tinsert(errors, rep(" ", col-1) .. "^")
       end
     end
-    error(concat(errmsgs, "\n"))
+    error(concat(errors, "\n"))
   end
   return cp
 end
