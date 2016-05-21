@@ -263,10 +263,10 @@ local labelset2 = labify {
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"SeqLC" * ("/" * (m.V"Labels" + m.Cc(nil)) * S
+            + (m.V"SeqLC" * ("/" * (m.Ct(m.V"Labels") + m.Cc(nil)) * S
                * m.Lc(expect(m.V"SeqLC", "ExpPatt1"), m.V"SkipToSlash", labels["ExpPatt1"]))^0) / labchoice );
-  Labels = m.Ct(m.P"{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S
-               * expect(m.V"Label", "ExpLab2"))^0 * S * expect("}", "MisClose7"));
+  Labels = m.P"{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S
+               * expect(m.V"Label", "ExpLab2"))^0 * S * expect("}", "MisClose7");
   SkipToSlash = (-m.P"/" * m.V"Stuff")^0 * m.Cc(mm.P"");
   Stuff = m.V"GroupedStuff" + any;
   GroupedStuff = "(" * (-m.P")" * m.V"Stuff")^0 * ")"
@@ -297,9 +297,7 @@ local exp = m.P{ "Exp",
             + String / mm.P
             + Class
             + defined
-            + "%{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S
-               * expect(m.V"Label", "ExpLab2"))^0 * S * expect("}", "MisClose7") / mm.T
-            + "%" * expect(m.P(false), "ExpNameOrLab")
+            + "%" * expect(m.V"Labels", "ExpNameOrLab") / mm.T
             + "{:" * (name * ":" + m.Cc(nil)) * expect(m.V"Exp", "ExpPatt5") * expect(":}", "MisClose2")
                      / function (n, p) return mm.Cg(p, n) end
             + "=" * expect(name, "ExpName2") / function (n) return mm.Cmt(mm.Cb(n), equalcap) end
