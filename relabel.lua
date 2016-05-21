@@ -339,7 +339,7 @@ local function compile (p, defs)
         tinsert(errors, err[1])
       else
         local line, col = lineno(p, err[2])
-        tinsert(errors, "Line" .. line .. ", Col " .. col .. ": " .. errmsgs[err[1]])
+        tinsert(errors, "L" .. line .. ":C" .. col .. ": " .. errmsgs[err[1]])
         tinsert(errors, lines[line])
         tinsert(errors, rep(" ", col-1) .. "^")
       end
