@@ -201,7 +201,7 @@ end
 
 local Range = m.Cs(any * (m.P"-"/"") * (any - "]")) / mm.R
 
-local item = defined + Range + m.C(any)
+local item = defined + Range + m.C(any - m.P"\n")
 
 local Class =
     "["
