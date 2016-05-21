@@ -23,6 +23,7 @@ if version == "Lua 5.2" then _ENV = nil end
 
 
 local any = m.P(1)
+local dummy = mm.P(false)
 
 
 local errinfo = {
@@ -92,7 +93,7 @@ local function expect(pattern, labelname)
 end
 
 local ignore = m.Cmt(any, function (input, pos)
-  return errfound[#errfound][2], mm.P""
+  return errfound[#errfound][2], dummy
 end)
 
 local function adderror(message)
@@ -194,7 +195,7 @@ local defined = "%" * Def / function (c,Defs)
   local cat =  Defs and Defs[c] or Predef[c]
   if not cat then
     adderror ("name '" .. c .. "' undefined")
-    return mm.P""
+    return dummy
   end
   return cat
 end
@@ -225,7 +226,7 @@ local function firstdef (n, r) return adddef({n}, n, r) end
 local function NT (n, b)
   if not b then
     adderror("rule '"..n.."' used outside a grammar")
-    return mm.P""
+    return dummy
   else return mm.V(n)
   end
 end
@@ -267,7 +268,7 @@ local exp = m.P{ "Exp",
                * m.Lc(expect(m.V"SeqLC", "ExpPatt1"), m.V"SkipToSlash", labels["ExpPatt1"]))^0) / labchoice );
   Labels = m.P"{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S
                * expect(m.V"Label", "ExpLab2"))^0 * S * expect("}", "MisClose7");
-  SkipToSlash = (-m.P"/" * m.V"Stuff")^0 * m.Cc(mm.P"");
+  SkipToSlash = (-m.P"/" * m.V"Stuff")^0 * m.Cc(dummy);
   Stuff = m.V"GroupedStuff" + any;
   GroupedStuff = "(" * (-m.P")" * m.V"Stuff")^0 * ")"
                + "{" * (-m.P"}" * m.V"Stuff")^0 * "}";
