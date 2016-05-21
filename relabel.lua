@@ -33,7 +33,7 @@ local errinfo = {
 
   {"ExpPatt2", "expected a pattern after '&'"},
   {"ExpPatt3", "expected a pattern after '!'"},
-  
+
   {"ExpPatt4", "expected a pattern after '('"},
   {"ExpPatt5", "expected a pattern after ':'"},
   {"ExpPatt6", "expected a pattern after '{~'"},
@@ -192,7 +192,7 @@ local String = "'" * m.C((any - "'" - m.P"\n")^0) * expect("'", "MisTerm1") +
 
 local defined = "%" * Def / function (c,Defs)
   local cat =  Defs and Defs[c] or Predef[c]
-  if not cat then 
+  if not cat then
     adderror ("name '" .. c .. "' undefined")
     return mm.P""
   end
@@ -231,16 +231,16 @@ local function NT (n, b)
 end
 
 local function labchoice (...)
-	local t = { ... }
-	local n = #t
-	local p = t[1] 
-	local i = 2
-	while i + 1 <= n do
-		p = t[i] and mm.Lc(p, t[i+1], unpack(t[i])) or mt.__add(p, t[i+1])
-		i = i + 2	
-	end
+  local t = { ... }
+  local n = #t
+  local p = t[1]
+  local i = 2
+  while i + 1 <= n do
+    p = t[i] and mm.Lc(p, t[i+1], unpack(t[i])) or mt.__add(p, t[i+1])
+    i = i + 2
+  end
 
-	return p
+  return p
 end
 
 local function labify(labelnames)
@@ -265,7 +265,7 @@ local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
             + (m.V"SeqLC" * ("/" * (m.V"Labels" + m.Cc(nil)) * S
                * m.Lc(expect(m.V"SeqLC", "ExpPatt1"), m.V"SkipToSlash", labels["ExpPatt1"]))^0) / labchoice );
-	Labels = m.Ct(m.P"{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S 
+  Labels = m.Ct(m.P"{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S
                * expect(m.V"Label", "ExpLab2"))^0 * S * expect("}", "MisClose7"));
   SkipToSlash = (-m.P"/" * m.V"Stuff")^0 * m.Cc(mm.P"");
   Stuff = m.V"GroupedStuff" + any;
@@ -297,7 +297,7 @@ local exp = m.P{ "Exp",
             + String / mm.P
             + Class
             + defined
-            + "%{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S 
+            + "%{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S
                * expect(m.V"Label", "ExpLab2"))^0 * S * expect("}", "MisClose7") / mm.T
             + "%" * expect(m.P(false), "ExpNameOrLab")
             + "{:" * (name * ":" + m.Cc(nil)) * expect(m.V"Exp", "ExpPatt5") * expect(":}", "MisClose2")
@@ -309,7 +309,7 @@ local exp = m.P{ "Exp",
             + "{" * expect(m.V"Exp", "ExpPattOrClose") * expect("}", "MisClose5") / mm.C
             + m.P"." * m.Cc(any)
             + (name * -arrow + "<" * expect(name, "ExpName3") * expect(">", "MisClose6")) * m.Cb("G") / NT;
-	Label = num + name / function (f) return tlabels[f] end;
+  Label = num + name / function (f) return tlabels[f] end;
   Definition = name * arrow * expect(m.V"Exp", "ExpPatt8");
   Grammar = m.Cg(m.Cc(true), "G") *
             m.Cf(m.V"Definition" / firstdef * m.Cg(m.V"Definition")^0,
@@ -384,7 +384,7 @@ local function gsub (s, p, rep)
 end
 
 local function setlabels (t)
-	tlabels = t
+  tlabels = t
 end
 
 -- exported names
@@ -394,7 +394,7 @@ local re = {
   find = find,
   gsub = gsub,
   updatelocale = updatelocale,
-	setlabels = setlabels
+  setlabels = setlabels
 }
 
 if version == "Lua 5.1" then _G.re = re end
