@@ -80,7 +80,7 @@ for i, err in ipairs(errinfo) do
   labels[err[1]] = i
 end
 
-local errfound
+local errfound = {}
 
 local function expect(pattern, labelname)
   local label = labels[labelname]
@@ -328,7 +328,6 @@ end
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
   p = p .. " " -- for better reporting of column numbers in errors when at EOF
-  errfound = {}
   local cp, label, suffix = pattern:match(p, 1, defs)
   if #errfound > 0 then
     local lines = {}
@@ -344,6 +343,7 @@ local function compile (p, defs)
         tinsert(errors, rep(" ", col-1) .. "^")
       end
     end
+    errfound = {}
     error(concat(errors, "\n"))
   end
   return cp
