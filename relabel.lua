@@ -187,8 +187,8 @@ local Def = name * m.Carg(1)
 
 local num = m.C(m.R"09"^1) * S / tonumber
 
-local String = "'" * m.C((any - "'" - m.P"\n")^0) * expect("'", "MisTerm1") +
-               '"' * m.C((any - '"' - m.P"\n")^0) * expect('"', "MisTerm2")
+local String = "'" * m.C((any - "'" - m.P"\n")^0) * expect("'", "MisTerm1")
+             + '"' * m.C((any - '"' - m.P"\n")^0) * expect('"', "MisTerm2")
 
 
 local defined = "%" * Def / function (c,Defs)
@@ -207,8 +207,8 @@ local item = defined + Range + m.C(any - m.P"\n")
 local Class =
     "["
   * (m.C(m.P"^"^-1))    -- optional complement symbol
-  * m.Cf(expect(item, "ExpItem") * (item - "]")^0, mt.__add) /
-                          function (c, p) return c == "^" and any - p or p end
+  * m.Cf(expect(item, "ExpItem") * (item - "]")^0, mt.__add)
+    / function (c, p) return c == "^" and any - p or p end
   * expect("]", "MisClose8")
 
 local function adddef (t, k, exp)
@@ -264,58 +264,70 @@ local labelset2 = labify {
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"SeqLC" * ("/" * (m.Ct(m.V"Labels") + m.Cc(nil)) * S
-               * m.Lc(expect(m.V"SeqLC", "ExpPatt1"), m.V"SkipToSlash", labels["ExpPatt1"]))^0) / labchoice );
-  Labels = m.P"{" * S * expect(m.V"Label", "ExpLab1") * (S * "," * S
-               * expect(m.V"Label", "ExpLab2"))^0 * S * expect("}", "MisClose7");
+            + (m.V"SeqLC" * (S * "/" * (m.Ct(m.V"Labels") + m.Cc(nil))
+                             * m.Lc(expect(S * m.V"SeqLC", "ExpPatt1"),
+                                      m.V"SkipToSlash", labels["ExpPatt1"])
+                            )^0
+              ) / labchoice);
+  Labels = m.P"{" * expect(S * m.V"Label", "ExpLab1")
+           * (S * "," * expect(S * m.V"Label", "ExpLab2"))^0
+           * expect(S * "}", "MisClose7");
   SkipToSlash = (-m.P"/" * m.V"Stuff")^0 * m.Cc(dummy);
-  Stuff = m.V"GroupedStuff" + any;
-  GroupedStuff = "(" * (-m.P")" * m.V"Stuff")^0 * ")"
-               + "{" * (-m.P"}" * m.V"Stuff")^0 * "}";
+  Stuff = m.V"Group" + any;
+  Group = "(" * (-m.P")" * m.V"Stuff")^0 * ")"
+        + "{" * (-m.P"}" * m.V"Stuff")^0 * "}";
   SeqLC = m.Lc(m.V"Seq", m.V"SkipToSlash", unpack(labelset1));
-  Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^1 , mt.__mul);
-  Prefix = "&" * S * expect(m.V"Prefix", "ExpPatt2") / mt.__len
-         + "!" * S * expect(m.V"Prefix", "ExpPatt3") / mt.__unm
+  Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix" * (S * m.V"Prefix")^0, mt.__mul);
+  Prefix = "&" * expect(S * m.V"Prefix", "ExpPatt2") / mt.__len
+         + "!" * expect(S * m.V"Prefix", "ExpPatt3") / mt.__unm
          + m.V"Suffix";
-  Suffix = m.Cf(m.V"PrimaryLC" * S *
-          ( ( m.P"+" * m.Cc(1, mt.__pow)
-            + m.P"*" * m.Cc(0, mt.__pow)
-            + m.P"?" * m.Cc(-1, mt.__pow)
-            + "^" * expect( m.Cg(num * m.Cc(mult))
-                          + m.Cg(m.C(m.S"+-" * m.R"09"^1) * m.Cc(mt.__pow)),
-                          "ExpNum"
-                          )
-            + "->" * S * expect( m.Cg((String + num) * m.Cc(mt.__div))
-                               + m.P"{}" * m.Cc(nil, m.Ct)
-                               + m.Cg(Def / getdef * m.Cc(mt.__div)),
-                               "ExpCap"
-                               )
-            + "=>" * S * expect(m.Cg(Def / getdef * m.Cc(m.Cmt)), "ExpName1")
-            ) * S
+  Suffix = m.Cf(m.V"PrimaryLC" *
+          ( S * ( m.P"+" * m.Cc(1, mt.__pow)
+                + m.P"*" * m.Cc(0, mt.__pow)
+                + m.P"?" * m.Cc(-1, mt.__pow)
+                + "^" * expect( m.Cg(num * m.Cc(mult))
+                              + m.Cg(m.C(m.S"+-" * m.R"09"^1) * m.Cc(mt.__pow)
+                              ),
+                          "ExpNum")
+                + "->" * expect(S * ( m.Cg((String + num) * m.Cc(mt.__div))
+                                    + m.P"{}" * m.Cc(nil, m.Ct)
+                                    + m.Cg(Def / getdef * m.Cc(mt.__div))
+                                    ),
+                           "ExpCap")
+                + "=>" * expect(S * m.Cg(Def / getdef * m.Cc(m.Cmt)),
+                           "ExpName1")
+                )
           )^0, function (a,b,f) return f(a,b) end );
   PrimaryLC = m.Lc(m.V"Primary", ignore, unpack(labelset2));
-  Primary = "(" * expect(m.V"Exp", "ExpPatt4") * expect(")", "MisClose1")
-            + String / mm.P
-            + Class
-            + defined
-            + "%" * expect(m.V"Labels", "ExpNameOrLab") / mm.T
-            + "{:" * (name * ":" + m.Cc(nil)) * expect(m.V"Exp", "ExpPatt5") * expect(":}", "MisClose2")
-                     / function (n, p) return mm.Cg(p, n) end
-            + "=" * expect(name, "ExpName2") / function (n) return mm.Cmt(mm.Cb(n), equalcap) end
-            + m.P"{}" / mm.Cp
-            + "{~" * expect(m.V"Exp", "ExpPatt6") * expect("~}", "MisClose3") / mm.Cs
-            + "{|" * expect(m.V"Exp", "ExpPatt7") * expect("|}", "MisClose4") / mm.Ct
-            + "{" * expect(m.V"Exp", "ExpPattOrClose") * expect("}", "MisClose5") / mm.C
-            + m.P"." * m.Cc(any)
-            + (name * -arrow + "<" * expect(name, "ExpName3") * expect(">", "MisClose6")) * m.Cb("G") / NT;
+  Primary = "(" * expect(m.V"Exp", "ExpPatt4") * expect(S * ")", "MisClose1")
+          + String / mm.P
+          + Class
+          + defined
+          + "%" * expect(m.V"Labels", "ExpNameOrLab") / mm.T
+          + "{:" * (name * ":" + m.Cc(nil)) * expect(m.V"Exp", "ExpPatt5")
+            * expect(S * ":}", "MisClose2")
+            / function (n, p) return mm.Cg(p, n) end
+          + "=" * expect(name, "ExpName2")
+            / function (n) return mm.Cmt(mm.Cb(n), equalcap) end
+          + m.P"{}" / mm.Cp
+          + "{~" * expect(m.V"Exp", "ExpPatt6")
+            * expect(S * "~}", "MisClose3") / mm.Cs
+          + "{|" * expect(m.V"Exp", "ExpPatt7")
+            * expect(S * "|}", "MisClose4") / mm.Ct
+          + "{" * expect(m.V"Exp", "ExpPattOrClose")
+            * expect(S * "}", "MisClose5") / mm.C
+          + m.P"." * m.Cc(any)
+          + (name * -arrow + "<" * expect(name, "ExpName3")
+             * expect(">", "MisClose6")) * m.Cb("G") / NT;
   Label = num + name / function (f) return tlabels[f] end;
   Definition = name * arrow * expect(m.V"Exp", "ExpPatt8");
-  Grammar = m.Cg(m.Cc(true), "G") *
-            m.Cf(m.V"Definition" / firstdef * m.Cg(m.V"Definition")^0,
-              adddef) / mm.P
+  Grammar = m.Cg(m.Cc(true), "G")
+            * m.Cf(m.V"Definition" / firstdef * (S * m.Cg(m.V"Definition"))^0,
+                adddef) / mm.P;
 }
 
-local pattern = S * m.Cg(m.Cc(false), "G") * expect(exp, "NoPatt") / mm.P * expect(-any, "ExtraChars")
+local pattern = S * m.Cg(m.Cc(false), "G") * expect(exp, "NoPatt") / mm.P
+                * S * expect(-any, "ExtraChars")
 
 local function lineno (s, i)
   if i == 1 then return 1, 1 end

@@ -134,6 +134,10 @@ local patterns = {
   [[
     S <- [a-z / T
     T <- 'x' / & / 'y'
+  ]],
+  -- 86
+  [[
+    S <- ('p' -- comment
   ]]
 }
 
