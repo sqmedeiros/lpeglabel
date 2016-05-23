@@ -96,6 +96,13 @@ local ignore = m.Cmt(any, function (input, pos)
   return errfound[#errfound][2], dummy
 end)
 
+local pointAtStart = m.Cmt(any, function (input, pos)
+  local ret = errfound[#errfound][2]
+  errfound[#errfound][2] = pos-1
+  return ret, dummy
+end)
+
+
 local function adderror(message)
   tinsert(errfound, {message})
 end
@@ -254,12 +261,10 @@ end
 local labelset1 = labify {
   "ExpPatt2", "ExpPatt3",
   "ExpNum", "ExpCap", "ExpName1",
-  "MisTerm1", "MisTerm2"
 }
 
 local labelset2 = labify {
-  "MisClose1", "MisClose2", "MisClose3", "MisClose4", "MisClose5",
-  "MisClose7", "MisClose8"
+  "MisClose1", "MisClose2", "MisClose3", "MisClose4", "MisClose5", "MisClose7"
 }
 
 local exp = m.P{ "Exp",
@@ -300,8 +305,9 @@ local exp = m.P{ "Exp",
           )^0, function (a,b,f) return f(a,b) end );
   PrimaryLC = m.Lc(m.V"Primary", ignore, unpack(labelset2));
   Primary = "(" * expect(m.V"Exp", "ExpPatt4") * expect(S * ")", "MisClose1")
-          + String / mm.P
-          + Class
+          + m.Lc(String / mm.P, pointAtStart,
+              labels["MisTerm1"], labels["MisTerm2"])
+          + m.Lc(Class, pointAtStart, labels["MisClose8"])
           + defined
           + "%" * expect(m.V"Labels", "ExpNameOrLab") / mm.T
           + "{:" * (name * ":" + m.Cc(nil)) * expect(m.V"Exp", "ExpPatt5")
