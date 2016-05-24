@@ -83,7 +83,7 @@ end
 
 local errfound = {}
 
-local function expect(pattern, labelname)
+local function expect (pattern, labelname)
   local label = labels[labelname]
   local record = function (input, pos)
     tinsert(errfound, {label, pos})
@@ -102,8 +102,7 @@ local pointAtStart = m.Cmt(any, function (input, pos)
   return ret, dummy
 end)
 
-
-local function adderror(message)
+local function adderror (message)
   tinsert(errfound, {message})
 end
 
@@ -251,7 +250,7 @@ local function labchoice (...)
   return p
 end
 
-local function labify(labelnames)
+local function labify (labelnames)
   for i, l in ipairs(labelnames) do
     labelnames[i] = labels[l]
   end
