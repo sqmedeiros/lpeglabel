@@ -280,18 +280,21 @@ local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
             + (m.V"SeqLC" * (S * "/" * m.Lc((m.Ct(m.V"Labels") + m.Cc(nil))
                                        * expect(S * m.V"SeqLC", "ExpPatt1"),
-                                           m.Cc(nil) * m.V"SkipToSlash",
+                                           m.Cc(nil) * m.V"Skip",
                                            unpack(labelset3))
                             )^0
               ) / labchoice);
   Labels = m.P"{" * expect(S * m.V"Label", "ExpLab1")
            * (S * "," * expect(S * m.V"Label", "ExpLab2"))^0
            * expect(S * "}", "MisClose7");
-  SkipToSlash = (-m.P"/" * m.V"Stuff")^0 * m.Cc(dummy);
+  Skip = (-m.P"/" * -m.P(name * arrow) * m.V"Stuff")^0 * m.Cc(dummy);
   Stuff = m.V"Group" + any;
   Group = "(" * (-m.P")" * m.V"Stuff")^0 * ")"
-        + "{" * (-m.P"}" * m.V"Stuff")^0 * "}";
-  SeqLC = m.Lc(m.V"Seq", m.V"SkipToSlash", unpack(labelset1));
+        + "{" * (-m.P"}" * m.V"Stuff")^0 * "}"
+        + "[" * (-m.P"]" * m.V"Stuff")^0 * "]"
+        + "'" * (-m.P"'" * m.V"Stuff")^0 * "'"
+        + '"' * (-m.P'"' * m.V"Stuff")^0 * '"';
+  SeqLC = m.Lc(m.V"Seq", m.V"Skip", unpack(labelset1));
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix" * (S * m.V"Prefix")^0, mt.__mul);
   Prefix = "&" * expect(S * m.V"Prefix", "ExpPatt2") / mt.__len
          + "!" * expect(S * m.V"Prefix", "ExpPatt3") / mt.__unm
@@ -350,7 +353,7 @@ local function lineno (s, i)
   local adjust = 0
   if s:sub(i,i) == '\n' then
     i = i-1
-    adjust = 1 
+    adjust = 1
   end
   local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
   local r = #rest
