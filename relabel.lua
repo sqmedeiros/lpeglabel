@@ -260,18 +260,28 @@ end
 
 local labelset1 = labify {
   "ExpPatt2", "ExpPatt3",
-  "ExpNum", "ExpCap", "ExpName1",
+  "ExpPatt4", "ExpPatt5", "ExpPatt6", "ExpPatt7",
+  "ExpPatt8", "ExpPattOrClose",
+  "ExpNum", "ExpCap",
+  "ExpName1", "ExpName2", "ExpName3",
+  "ExpNameOrLab", "ExpItem",
+  "MisClose6"
 }
 
 local labelset2 = labify {
-  "MisClose1", "MisClose2", "MisClose3", "MisClose4", "MisClose5", "MisClose7"
+  "MisClose1", "MisClose2", "MisClose3", "MisClose4", "MisClose5"
+}
+
+local labelset3 = labify {
+  "ExpPatt1", "ExpLab1", "ExpLab2", "MisClose7"
 }
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"SeqLC" * (S * "/" * (m.Ct(m.V"Labels") + m.Cc(nil))
-                             * m.Lc(expect(S * m.V"SeqLC", "ExpPatt1"),
-                                      m.V"SkipToSlash", labels["ExpPatt1"])
+            + (m.V"SeqLC" * (S * "/" * m.Lc((m.Ct(m.V"Labels") + m.Cc(nil))
+                                       * expect(S * m.V"SeqLC", "ExpPatt1"),
+                                           m.Cc(nil) * m.V"SkipToSlash",
+                                           unpack(labelset3))
                             )^0
               ) / labchoice);
   Labels = m.P"{" * expect(S * m.V"Label", "ExpLab1")
