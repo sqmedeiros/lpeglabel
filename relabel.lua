@@ -277,28 +277,29 @@ local labelset3 = labify {
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"SeqLC" * (S * "/" * m.Lc((m.Ct(m.V"Labels") + m.Cc(nil))
-                                       * expect(S * m.V"SeqLC", "ExpPatt1"),
-                                           m.Cc(nil) * m.V"Skip",
-                                           unpack(labelset3))
+            + (m.V"RecovSeq" * (S * "/" * m.Lc((m.Ct(m.V"Labels") + m.Cc(nil))
+                                                * expect(S * m.V"RecovSeq",
+                                                    "ExpPatt1"),
+                                               m.Cc(nil) * m.V"Skip",
+                                               unpack(labelset3))
                             )^0
               ) / labchoice);
   Labels = m.P"{" * expect(S * m.V"Label", "ExpLab1")
            * (S * "," * expect(S * m.V"Label", "ExpLab2"))^0
            * expect(S * "}", "MisClose7");
-  Skip = (-m.P"/" * -m.P(name * arrow) * m.V"Stuff")^0 * m.Cc(dummy);
-  Stuff = m.V"Group" + any;
-  Group = "(" * (-m.P")" * m.V"Stuff")^0 * ")"
-        + "{" * (-m.P"}" * m.V"Stuff")^0 * "}"
-        + "[" * (-m.P"]" * m.V"Stuff")^0 * "]"
-        + "'" * (-m.P"'" * m.V"Stuff")^0 * "'"
-        + '"' * (-m.P'"' * m.V"Stuff")^0 * '"';
-  SeqLC = m.Lc(m.V"Seq", m.V"Skip", unpack(labelset1));
+  Skip = (-m.P"/" * -m.P(name * arrow) * m.V"Ignored")^0 * m.Cc(dummy);
+  Ignored = m.V"Group" + any;
+  Group = "(" * (-m.P")" * m.V"Ignored")^0 * ")"
+        + "{" * (-m.P"}" * m.V"Ignored")^0 * "}"
+        + "[" * (-m.P"]" * m.V"Ignored")^0 * "]"
+        + "'" * (-m.P"'" * m.V"Ignored")^0 * "'"
+        + '"' * (-m.P'"' * m.V"Ignored")^0 * '"';
+  RecovSeq = m.Lc(m.V"Seq", m.V"Skip", unpack(labelset1));
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix" * (S * m.V"Prefix")^0, mt.__mul);
   Prefix = "&" * expect(S * m.V"Prefix", "ExpPatt2") / mt.__len
          + "!" * expect(S * m.V"Prefix", "ExpPatt3") / mt.__unm
          + m.V"Suffix";
-  Suffix = m.Cf(m.V"PrimaryLC" *
+  Suffix = m.Cf(m.V"RecovPrimary" *
           ( S * ( m.P"+" * m.Cc(1, mt.__pow)
                 + m.P"*" * m.Cc(0, mt.__pow)
                 + m.P"?" * m.Cc(-1, mt.__pow)
@@ -315,7 +316,7 @@ local exp = m.P{ "Exp",
                            "ExpName1")
                 )
           )^0, function (a,b,f) return f(a,b) end );
-  PrimaryLC = m.Lc(m.V"Primary", ignore, unpack(labelset2));
+  RecovPrimary = m.Lc(m.V"Primary", ignore, unpack(labelset2));
   Primary = "(" * expect(m.V"Exp", "ExpPatt4") * expect(S * ")", "MisClose1")
           + m.Lc(String / mm.P, pointAtStart,
               labels["MisTerm1"], labels["MisTerm2"])
