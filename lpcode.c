@@ -192,10 +192,13 @@ int checkaux (TTree *tree, int pred) {
       if (!checkaux(sib1(tree), pred)) return 0;
       /* else return checkaux(sib2(tree), pred); */
       tree = sib2(tree); goto tailcall;
-    case TChoice: case TLabChoice: /* labeled failure */
+    case TChoice: 
       if (checkaux(sib2(tree), pred)) return 1;
       /* else return checkaux(sib1(tree), pred); */
       tree = sib1(tree); goto tailcall;
+		case TLabChoice: /* labeled failure */
+     /* in a labeled ordered choice we do not know whether sib2 will be evaluated */
+     tree = sib1(tree); goto tailcall;
     case TCapture: case TGrammar: case TRule:
       /* return checkaux(sib1(tree), pred); */
       tree = sib1(tree); goto tailcall;
