@@ -101,6 +101,15 @@ assert(p:match("aa") == nil)
 p = (m.P"a" + m.T(0))^0
 assert(p:match("aa") == 3)
 
+-- Bug reported by Matthew Allen
+-- some optmizations performed by LPeg should not be
+-- applied in case of labeled choices
+p = m.Lc(m.P"A", m.P(true), 1) + m.P("B")
+assert(p:match("B") == 2)
+
+p = m.Lc(m.P"A", m.P(false), 1) + m.P("B")
+assert(p:match("B") == 2)
+
 
 --[[
 S -> A /{1} 'a'
