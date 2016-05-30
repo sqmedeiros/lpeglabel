@@ -379,7 +379,7 @@ local function compile (p, defs)
       end
     end
     errfound = {}
-    error(concat(errors, "\n"))
+    error("\n" .. concat(errors, "\n"))
   end
   return cp
 end
