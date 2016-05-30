@@ -360,13 +360,19 @@ local function lineno (s, i)
   return 1 + num, (r ~= 0 and r or 1) + adjust
 end
 
+local function splitlines(str)
+  local t = {}
+  local function helper(line) tinsert(t, line) return "" end
+  helper((str:gsub("(.-)\r?\n", helper)))
+  return t
+end
+
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
   p = p .. " " -- for better reporting of column numbers in errors when at EOF
   local cp, label, suffix = pattern:match(p, 1, defs)
   if #errfound > 0 then
-    local lines = {}
-    for line in p:gmatch("[^\r\n]+") do tinsert(lines, line) end
+    local lines = splitlines(p)
     local errors = {}
     for i, err in ipairs(errfound) do
       if #err == 1 then

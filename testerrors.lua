@@ -589,7 +589,7 @@ L2:C9: unexpected characters after the pattern
 
 testerror([[
   A <- 'A' /{'lab'} B / !
-  
+
   B <- %{1, 2 3} 'b' / '6' & / 'B'
 
   C <- A^B
@@ -611,6 +611,5 @@ L5:C10: expected a number after '^', '+' or '-' (no space)
          ^
 ]])
 
-  
+
 print 'OK'
-  
