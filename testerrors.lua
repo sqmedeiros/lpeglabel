@@ -17,7 +17,7 @@ function testerror(repatt, msg)
   assert(err == msg)
 end
 
-testerror([[~]],[[
+testerror([[~]], [[
 L1:C1: no pattern found
 ~
 ^
@@ -468,7 +468,7 @@ testerror([[
   A <- 'a' (B 'b'
   B <- 'x' / !
   C <- 'c'
-]],[[
+]], [[
 L1:C18: missing closing ')'
   A <- 'a' (B 'b'
                  ^
@@ -481,7 +481,7 @@ testerror([[
   A <- %nosuch %def
   A <- 'A again'
   A <- 'and again'
-]],[[
+]], [[
 name 'nosuch' undefined
 name 'def' undefined
 'A' already defined as a rule
@@ -499,7 +499,7 @@ testerror([[
   A <- %nosuch %def
   A <- 'A again'
   A <- 'and again'
-]],[[
+]], [[
 name 'nosuch' undefined
 name 'def' undefined
 'A' already defined as a rule
@@ -543,7 +543,7 @@ L1:C5: expected a pattern after '/' or the label(s)
 testerror([[
   S <- 'forgot to close / T
   T <- 'T' & / 't'
-]],[[
+]], [[
 L1:C8: missing terminating single quote
   S <- 'forgot to close / T
        ^
@@ -555,7 +555,7 @@ L2:C13: expected a pattern after '&'
 testerror([[
   S <- [a-z / T
   T <- 'x' / & / 'y'
-]],[[
+]], [[
 L1:C8: missing closing ']'
   S <- [a-z / T
        ^
@@ -566,7 +566,7 @@ L2:C15: expected a pattern after '&'
 
 testerror([[
   S <- ('p' -- comment
-]],[[
+]], [[
 L1:C12: missing closing ')'
   S <- ('p' -- comment
            ^
@@ -578,7 +578,7 @@ testerror([[
   Q <- 'q'
   R <- 'r'
   S <- 's'
-]],[[
+]], [[
 L1:C9: missing terminating single quote
   X <- ('p / Q (R
         ^
@@ -593,7 +593,7 @@ testerror([[
   B <- %{1, 2 3} 'b' / '6' & / 'B'
 
   C <- A^B
-]],[[
+]], [[
 L1:C14: expected at least one label after '{'
   A <- 'A' /{'lab'} B / !
              ^
@@ -611,5 +611,13 @@ L5:C10: expected a number after '^', '+' or '-' (no space)
          ^
 ]])
 
+testerror([['p'/{1/'q'/&]], [[
+L1:C7: missing closing '}'
+'p'/{1/'q'/&
+      ^
+L1:C13: expected a pattern after '&'
+'p'/{1/'q'/&
+            ^
+]])
 
 print 'OK'
