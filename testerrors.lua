@@ -591,6 +591,8 @@ testerror([[
   A <- 'A' /{'lab'} B / !
   
   B <- %{1, 2 3} 'b' / '6' & / 'B'
+
+  C <- A^B
 ]],[[
 L1:C14: expected at least one label after '{'
   A <- 'A' /{'lab'} B / !
@@ -601,6 +603,12 @@ L1:C26: expected a pattern after '!'
 L3:C15: missing closing '}'
   B <- %{1, 2 3} 'b' / '6' & / 'B'
               ^
+L3:C29: expected a pattern after '&'
+  B <- %{1, 2 3} 'b' / '6' & / 'B'
+                            ^
+L5:C10: expected a number after '^', '+' or '-' (no space)
+  C <- A^B
+         ^
 ]])
 
   

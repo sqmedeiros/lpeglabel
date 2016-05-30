@@ -264,7 +264,7 @@ local labelset1 = labify {
   "ExpNum", "ExpCap",
   "ExpName1", "ExpName2", "ExpName3",
   "ExpNameOrLab", "ExpItem",
-  "MisClose6"
+  "MisClose6", "MisClose7"
 }
 
 local labelset2 = labify {
