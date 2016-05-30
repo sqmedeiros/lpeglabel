@@ -2,6 +2,7 @@
 
 -- imported functions and modules
 local tonumber, type, print, error, ipairs = tonumber, type, print, error, ipairs
+local pcall = pcall
 local setmetatable = setmetatable
 local unpack, tinsert, concat = table.unpack or unpack, table.insert, table.concat
 local rep = string.rep
@@ -81,30 +82,27 @@ for i, err in ipairs(errinfo) do
   labels[err[1]] = i
 end
 
-local errfound = {}
+local syntaxerrs = {}
 
 local function expect (pattern, labelname)
   local label = labels[labelname]
   local record = function (input, pos)
-    tinsert(errfound, {label, pos})
+    tinsert(syntaxerrs, {label, pos})
     return true
   end
   return pattern + m.Cmt("", record) * m.T(label)
 end
 
 local ignore = m.Cmt(any, function (input, pos)
-  return errfound[#errfound][2], dummy
+  return syntaxerrs[#syntaxerrs][2], dummy
 end)
 
 local pointAtStart = m.Cmt(any, function (input, pos)
-  local ret = errfound[#errfound][2]
-  errfound[#errfound][2] = pos-1
+  local ret = syntaxerrs[#syntaxerrs][2]
+  syntaxerrs[#syntaxerrs][2] = pos-1
   return ret, dummy
 end)
 
-local function adderror (message)
-  tinsert(errfound, {message})
-end
 
 -- Pre-defined names
 local Predef = { nl = m.P"\n" }
@@ -158,8 +156,7 @@ local I = m.P(function (s,i) print(i, s:sub(1, i-1)); return i end)
 local function getdef (id, defs)
   local c = defs and defs[id]
   if not c then
-    adderror("undefined name: " .. id)
-    return nil
+    error("undefined name: " .. id)
   end
   return c
 end
@@ -200,8 +197,7 @@ local String = "'" * m.C((any - "'" - m.P"\n")^0) * expect("'", "MisTerm1")
 local defined = "%" * Def / function (c,Defs)
   local cat =  Defs and Defs[c] or Predef[c]
   if not cat then
-    adderror ("name '" .. c .. "' undefined")
-    return dummy
+    error("name '" .. c .. "' undefined")
   end
   return cat
 end
@@ -219,7 +215,7 @@ local Class =
 
 local function adddef (t, k, exp)
   if t[k] then
-    adderror("'"..k.."' already defined as a rule")
+    error("'"..k.."' already defined as a rule")
   else
     t[k] = exp
   end
@@ -231,8 +227,7 @@ local function firstdef (n, r) return adddef({n}, n, r) end
 
 local function NT (n, b)
   if not b then
-    adderror("rule '"..n.."' used outside a grammar")
-    return dummy
+    error("rule '"..n.."' used outside a grammar")
   else return mm.V(n)
   end
 end
@@ -370,21 +365,23 @@ end
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
   p = p .. " " -- for better reporting of column numbers in errors when at EOF
-  local cp, label, suffix = pattern:match(p, 1, defs)
-  if #errfound > 0 then
+  local ok, cp, label, suffix = pcall(function() return pattern:match(p, 1, defs) end)
+  if not ok and #syntaxerrs == 0 then
+    if type(cp) == "string" then
+      cp = cp:gsub("^[^:]+:[^:]+: ", "")
+    end
+    error(cp)
+  end
+  if #syntaxerrs > 0 then
     local lines = splitlines(p)
     local errors = {}
-    for i, err in ipairs(errfound) do
-      if #err == 1 then
-        tinsert(errors, err[1])
-      else
-        local line, col = lineno(p, err[2])
-        tinsert(errors, "L" .. line .. ":C" .. col .. ": " .. errmsgs[err[1]])
-        tinsert(errors, lines[line])
-        tinsert(errors, rep(" ", col-1) .. "^")
-      end
+    for i, err in ipairs(syntaxerrs) do
+      local line, col = lineno(p, err[2])
+      tinsert(errors, "L" .. line .. ":C" .. col .. ": " .. errmsgs[err[1]])
+      tinsert(errors, lines[line])
+      tinsert(errors, rep(" ", col-1) .. "^")
     end
-    errfound = {}
+    syntaxerrs = {}
     error("\n" .. concat(errors, "\n"))
   end
   return cp

@@ -4,17 +4,23 @@ function testerror(repatt, msg)
   msg = msg:match("^%s*(.-)%s*$") -- trim
   local ok, err = pcall(function () re.compile(repatt) end)
   assert(not ok)
-  err = err:match("^[^\n]*\n(.-)$") -- remove first line (filename)
-  err = err:gsub("[ \t]*\n", "\n") -- remove trailing spaces
-  -- if err ~= msg then
-  --   print(#err, #msg)
-  --   print('--')
-  --   print(err)
-  --   print('--')
-  --   print(msg)
-  --   print('--')
-  -- end
-  assert(err == msg)
+  if msg:match("^[^\n]*\n(.-)$") then
+    -- expecting a syntax error
+    err = err:match("^[^\n]*\n(.-)$") -- remove first line (filename)
+    err = err:gsub("[ \t]*\n", "\n") -- remove trailing spaces
+    -- if err ~= msg then
+    --   print(#err, #msg)
+    --   print('--')
+    --   print(err)
+    --   print('--')
+    --   print(msg)
+    --   print('--')
+    -- end
+    assert(err == msg)
+  else
+    -- expecting a non-syntax error
+    assert(err:match(msg))
+  end
 end
 
 testerror([[~]], [[
@@ -483,16 +489,10 @@ testerror([[
   A <- 'and again'
 ]], [[
 name 'nosuch' undefined
-name 'def' undefined
-'A' already defined as a rule
-'A' already defined as a rule
 ]])
 
 testerror([[names not in grammar]], [[
 rule 'names' used outside a grammar
-rule 'not' used outside a grammar
-rule 'in' used outside a grammar
-rule 'grammar' used outside a grammar
 ]])
 
 testerror([[
@@ -501,16 +501,12 @@ testerror([[
   A <- 'and again'
 ]], [[
 name 'nosuch' undefined
-name 'def' undefined
-'A' already defined as a rule
-'A' already defined as a rule
 ]])
 
 testerror([[ A <- %nosuch ('error' ]], [[
 L1:C23: missing closing ')'
  A <- %nosuch ('error'
                       ^
-name 'nosuch' undefined
 ]])
 
 testerror([['a' / &@ ('c' / 'd')]], [[
