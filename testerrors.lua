@@ -5,7 +5,7 @@ function testerror(repatt, msg)
   local ok, err = pcall(function () re.compile(repatt) end)
   assert(not ok)
   err = err:match("^[^\n]*\n(.-)$") -- remove first line (filename)
-  err = err:gsub(" *\n", "\n") -- remove trailing spaces
+  err = err:gsub("[ \t]*\n", "\n") -- remove trailing spaces
   -- if err ~= msg then
   --   print(#err, #msg)
   --   print('--')
@@ -371,11 +371,11 @@ L1:C1: missing closing ']'
 ^
 ]])
 
--- testerror([[[^] 	]], [[
--- L1:C1: missing closing ']'
--- [^]
--- ^
--- ]])
+testerror([[[^] 	]], [[
+L1:C1: missing closing ']'
+[^]
+^
+]])
 
 testerror([[[_-___-_|]], [[
 L1:C1: missing closing ']'
@@ -512,8 +512,6 @@ L1:C23: missing closing ')'
                       ^
 name 'nosuch' undefined
 ]])
-
--- testerror([[A <- Unknown Rules]], [[]])
 
 testerror([['a' / &@ ('c' / 'd')]], [[
 L1:C8: expected a pattern after '&'
