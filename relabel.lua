@@ -87,21 +87,11 @@ local syntaxerrs = {}
 local function expect (pattern, labelname)
   local label = labels[labelname]
   local record = function (input, pos)
-    tinsert(syntaxerrs, {label, pos})
+    tinsert(syntaxerrs, { label = label, pos = pos })
     return true
   end
   return pattern + m.Cmt("", record) * m.T(label)
 end
-
-local ignore = m.Cmt(any, function (input, pos)
-  return syntaxerrs[#syntaxerrs][2], dummy
-end)
-
-local pointAtStart = m.Cmt(any, function (input, pos)
-  local ret = syntaxerrs[#syntaxerrs][2]
-  syntaxerrs[#syntaxerrs][2] = pos-1
-  return ret, dummy
-end)
 
 
 -- Pre-defined names
@@ -238,12 +228,36 @@ local function labchoice (...)
   local p = t[1]
   local i = 2
   while i + 1 <= n do
+    -- t[i] == nil when there are no labels
     p = t[i] and mm.Lc(p, t[i+1], unpack(t[i])) or mt.__add(p, t[i+1])
     i = i + 2
   end
 
   return p
 end
+
+-- error recovery
+local skip = m.P { "Skip",
+  Skip = (-m.P"/" * -m.P(name * arrow) * m.V"Ignored")^0 * m.Cc(dummy);
+  Ignored = m.V"Group" + any;
+  Group = "(" * (-m.P")" * m.V"Ignored")^0 * ")"
+        + "{" * (-m.P"}" * m.V"Ignored")^0 * "}"
+        + "[" * (-m.P"]" * m.V"Ignored")^0 * "]"
+        + "'" * (-m.P"'" * m.V"Ignored")^0 * "'"
+        + '"' * (-m.P'"' * m.V"Ignored")^0 * '"';
+}
+
+local ignore = m.Cmt(any, function (input, pos)
+  return syntaxerrs[#syntaxerrs].pos, dummy
+end)
+
+local pointAtStart = m.Cmt(any, function (input, pos)
+  -- like ignore but makes the last syntax error point at the start
+  local ret = syntaxerrs[#syntaxerrs].pos
+  syntaxerrs[#syntaxerrs].pos = pos-1
+  return ret, dummy
+end)
+
 
 local function labify (labelnames)
   for i, l in ipairs(labelnames) do
@@ -275,21 +289,14 @@ local exp = m.P{ "Exp",
             + (m.V"RecovSeq" * (S * "/" * m.Lc((m.Ct(m.V"Labels") + m.Cc(nil))
                                                 * expect(S * m.V"RecovSeq",
                                                     "ExpPatt1"),
-                                               m.Cc(nil) * m.V"Skip",
+                                               m.Cc(nil) * skip,
                                                unpack(labelset3))
                             )^0
               ) / labchoice);
   Labels = m.P"{" * expect(S * m.V"Label", "ExpLab1")
            * (S * "," * expect(S * m.V"Label", "ExpLab2"))^0
            * expect(S * "}", "MisClose7");
-  Skip = (-m.P"/" * -m.P(name * arrow) * m.V"Ignored")^0 * m.Cc(dummy);
-  Ignored = m.V"Group" + any;
-  Group = "(" * (-m.P")" * m.V"Ignored")^0 * ")"
-        + "{" * (-m.P"}" * m.V"Ignored")^0 * "}"
-        + "[" * (-m.P"]" * m.V"Ignored")^0 * "]"
-        + "'" * (-m.P"'" * m.V"Ignored")^0 * "'"
-        + '"' * (-m.P'"' * m.V"Ignored")^0 * '"';
-  RecovSeq = m.Lc(m.V"Seq", m.V"Skip", unpack(labelset1));
+  RecovSeq = m.Lc(m.V"Seq", skip, unpack(labelset1));
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix" * (S * m.V"Prefix")^0, mt.__mul);
   Prefix = "&" * expect(S * m.V"Prefix", "ExpPatt2") / mt.__len
          + "!" * expect(S * m.V"Prefix", "ExpPatt3") / mt.__unm
@@ -376,13 +383,13 @@ local function compile (p, defs)
     local lines = splitlines(p)
     local errors = {}
     for i, err in ipairs(syntaxerrs) do
-      local line, col = lineno(p, err[2])
-      tinsert(errors, "L" .. line .. ":C" .. col .. ": " .. errmsgs[err[1]])
+      local line, col = lineno(p, err.pos)
+      tinsert(errors, "L" .. line .. ":C" .. col .. ": " .. errmsgs[err.label])
       tinsert(errors, lines[line])
       tinsert(errors, rep(" ", col-1) .. "^")
     end
     syntaxerrs = {}
-    error("\n" .. concat(errors, "\n"))
+    error("syntax error(s) in pattern\n" .. concat(errors, "\n"))
   end
   return cp
 end
