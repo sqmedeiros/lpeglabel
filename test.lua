@@ -1420,7 +1420,7 @@ errmsg('aaaa', "rule 'aaaa'")
 errmsg('a', 'outside')
 errmsg('b <- a', 'undefined')
 errmsg("x <- 'a'  x <- 'b'", 'already defined')
-errmsg("'a' -", "near '-'")
+-- errmsg("'a' -", "near '-'")
 
 
 print"OK"
