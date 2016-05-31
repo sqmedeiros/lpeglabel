@@ -23,6 +23,8 @@ function testerror(repatt, msg)
   end
 end
 
+-- testing NoPatt
+
 testerror([[~]], [[
 L1:C1: no pattern found
 ~
@@ -35,6 +37,8 @@ L1:C1: no pattern found
 ^
 ]])
 
+-- testing ExtraChars
+
 testerror([['p'~]], [[
 L1:C4: unexpected characters after the pattern
 'p'~
@@ -46,6 +50,8 @@ L1:C5: unexpected characters after the pattern
 'p'?$?
     ^
 ]])
+
+-- testing ExpPatt1
 
 testerror([['p' /{1}]], [[
 L1:C9: expected a pattern after '/' or the label(s)
@@ -70,6 +76,8 @@ L1:C6: expected a pattern after '/' or the label(s)
 'p' / / 'q'
      ^
 ]])
+
+-- testing ExpPatt2
 
 testerror([[&]], [[
 L1:C2: expected a pattern after '&'
@@ -107,6 +115,8 @@ L1:C3: expected a pattern after '&'
   ^
 ]])
 
+-- testing ExpPatt3
+
 testerror([[!]], [[
 L1:C2: expected a pattern after '!'
 !
@@ -143,6 +153,107 @@ L1:C3: expected a pattern after '!'
   ^
 ]])
 
+-- testing ExpPatt4
+
+testerror([[()]], [[
+L1:C2: expected a pattern after '('
+()
+ ^
+]])
+
+testerror([[($$$)]], [[
+L1:C2: expected a pattern after '('
+($$$)
+ ^
+]])
+
+-- testing ExpPatt5
+
+testerror([[{: *** :}]], [[
+L1:C3: expected a pattern after ':'
+{: *** :}
+  ^
+]])
+
+testerror([[{:group: *** :}]], [[
+L1:C9: expected a pattern after ':'
+{:group: *** :}
+        ^
+]])
+
+testerror([[x <- {:x:}]], [[
+L1:C10: expected a pattern after ':'
+x <- {:x:}
+         ^
+]])
+
+-- testing ExpPatt6
+
+testerror([[{~~}]], [[
+L1:C3: expected a pattern after '{~'
+{~~}
+  ^
+]])
+
+testerror([[{ {~ } ~}]], [[
+L1:C5: expected a pattern after '{~'
+{ {~ } ~}
+    ^
+L1:C10: missing closing '}'
+{ {~ } ~}
+         ^
+]])
+
+testerror([[{~ ^_^ ~}]], [[
+L1:C3: expected a pattern after '{~'
+{~ ^_^ ~}
+  ^
+]])
+
+-- testing ExpPatt7
+
+testerror([[{||}]], [[
+L1:C3: expected a pattern after '{|'
+{||}
+  ^
+]])
+
+testerror([[{|@|}]], [[
+L1:C3: expected a pattern after '{|'
+{|@|}
+  ^
+]])
+
+-- testing ExpPatt8
+
+testerror([[S <-]], [[
+L1:C5: expected a pattern after '<-'
+S <-
+    ^
+]])
+
+testerror([[S <- 'p' T <-]], [[
+L1:C14: expected a pattern after '<-'
+S <- 'p' T <-
+             ^
+]])
+
+-- testing ExpPattOrClose
+
+testerror([[{0}]], [[
+L1:C2: expected a pattern or closing '}' after '{'
+{0}
+ ^
+]])
+
+testerror([[{ :'p': }]], [[
+L1:C2: expected a pattern or closing '}' after '{'
+{ :'p': }
+ ^
+]])
+
+-- testing ExpNum
+
 testerror([['p' ^ n]], [[
 L1:C6: expected a number after '^', '+' or '-' (no space)
 'p' ^ n
@@ -160,6 +271,8 @@ L1:C5: expected a number after '^', '+' or '-' (no space)
 'p'^-/'q'
     ^
 ]])
+
+-- testing ExpCap
 
 testerror([['p' -> {]], [[
 L1:C7: expected a string, number, '{}' or name after '->'
@@ -185,6 +298,8 @@ L1:C7: expected a string, number, '{}' or name after '->'
       ^
 ]])
 
+-- testing ExpName1
+
 testerror([['p' =>]], [[
 L1:C7: expected the name of a rule after '=>'
 'p' =>
@@ -197,62 +312,7 @@ L1:C7: expected the name of a rule after '=>'
       ^
 ]])
 
-testerror([[()]], [[
-L1:C2: expected a pattern after '('
-()
- ^
-]])
-
-testerror([[($$$)]], [[
-L1:C2: expected a pattern after '('
-($$$)
- ^
-]])
-
-testerror([[('p' ('q' / 'r')]], [[
-L1:C17: missing closing ')'
-('p' ('q' / 'r')
-                ^
-]])
-
-testerror([[% s]], [[
-L1:C2: expected a name or label after '%' (no space)
-% s
- ^
-]])
-
-testerror([[% {1}]], [[
-L1:C2: expected a name or label after '%' (no space)
-% {1}
- ^
-]])
-
-testerror([[{: *** :}]], [[
-L1:C3: expected a pattern after ':'
-{: *** :}
-  ^
-]])
-
-testerror([[{:group: *** :}]], [[
-L1:C9: expected a pattern after ':'
-{:group: *** :}
-        ^
-]])
-
-testerror([[{: group: 'p' :}]], [[
-L1:C9: missing closing ':}'
-{: group: 'p' :}
-        ^
-L1:C9: unexpected characters after the pattern
-{: group: 'p' :}
-        ^
-]])
-
-testerror([[S <- {: 'p'  T <- 'q']], [[
-L1:C12: missing closing ':}'
-S <- {: 'p'  T <- 'q'
-           ^
-]])
+-- testing ExpName2
 
 testerror([['<' {:tag: [a-z]+ :} '>' '<' = '>']], [[
 L1:C31: expected the name of a rule after '=' (no space)
@@ -266,50 +326,7 @@ L1:C31: expected the name of a rule after '=' (no space)
                               ^
 ]])
 
-testerror([[{~~}]], [[
-L1:C3: expected a pattern after '{~'
-{~~}
-  ^
-]])
-
-testerror([[{ {~ } ~}]], [[
-L1:C5: expected a pattern after '{~'
-{ {~ } ~}
-    ^
-L1:C10: missing closing '}'
-{ {~ } ~}
-         ^
-]])
-
-testerror([[{~ ^_^ ~}]], [[
-L1:C3: expected a pattern after '{~'
-{~ ^_^ ~}
-  ^
-]])
-
-testerror([['p' {~ ('q' 'r') / 's']], [[
-L1:C23: missing closing '~}'
-'p' {~ ('q' 'r') / 's'
-                      ^
-]])
-
-testerror([[{0}]], [[
-L1:C2: expected a pattern or closing '}' after '{'
-{0}
- ^
-]])
-
-testerror([[{ :'p': }]], [[
-L1:C2: expected a pattern or closing '}' after '{'
-{ :'p': }
- ^
-]])
-
-testerror([[{ 'p' ]], [[
-L1:C6: missing closing '}'
-{ 'p'
-     ^
-]])
+-- testing ExpName3
 
 testerror([[<>]], [[
 L1:C2: expected the name of a rule after '<' (no space)
@@ -335,6 +352,116 @@ L1:C2: expected the name of a rule after '<' (no space)
  ^
 ]])
 
+-- testing ExpLab1
+
+testerror([['p' /{} 'q']], [[
+L1:C7: expected at least one label after '{'
+'p' /{} 'q'
+      ^
+]])
+
+testerror([[%{ 'label' }]], [[
+L1:C3: expected at least one label after '{'
+%{ 'label' }
+  ^
+]])
+
+-- testing ExpLab2
+
+testerror([['p' /{1,2,3,} 'q']], [[
+L1:C13: expected a label after the comma
+'p' /{1,2,3,} 'q'
+            ^
+]])
+
+testerror([[%{ a,,b,,c }]], [[
+L1:C6: expected a label after the comma
+%{ a,,b,,c }
+     ^
+]])
+
+-- testing ExpNameOrLab
+
+testerror([[% s]], [[
+L1:C2: expected a name or label after '%' (no space)
+% s
+ ^
+]])
+
+testerror([[% {1}]], [[
+L1:C2: expected a name or label after '%' (no space)
+% {1}
+ ^
+]])
+
+-- testing ExpItem
+
+testerror([[
+"p" [
+abc
+] "q"  
+]], [[
+L1:C6: expected at least one item after '[' or '^'
+"p" [
+     ^
+]])
+
+-- testing MisClose1
+
+testerror([[('p' ('q' / 'r')]], [[
+L1:C17: missing closing ')'
+('p' ('q' / 'r')
+                ^
+]])
+
+-- testing MisClose2
+
+-- two errors are reported due to the ignore strategy
+testerror([[{: group: 'p' :}]], [[
+L1:C9: missing closing ':}'
+{: group: 'p' :}
+        ^
+L1:C9: unexpected characters after the pattern
+{: group: 'p' :}
+        ^
+]])
+
+testerror([[S <- {: 'p'  T <- 'q']], [[
+L1:C12: missing closing ':}'
+S <- {: 'p'  T <- 'q'
+           ^
+]])
+
+-- testing MisClose3
+
+testerror([['p' {~ ('q' 'r') / 's']], [[
+L1:C23: missing closing '~}'
+'p' {~ ('q' 'r') / 's'
+                      ^
+]])
+
+-- testing MisClose4
+
+-- two errors are reported due to the ignore strategy
+testerror([['p' {| 'q' / 'r' }]], [[
+L1:C17: missing closing '|}'
+'p' {| 'q' / 'r' }
+                ^
+L1:C18: unexpected characters after the pattern
+'p' {| 'q' / 'r' }
+                 ^
+]])
+
+-- testing MisClose5
+
+testerror([[{ 'p' ]], [[
+L1:C6: missing closing '}'
+{ 'p'
+     ^
+]])
+
+-- testing MisClose6
+
 testerror([[<patt]], [[
 L1:C6: missing closing '>'
 <patt
@@ -347,17 +474,15 @@ L1:C8: missing closing '>'
        ^
 ]])
 
-testerror([[S <-]], [[
-L1:C5: expected a pattern after '<-'
-S <-
-    ^
+-- testing MisClose7
+
+testerror([['{' %{ a, b '}']], [[
+L1:C12: missing closing '}'
+'{' %{ a, b '}'
+           ^
 ]])
 
-testerror([[S <- 'p' T <-]], [[
-L1:C14: expected a pattern after '<-'
-S <- 'p' T <-
-             ^
-]])
+-- testing MisClose8
 
 testerror([[[]], [[
 L1:C1: missing closing ']'
@@ -389,41 +514,7 @@ L1:C1: missing closing ']'
 ^
 ]])
 
-testerror([['p' /{} 'q']], [[
-L1:C7: expected at least one label after '{'
-'p' /{} 'q'
-      ^
-]])
-
-testerror([[%{ 'label' }]], [[
-L1:C3: expected at least one label after '{'
-%{ 'label' }
-  ^
-]])
-
-testerror([['p' /{1,2,3,} 'q']], [[
-L1:C13: expected a label after the comma
-'p' /{1,2,3,} 'q'
-            ^
-]])
-
-testerror([[%{ a,,b,,c }]], [[
-L1:C6: expected a label after the comma
-%{ a,,b,,c }
-     ^
-]])
-
-testerror([['{' %{ a, b '}']], [[
-L1:C12: missing closing '}'
-'{' %{ a, b '}'
-           ^
-]])
-
-testerror([[Q <- "To be or not to be...]], [[
-L1:C6: missing terminating double quote
-Q <- "To be or not to be...
-     ^
-]])
+-- testing MisTerm1
 
 testerror([['That is the question...]], [[
 L1:C1: missing terminating single quote
@@ -431,32 +522,16 @@ L1:C1: missing terminating single quote
 ^
 ]])
 
-testerror([[{||}]], [[
-L1:C3: expected a pattern after '{|'
-{||}
-  ^
+-- testing MisTerm2
+
+testerror([[Q <- "To be or not to be...]], [[
+L1:C6: missing terminating double quote
+Q <- "To be or not to be...
+     ^
 ]])
 
-testerror([[{|@|}]], [[
-L1:C3: expected a pattern after '{|'
-{|@|}
-  ^
-]])
-
-testerror([['p' {| 'q' / 'r' }]], [[
-L1:C17: missing closing '|}'
-'p' {| 'q' / 'r' }
-                ^
-L1:C18: unexpected characters after the pattern
-'p' {| 'q' / 'r' }
-                 ^
-]])
-
-testerror([[x <- {:x:}]], [[
-L1:C10: expected a pattern after ':'
-x <- {:x:}
-         ^
-]])
+-- testing error recovery, more complex grammars (multiline),
+-- and pointer positions in error recovery
 
 testerror([[&'p'/&/!/'p'^'q']], [[
 L1:C7: expected a pattern after '&'
@@ -481,32 +556,6 @@ L1:C18: missing closing ')'
 L2:C15: expected a pattern after '!'
   B <- 'x' / !
               ^
-]])
-
-testerror([[
-  A <- %nosuch %def
-  A <- 'A again'
-  A <- 'and again'
-]], [[
-name 'nosuch' undefined
-]])
-
-testerror([[names not in grammar]], [[
-rule 'names' used outside a grammar
-]])
-
-testerror([[
-  A <- %nosuch %def
-  A <- 'A again'
-  A <- 'and again'
-]], [[
-name 'nosuch' undefined
-]])
-
-testerror([[ A <- %nosuch ('error' ]], [[
-L1:C23: missing closing ')'
- A <- %nosuch ('error'
-                      ^
 ]])
 
 testerror([['a' / &@ ('c' / 'd')]], [[
@@ -568,6 +617,8 @@ L1:C12: missing closing ')'
            ^
 ]])
 
+-- an unfortunate second error exists because we don't know
+-- what's part of the quotation
 testerror([[
   X <- ('p / Q (R
     / S))
@@ -615,5 +666,36 @@ L1:C13: expected a pattern after '&'
 'p'/{1/'q'/&
             ^
 ]])
+
+-- testing non-syntax errors
+
+testerror([[
+  A <- %nosuch %def
+  A <- 'A again'
+  A <- 'and again'
+]], [[
+name 'nosuch' undefined
+]])
+
+testerror([[names not in grammar]], [[
+rule 'names' used outside a grammar
+]])
+
+testerror([[
+  A <- %nosuch %def
+  A <- 'A again'
+  A <- 'and again'
+]], [[
+name 'nosuch' undefined
+]])
+
+-- the non-syntax error should not be reported
+-- since there is a syntax error
+testerror([[ A <- %nosuch ('error' ]], [[
+L1:C23: missing closing ')'
+ A <- %nosuch ('error'
+                      ^
+]])
+
 
 print 'OK'
