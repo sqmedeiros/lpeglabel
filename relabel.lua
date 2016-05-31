@@ -352,14 +352,15 @@ local pattern = S * m.Cg(m.Cc(false), "G") * expect(exp, "NoPatt") / mm.P
 
 local function lineno (s, i)
   if i == 1 then return 1, 1 end
-  local adjust = 0
+  local adjustment = 0
+  -- report the current line if at end of line, not the next
   if s:sub(i,i) == '\n' then
     i = i-1
-    adjust = 1
+    adjustment = 1
   end
   local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
   local r = #rest
-  return 1 + num, (r ~= 0 and r or 1) + adjust
+  return 1 + num, (r ~= 0 and r or 1) + adjustment
 end
 
 local function splitlines(str)
