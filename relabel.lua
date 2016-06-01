@@ -378,7 +378,7 @@ local function compile (p, defs)
     if type(cp) == "string" then
       cp = cp:gsub("^[^:]+:[^:]+: ", "")
     end
-    error(cp)
+    error(cp, 3)
   end
   if #syntaxerrs > 0 then
     local lines = splitlines(p)
@@ -390,7 +390,7 @@ local function compile (p, defs)
       tinsert(errors, rep(" ", col-1) .. "^")
     end
     syntaxerrs = {}
-    error("syntax error(s) in pattern\n" .. concat(errors, "\n"))
+    error("syntax error(s) in pattern\n" .. concat(errors, "\n"), 3)
   end
   return cp
 end
