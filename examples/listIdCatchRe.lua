@@ -1,4 +1,4 @@
-local re = require're'
+local re = require'relabel'
 
 local terror = {} 
 

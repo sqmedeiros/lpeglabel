@@ -1,4 +1,4 @@
-local re = require 're' 
+local re = require 'relabel' 
 
 local g = re.compile[[
   S    <- Id List
@@ -7,12 +7,12 @@ local g = re.compile[[
 ]]
 
 function mymatch (g, s)
-	local r, e = g:match(s)
+	local r, e, sfail = g:match(s)
 	if not r then
 		if e == 1 then
-    	return r, "Error: expecting an identifier"
+    	return r, "Error: expecting an identifier before '" .. sfail .. "'" 
   	elseif e == 2 then
-    	return r, "Error: expecting ','"
+    	return r, "Error: expecting ',' before '" .. sfail .. "'" 
   	else
     	return r, "Error"
   	end

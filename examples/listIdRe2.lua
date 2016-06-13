@@ -1,4 +1,4 @@
-local re = require 're' 
+local re = require 'relabel' 
 
 local errUndef, errId, errComma = 0, 1, 2
 
@@ -21,9 +21,9 @@ local g = re.compile[[
 ]]
 
 function mymatch (g, s)
-	local r, e = g:match(s)
+	local r, e, sfail = g:match(s)
 	if not r then
-		return r, terror[e]
+		return r, terror[e] .. " before '" .. sfail .. "'"
 	end
 	return r
 end

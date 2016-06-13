@@ -61,15 +61,12 @@ with the standard patterns of LPeg.
 <p>
 This document describes the new functions available
 in LpegLabel and presents some examples of usage.
-For a more detailed and formal discussion about
-PEGs with labels please see
-<a href="http://www.inf.puc-rio.br/~roberto/docs/sblp2013-1.pdf">
-Exception Handling for Error Reporting in Parsing Expression Grammars
-</a>
-and
-<a href="http://arxiv.org/abs/1405.6646">Error Reporting in Parsing Expression Grammars</a>.
+In LPegLabel, the result of an unsuccessful matching
+is a triple <code>nil, lab, sfail</code>, where <code>lab</code>
+is the label associated with the failure, and
+<code>sfail</code> is the suffix input where
+the label was thrown.
 </p>
-
 
 <p>
 Below there is a brief summary of the new functions
@@ -77,14 +74,14 @@ provided by LpegLabel:
 </p>
 <table border="1">
 <tbody><tr><td><b>Function</b></td><td><b>Description</b></td></tr>
-<tr><td><a href="#f-t"><code>lpeglabel.T (l<sub>1</sub>, ..., l<sub>n</sub>)</code></a></td>
-  <td>Throws labels <code>l<sub>1</sub>, ..., l<sub>n</sub></code></td></tr>
+<tr><td><a href="#f-t"><code>lpeglabel.T (l)</code></a></td>
+  <td>Throws label <code>l</code></td></tr>
 <tr><td><a href="#f-lc"><code>lpeglabel.Lc (p1, p2, l<sub>1</sub>, ..., l<sub>n</sub>)</code></a></td>
   <td>Matches <code>p1</code> and tries to match <code>p2</code>
 			if the matching of <code>p1</code> gives one of l<sub>1</sub>, ..., l<sub>n</sub> 
       </td></tr>
-<tr><td><a href="#re-t"><code>%{l<sub>1</sub>, ..., l<sub>n</sub>}</code></a></td>
-  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.T(l<sub>1</sub>, ..., l<sub>n</sub>)</code>
+<tr><td><a href="#re-t"><code>%{l}</code></a></td>
+  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.T(l)</code>
       </td></tr>
 <tr><td><a href="#re-lc"><code>p1 /{l<sub>1</sub>, ..., l<sub>n</sub>} p2</code></a></td>
   <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l<sub>1</sub>, ..., l<sub>n</sub>)</code>
@@ -95,18 +92,30 @@ provided by LpegLabel:
 </tbody></table>
 
 <p>
-In case of an unsucessful matching, the <em>match</em> function now returns
+For a more detailed and formal discussion about
+PEGs with labels please see
+<a href="http://www.inf.puc-rio.br/~roberto/docs/sblp2013-1.pdf">
+Exception Handling for Error Reporting in Parsing Expression Grammars</a>,
+<a href="http://arxiv.org/abs/1405.6646">Error Reporting in Parsing Expression Grammars</a>,
+and <a href="http://dx.doi.org/10.1145/2851613.2851750">
+A parsing machine for parsing expression grammars with labeled failures</a>.
+</p>
+
+<!--
+<p>
+In case of an unsucessful matching, the <em>match</em> function returns
 <code>nil</code> plus a list of labels. These labels may be used to build
 a good error message.
 </p>
+-->
 
 <h2><a name="func">Functions</a></h2>
 
 
-<h3><a name="f-t"></a><code>lpeglabel.T(l<sub>1</sub>, ..., l<sub>n</sub>)</code></h3>
+<h3><a name="f-t"></a><code>lpeglabel.T(l)</code></h3>
 <p>
-Returns a pattern that throws the list of labels <code>l<sub>1</sub>, ..., l<sub>n</sub></code>.
-A label must be an integer between <code>0</code> and <code>31</code>.
+Returns a pattern that throws the label <code>l</code>.
+A label must be an integer between <code>0</code> and <code>63</code>.
 
 The label <code>0</code> is equivalent to the regular failure of PEGs.
 
@@ -131,9 +140,9 @@ labeled ordered choice pattern.
 </p>
 
 
-<h3><a name="re-t"></a><code>%{l<sub>1</sub>, ..., l<sub>n</sub>}</code></h3>
+<h3><a name="re-t"></a><code>%{l}</code></h3>
 <p>
-Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.T(l<sub>1</sub>, ..., l<sub>n</sub>)</code>.
+Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.T(l)</code>.
 </p>
 
 
@@ -157,7 +166,7 @@ of <code>relabel</code> module will not recognize a pattern as
 <h3><a name="re-setl"></a><code>relabel.setlabels (tlabel)</code></h3>
 
 <p>Allows to specicify a table with labels. They keys of
-<code>tlabel</code> must be integers between <code>0</code> and <code>31</code>,
+<code>tlabel</code> must be integers between <code>0</code> and <code>63</code>,
 and the associated values should be strings.
 </p>
 
