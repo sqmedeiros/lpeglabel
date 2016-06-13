@@ -1,0 +1,10 @@
+HISTORY for LPegLabel 0.12.2-2
+
+* Changes from version 0.12.2-1 to 0.12.2-2
+  ---------------------------------
+  + in case of a failure, "match" also returns a suffix of the input
+  + improved error reporting for "relabel", thanks to Matthew Allen
+  + limit of labels increased from 32 to 64, thanks to André Maidl
+  + compiles with Lua 5.1, thanks to Matthew Allen
+  + the throw operator now throws only one label
+  + some bugs fixed
