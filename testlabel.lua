@@ -1,11 +1,17 @@
 local m = require 'lpeglabel'
 
-local p = m.T(1, 2, 5)
-assert(p:match("abc") == nil)
+local p, r, l, s, serror
+
+-- throws a label 
+p = m.T(1)
+s = "abc"
+r, l, serror = p:match(s) 
+assert(r == nil and l == 1 and serror == "abc")
 
 -- throws a label that is not caught by ordinary choice
 p = m.T(1) + m.P"a"
-assert(p:match("abc") == nil)
+r, l, serror = p:match(s)
+assert(r == nil and l == 1 and serror == "abc")
 
 -- again throws a label that is not caught by ordinary choice
 local g = m.P{
@@ -14,28 +20,37 @@ local g = m.P{
 	A = m.T(1),
 	B = m.P"a"
 }
-assert(g:match("abc") == nil)
+r, l, serror = g:match(s)
+assert(r == nil and l == 1 and serror == "abc")
 
 -- throws a label that is not caught by labeled choice
 p = m.Lc(m.T(2), m.P"a", 1, 3)
-assert(p:match("abc") == nil)
+r, l, serror = p:match(s)
+assert(r == nil and l == 2 and serror == "abc")
 
 -- modifies previous pattern
 -- adds another labeled choice to catch label "2"
 p = m.Lc(p, m.P"a", 2)
-assert(p:match("abc") == 2)
+assert(p:match(s) == 2)
 
 -- throws a label that is caught by labeled choice
 p = m.Lc(m.T(25), m.P"a", 25)
-assert(p:match("abc") == 2)
-assert(p:match("bola") == nil)
+assert(p:match(s) == 2)
+
+-- "fail" is label "0"
+-- throws the "fail" label that is not caught by the labeled choice
+s = "bola"
+r, l, serror = p:match("bola")
+assert(r == nil and l == 0 and serror == "bola")
 
 -- labeled choice does not catch "fail" by default
 p = m.Lc(m.P"b", m.P"a", 1)
-assert(p:match("abc") == nil)
+
+r, l, serror = p:match("abc") 
+assert(r == nil and l == 0 and serror == "abc")
+
 assert(p:match("bola") == 2)
 
--- "fail" is label "0"
 -- labeled choice can catch "fail"
 p = m.Lc(m.P"b", m.P"a", 0)
 assert(p:match("abc") == 2)
@@ -46,14 +61,18 @@ assert(p:match("bola") == 2)
 p = m.Lc(m.P"a" * m.T(3), (m.P"a" + m.P"b"), 0, 3)
 assert(p:match("abc") == 2)
 assert(p:match("bac") == 2)
-assert(p:match("cab") == nil)
+
+r, l, serror = p:match("cab")
+assert(r == nil and l == 0 and serror == "cab")
 
 -- tests related to predicates
 p = #m.T(1) + m.P"a"
-assert(p:match("abc") == nil)
+r, l, serror = p:match("abc")
+assert(r == nil and l == 1 and serror == "abc")
 
 p = ##m.T(1) + m.P"a"
-assert(p:match("abc") == nil)
+r, l, serror = p:match("abc")
+assert(r == nil and l == 1 and serror == "abc")
 
 p = #m.T(0) * m.P"a"
 assert(p:match("abc") == fail)
@@ -62,10 +81,12 @@ p = #m.T(0) + m.P"a"
 assert(p:match("abc") == 2)
 
 p = -m.T(1) * m.P"a"
-assert(p:match("abc") == nil)
+r, l, serror = p:match("abc")
+assert(r == nil and l == 1 and serror == "abc")
 
 p = -(-m.T(1)) * m.P"a"
-assert(p:match("abc") == nil)
+r, l, serror = p:match("abc")
+assert(r == nil and l == 1 and serror == "abc")
 
 p = -m.T(0) * m.P"a"
 assert(p:match("abc") == 2)
@@ -90,13 +111,15 @@ assert(p:match("abc") == 2)
 
 -- tests related to repetition
 p = m.T(1)^0
-assert(p:match("ab") == nil)
+r, l, serror = p:match("ab")
+assert(r == nil and l == 1 and serror == "ab")
 
 p = m.T(0)^0
 assert(p:match("ab") == 1)
 
 p = (m.P"a" + m.T(1))^0
-assert(p:match("aa") == nil)
+r, l, serror = p:match("aa")
+assert(r == nil and l == 1 and serror == "")
 
 p = (m.P"a" + m.T(0))^0
 assert(p:match("aa") == 3)
@@ -123,7 +146,8 @@ g = m.P{
 	B = m.T(1),
 }
 assert(g:match("ab") == 2)
-assert(g:match("bc") == nil)
+r, l, serror = g:match("bc")
+assert(r == nil and l == 0 and serror == "bc")
 
 
 --[[
@@ -138,17 +162,23 @@ g = m.P{
 	B = m.P'a',
 }
 assert(g:match("a;a;") == 5)
-assert(g:match("a;a") == nil)
+
+r, l, serror = g:match("a;a")
+assert(r == nil and l == 1 and serror == "")
 
 
 -- %1 /{1,3} %2 /{2} 'a'
 p = m.Lc(m.Lc(m.T(1), m.T(2), 1, 3), m.P"a", 2)
 assert(p:match("abc") == 2)
-assert(p:match("") == nil)
+
+r, l, serror = p:match("")
+assert(r == nil and l == 0 and serror == "")
 
 p = m.Lc(m.T(1), m.Lc(m.T(2), m.P"a", 2), 1, 3)
 assert(p:match("abc") == 2)
-assert(p:match("") == nil)
+
+r, l, serror = p:match("")
+assert(r == nil and l == 0 and serror == "")
 
 print("+")
 
@@ -173,7 +203,7 @@ g = m.P{
             m.V"U"^0 * m.V"I" * m.V"ID", 3
             ),
          m.V"U"^0 * m.V"ID" * m.V"ID", 4) 
-       + m.T(5),
+       + m.T(5), -- error
 	S0 = m.V"ID" * m.V"S1"  +  m.V"U" * m.V"S2"  +  m.V"I" * m.T(3),
 	S1 = eq * m.T(2) + sp * -m.P(1) * m.T(1) + m.V"ID" * m.T(4),
 	S2 = m.V"U" * m.V"S2"  +   m.V"ID" * m.T(4)  +   m.V"I" * m.T(3),
@@ -193,14 +223,22 @@ s = "unsigned int a"
 assert(g:match(s) == #s + 1) --3
 s = "unsigned a a"
 assert(g:match(s) == #s + 1) --4
+
 s = "b" 
-assert(g:match(s) == nil) 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == "b")
+
 s = "unsigned" 
-assert(g:match(s) == nil) 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
+
 s = "unsigned a" 
-assert(g:match(s) == nil) 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
+
 s = "unsigned int" 
-assert(g:match(s) == nil) 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
 
 
 print("+")
@@ -210,27 +248,34 @@ local re = require 'relabel'
 g = re.compile[['a' /{4,9} [a-z]
 ]]
 assert(g:match("a") == 2)
-assert(g:match("b") == nil)
+r, l, serror = g:match("b")
+assert(r == nil and l == 0 and serror == "b")
 
 g = re.compile[['a' /{4,9} [a-f] /{5, 7} [a-z]
 ]]
 assert(g:match("a") == 2)
-assert(g:match("b") == nil)
+r, l, serror = g:match("b")
+assert(r == nil and l == 0 and serror == "b")
 
 g = re.compile[[%{1} /{4,9} [a-z]
 ]]
-assert(g:match("a") == nil)
+r, l, serror = g:match("a")
+assert(r == nil and l == 1 and serror == "a")
+
 
 g = re.compile[[%{1} /{4,1} [a-f]
 ]]
 assert(g:match("a") == 2)
-assert(g:match("h") == nil)
+r, l, serror = g:match("h")
+assert(r == nil and l == 0 and serror == "h")
 
-g = re.compile[[[a-f]%{15, 9} /{4,9} [a-c]%{7} /{5, 7} [a-z] ]]
+g = re.compile[[[a-f]%{9} /{4,9} [a-c]%{7} /{5, 7} [a-z] ]]
 assert(g:match("a") == 2)
 assert(g:match("c") == 2)
-assert(g:match("d") == nil)
-assert(g:match("g") == nil)
+r, l, serror = g:match("d")
+assert(r == nil and l == 0 and serror == "d")
+r, l, serror = g:match("g")
+assert(r == nil and l == 0 and serror == "g")
 
 --[[ grammar based on Figure 8 of paper submitted to SCP
 S  -> S0 /{1} ID /{2} ID '=' Exp /{3} 'unsigned'* 'int' ID /{4} 'unsigned'* ID ID / %error
@@ -262,13 +307,17 @@ assert(g:match(s) == #s + 1) --3
 s = "unsigned a a"
 assert(g:match(s) == #s + 1) --4
 s = "b" 
-assert(g:match(s) == nil) 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
 s = "unsigned" 
-assert(g:match(s) == nil) 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
 s = "unsigned a" 
-assert(g:match(s) == nil) 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
 s = "unsigned int" 
-assert(g:match(s) == nil) 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
 
 local terror = { ['cmdSeq'] = "Missing ';' in CmdSeq",
                  ['ifExp'] = "Error in expresion of 'if'",
