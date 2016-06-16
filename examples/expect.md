@@ -6,7 +6,7 @@ record all errors encountered once error recovery is implemented.
 ```lua
 local lpeg = require"lpeglabel"
 
-local R, S, P, V, T = lpeg.R, lpeg.S, lpeg.P, lpeg.V, lpeg.T
+local R, S, P, V, C, Ct, T = lpeg.R, lpeg.S, lpeg.P, lpeg.V, lpeg.C, lpeg.Ct, lpeg.T
 
 local labels = {
   {"NoExp",     "no expression found"},
@@ -26,41 +26,62 @@ local function expect(patt, labname)
   error("could not find label: " .. labname)
 end
 
-local num = R("09")^1
+local num = R("09")^1 / tonumber
 local op = S("+-*/")
+
+local function compute(tokens)
+  local result = tokens[1]
+  for i = 2, #tokens, 2 do
+    if tokens[i] == '+' then
+      result = result + tokens[i+1]
+    elseif tokens[i] == '-' then
+      result = result - tokens[i+1]
+    elseif tokens[i] == '*' then
+      result = result * tokens[i+1]
+    elseif tokens[i] == '/' then
+      result = result / tokens[i+1]
+    else
+      error('unknown operation: ' .. tokens[i])
+    end
+  end
+  return result
+end
 
 local g = P {
   "Exp",
-  Exp = V"Term" * (op * expect(V"Term", "ExpTerm"))^0;
+  Exp = Ct(V"Term" * (C(op) * expect(V"Term", "ExpTerm"))^0) / compute;
   Term = num + V"Group";
   Group = "(" * expect(V"Exp", "ExpExp") * expect(")", "MisClose");
 }
 
 g = expect(g, "NoExp") * expect(-P(1), "Extra")
 
-local function check(input)
-  result, label, suffix = g:match(input)
+local function eval(input)
+  local result, label, suffix = g:match(input)
   if result ~= nil then
-    return "ok"
+    return result
   else
     local pos = input:len() - suffix:len() + 1
     local msg = labels[label][2]
-    return "syntax error: " .. msg .. " (at index " .. pos .. ")"
+    return nil, "syntax error: " .. msg .. " (at index " .. pos .. ")"
   end
 end
 
-print(check "(1+1-1*2/2")
+print(eval "98-76*(54/32)")
+--> 37.125
+
+print(eval "(1+1-1*2/2")
 --> syntax error: missing a closing ')' after the expression (at index 11)
 
-print(check "(1+)-1*(2/2)")
+print(eval "(1+)-1*(2/2)")
 --> syntax error: expected a term after the operator (at index 4)
 
-print(check "(1+1)-1*(/2)")
+print(eval "(1+1)-1*(/2)")
 --> syntax error: expected an expression after the parenthesis (at index 10)
 
-print(check "1+(1-(1*2))/2x")
+print(eval "1+(1-(1*2))/2x")
 --> syntax error: extra chracters found after the expression (at index 14)
 
-print(check "-1+(1-(1*2))/2")
+print(eval "-1+(1-(1*2))/2")
 --> syntax error: no expression found (at index 1)
 ```
