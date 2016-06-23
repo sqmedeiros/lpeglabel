@@ -10,7 +10,7 @@ local R, S, P, V, C, Ct, T = lpeg.R, lpeg.S, lpeg.P, lpeg.V, lpeg.C, lpeg.Ct, lp
 
 local labels = {
   {"NoExp",     "no expression found"},
-  {"Extra",     "extra chracters found after the expression"},
+  {"Extra",     "extra characters found after the expression"},
   {"ExpTerm",   "expected a term after the operator"},
   {"ExpExp",    "expected an expression after the parenthesis"},
   {"MisClose",  "missing a closing ')' after the expression"},
