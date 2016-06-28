@@ -1,8 +1,6 @@
 ## LPegLabel - Parsing Expression Grammars (with Labels) for Lua 
 
-<center>
-<img src="https://github.com/sqmedeiros/lpeglabel/raw/master/lpeglabel-logo500.png" alt="LPegLabel"/>
-</center>
+<p align="center"><img src="https://github.com/sqmedeiros/lpeglabel/raw/master/lpeglabel-logo.png" alt="LPegLabel" width="200px"></p>
 
 ---
 
