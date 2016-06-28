@@ -365,7 +365,6 @@ assert(t[print] == 'a' and t[23.5] == 'b' and t[io] == 'c')
 -- test for error messages
 local function checkerr (msg, f, ...)
   local st, err = pcall(f, ...)
-	print(st, err)
   assert(not st and m.match({ m.P(msg) + 1 * m.V(1) }, err))
 end
 
