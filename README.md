@@ -1,12 +1,12 @@
 ## LPegLabel - Parsing Expression Grammars (with Labels) for Lua 
 
 <center>
-<img src="https://github.com/sqmedeiros/lpeglabel/raw/master/lpeglabel-logo.gif" alt="LPegLabel" style="width: 64px;"/>
+<img src="https://github.com/sqmedeiros/lpeglabel/raw/master/lpeglabel-logo500.png" alt="LPegLabel"/>
 </center>
 
 ---
 
-#### Introduction
+### Introduction
 
 LPegLabel is a conservative extension of the
 [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg)
@@ -51,10 +51,10 @@ of the new functions provided by LpegLabel:
 </tbody></table>
 
 
-#### Functions
+### Functions
 
 
-##### <a name="f-t"></a><code>lpeglabel.T(l)</code>
+#### <a name="f-t"></a><code>lpeglabel.T(l)</code>
 
 
 Returns a pattern that throws the label `l`.
