@@ -1,7 +1,7 @@
-### LPegLabel - Parsing Expression Grammars (with Labels) for Lua 
+## LPegLabel - Parsing Expression Grammars (with Labels) for Lua 
 
 <center>
-<img src="https://github.com/sqmedeiros/lpeglabel/raw/master/lpeglabel-logo.gif" alt="LPegLabel" style="width: 128px;"/>
+<img src="https://github.com/sqmedeiros/lpeglabel/raw/master/lpeglabel-logo.gif" alt="LPegLabel" style="width: 64px;"/>
 </center>
 
 ---
