@@ -1,588 +1,243 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-    <title>LPegLabLabel - Parsing Expression Grammars For Lua</title>
-    <link rel="stylesheet"
-          href="http://www.inf.puc-rio.br/~roberto/lpeg/doc.css"
-          type="text/css"/>
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-</head>
-<body>
+### LPegLabel - Parsing Expression Grammars (with Labels) for Lua 
 
-<div id="container">
-	
-<div id="product">
-  <div id="product_logo">
-    <a href="https://github.com/sqmedeiros/lpeglabel">
-    <img alt="LPegLabel logo" src="lpeglabel-logo.gif" width="128"/></a>
-    
-  </div>
-  <div id="product_name"><big><strong>LPegLabel</strong></big></div>
-  <div id="product_description">
-     Parsing Expression Grammars For Lua with Labels, version 0.1
-  </div>
-</div> <!-- id="product" -->
+<center>
+<img src="https://github.com/sqmedeiros/lpeglabel/raw/master/lpeglabel-logo.gif" alt="LPegLabel" style="width: 128px;"/>
+</center>
 
-<div id="main">
-	
-<div id="navigation">
-<h1>LPeg</h1>
+---
 
-<ul>
-  <li><strong>Home</strong>
-  <ul>
-    <li><a href="#intro">Introduction</a></li>
-    <li><a href="#func">Functions</a></li>
-    <li><a href="#ex">Some Examples</a></li>
-    <li><a href="#download">Download</a></li>
-    <li><a href="#license">License</a></li>
-  </ul>
-  </li>
-</ul>
-</div> <!-- id="navigation" -->
+#### Introduction
 
-<div id="content">
+LPegLabel is a conservative extension of the
+[LPeg](http://www.inf.puc-rio.br/~roberto/lpeg)
+library that provides an implementation of Parsing
+Expression Grammars (PEGs) with labeled failures. 
+Labels can be used to signal different kinds of erros
+and to specify which alternative in a labeled ordered
+choice should handle a given label. Labels can also be
+combined with the standard patterns of LPeg.
 
-
-<h2><a name="intro">Introduction</a></h2>
-
-<p>
-<em>LPegLabel</em> is an extension of the
-<a href="http://www.inf.puc-rio.br/~roberto/lpeg/">LPeg</a>
-library that provides an implementation of Parsing Expression
-Grammars (PEGs) with labeled failures. Labels can be
-used to signal different kinds of erros and to
-specify which alternative in a labeled ordered choice
-should handle a given label. Labels can also be combined
-with the standard patterns of LPeg.
-</p>
-
-<p>
 This document describes the new functions available
 in LpegLabel and presents some examples of usage.
-In LPegLabel, the result of an unsuccessful matching
-is a triple <code>nil, lab, sfail</code>, where <code>lab</code>
-is the label associated with the failure, and
-<code>sfail</code> is the suffix input where
-the label was thrown.
-</p>
+For a more detailed discussion about PEGs with labeled failures
+please see [A Parsing Machine for Parsing Expression
+Grammars with Labeled Failures](https://docs.google.com/viewer?a=v&pid=sites&srcid=ZGVmYXVsdGRvbWFpbnxzcW1lZGVpcm9zfGd4OjMzZmE3YzM0Y2E2MGM5Y2M).
 
-<p>
-Below there is a brief summary of the new functions
-provided by LpegLabel:
-</p>
+
+In LPegLabel, the result of an unsuccessful matching
+is a triple **nil, lab, sfail**, where **lab**
+is the label associated with the failure, and
+**sfail** is the suffix input being matched when
+**lab** was thrown. Below there is a brief summary
+of the new functions provided by LpegLabel: 
+
 <table border="1">
 <tbody><tr><td><b>Function</b></td><td><b>Description</b></td></tr>
 <tr><td><a href="#f-t"><code>lpeglabel.T (l)</code></a></td>
   <td>Throws label <code>l</code></td></tr>
-<tr><td><a href="#f-lc"><code>lpeglabel.Lc (p1, p2, l<sub>1</sub>, ..., l<sub>n</sub>)</code></a></td>
+<tr><td><a href="#f-lc"><code>lpeglabel.Lc (p1, p2, l1, ..., ln)</code></a></td>
   <td>Matches <code>p1</code> and tries to match <code>p2</code>
 			if the matching of <code>p1</code> gives one of l<sub>1</sub>, ..., l<sub>n</sub> 
       </td></tr>
 <tr><td><a href="#re-t"><code>%{l}</code></a></td>
   <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.T(l)</code>
       </td></tr>
-<tr><td><a href="#re-lc"><code>p1 /{l<sub>1</sub>, ..., l<sub>n</sub>} p2</code></a></td>
-  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l<sub>1</sub>, ..., l<sub>n</sub>)</code>
+<tr><td><a href="#re-lc"><code>p1 /{l1, ..., ln} p2</code></a></td>
+  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l1, ..., ln)</code>
       </td></tr>
 <tr><td><a href="#re-setl"><code>relabel.setlabels (tlabel)</code></a></td>
   <td>Allows to specicify a table with mnemonic labels. 
       </td></tr>
 </tbody></table>
 
-<p>
-For a more detailed and formal discussion about
-PEGs with labels please see
-<a href="http://www.inf.puc-rio.br/~roberto/docs/sblp2013-1.pdf">
-Exception Handling for Error Reporting in Parsing Expression Grammars</a>,
-<a href="http://arxiv.org/abs/1405.6646">Error Reporting in Parsing Expression Grammars</a>,
-and <a href="http://dx.doi.org/10.1145/2851613.2851750">
-A parsing machine for parsing expression grammars with labeled failures</a>.
-</p>
 
-<!--
-<p>
-In case of an unsucessful matching, the <em>match</em> function returns
-<code>nil</code> plus a list of labels. These labels may be used to build
-a good error message.
-</p>
--->
-
-<h2><a name="func">Functions</a></h2>
+#### Functions
 
 
-<h3><a name="f-t"></a><code>lpeglabel.T(l)</code></h3>
-<p>
-Returns a pattern that throws the label <code>l</code>.
-A label must be an integer between <code>0</code> and <code>63</code>.
-
-The label <code>0</code> is equivalent to the regular failure of PEGs.
+##### <a name="f-t"></a><code>lpeglabel.T(l)</code>
 
 
-<h3><a name="f-lc"></a><code>lpeglabel.Lc(p1, p2, l<sub>1</sub>, ..., l<sub>n</sub>)</code></h3>
-<p>
-Returns a pattern equivalent to a <em>labeled ordered choice</em>.
-If the matching of <code>p1</code> gives one of the labels <code>l<sub>1</sub>, ..., l<sub>n</sub></code>,
-then the matching of <code>p2</code> is tried from the same position. Otherwise,
-the result of the matching of <code>p1</code> is the pattern's result.
-</p>
+Returns a pattern that throws the label `l`.
+A label must be an integer between 0 and 63.
 
-<p>
-The labeled ordered choice <code>lpeg.Lc(p1, p2, 0)</code> is equivalent to the
-regular ordered choice <code>p1 / p2</code>.
-</p>
+The label 0 is equivalent to the regular failure of PEGs.
 
-<p>
+
+#### <a name="f-lc"></a><code>lpeglabel.Lc(p1, p2, l1, ..., ln)</code>#
+
+Returns a pattern equivalent to a *labeled ordered choice*.
+If the matching of `p1` gives one of the labels `l1, ..., ln`,
+then the matching of `p2` is tried from the same position. Otherwise,
+the result of the matching of `p1` is the pattern's result.
+
+The labeled ordered choice `lpeg.Lc(p1, p2, 0)` is equivalent to the
+regular ordered choice `p1 / p2`.
+
 Although PEG's ordered choice is associative, the labeled ordered choice is not.
 When using this function, the user should take care to build a left-associative
 labeled ordered choice pattern.
-</p>
 
 
-<h3><a name="re-t"></a><code>%{l}</code></h3>
-<p>
-Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.T(l)</code>.
-</p>
+#### <a name="re-t"></a><code>%{l}</code>
+
+Syntax of *relabel* module. Equivalent to `lpeg.T(l)`.
 
 
-<h3><a name="re-lc"></a><code>p1 /{l<sub>1</sub>, ..., l<sub>n</sub>} p2</code></h3>
-<p>
-Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l<sub>1</sub>, ..., l<sub>n</sub>)</code>.
-</p>
+#### <a name="re-lc"></a><code>p1 /{l1, ..., ln} p2</code>
 
-<p>
-The <code>/{}</code> operator is left-associative. 
-</p>
+Syntax of *relabel* module. Equivalent to `lpeg.Lc(p1, p2, l1, ..., ln)`.
 
-<p>
-A grammar can use both choice operators (<code>/</code> and <code>/{}</code>),
-but a single choice can not mix them. That is, the parser
-of <code>relabel</code> module will not recognize a pattern as
-<code>p1 / p2 /{l<sub>1</sub>} p3</code>.
-</p>
+The `/{}` operator is left-associative. 
+
+A grammar can use both choice operators (`/` and `/{}`),
+but a single choice can not mix them. That is, the parser of `relabel`
+module will not recognize a pattern as `p1 / p2 /{l1} p3`.
 
 
-<h3><a name="re-setl"></a><code>relabel.setlabels (tlabel)</code></h3>
+#### <a name="re-setl"></a><code>relabel.setlabels (tlabel)</code>
 
-<p>Allows to specicify a table with labels. They keys of
-<code>tlabel</code> must be integers between <code>0</code> and <code>63</code>,
+Allows to specicify a table with labels. They keys of
+`tlabel` must be integers between 0 and 63,
 and the associated values should be strings.
-</p>
 
 
+### Examples
 
-<h2><a name="ex">Some Examples</a></h2>
+#### Throwing a label
 
-<h3>Throwing a label</h3>
-<p>
 The following example defines a grammar that matches
 a list of identifiers separated by commas. A label
 is thrown when there is an error matching an identifier
 or a comma:
-</p>
-<pre class="example">
+
+```lua
 local m = require'lpeglabel'
+
+local function calcline (s, i)
+  if i == 1 then return 1, 1 end
+  local rest, line = s:sub(1,i):gsub("[^\n]*\n", "")
+  local col = #rest
+  return 1 + line, col ~= 0 and col or 1
+end
 
 local g = m.P{
   "S",
   S = m.V"Id" * m.V"List",
-  List = -m.P(1) + ("," + m.T(2)) * m.V"Id" * m.V"List",
-  Id = m.R'az'^1 + m.T(1),
+  List = -m.P(1) + (m.V"Comma" + m.T(2)) * (m.V"Id" + m.T(1)) * m.V"List",
+  Id = m.V"Sp" * m.R'az'^1,
+  Comma = m.V"Sp" * ",",
+  Sp = m.S" \n\t"^0,
 }
 
 function mymatch (g, s)
-  local r, e = g:match(s)
+  local r, e, sfail = g:match(s)
   if not r then
+    local line, col = calcline(s, #s - #sfail)
+    local msg = "Error at line " .. line .. " (col " .. col .. ")"
     if e == 1 then
-      return "Error: expecting an identifier"
+      return r, msg .. ": expecting an identifier before '" .. sfail .. "'"
     elseif e == 2 then
-      return "Error: expecting ','"
+      return r, msg .. ": expecting ',' before '" .. sfail .. "'"
     else
-      return "Error"
+      return r, msg
     end
   end
   return r
 end
-	
-print(mymatch(g, "a,b"))
-print(mymatch(g, "a b"))
-print(mymatch(g, ", b"))
-</pre>
-<p>
-In this example we could think about writing rule <em>List</em> as follows:
-<pre class="example">
-List = m.P(("," + m.T(2)) * m.V"Id")^0
-</pre>
-but this would give us an expression that when matching
-the end of input would result in a failure whose associated
-label would be <em>2</em>.
-</p>
+  
+print(mymatch(g, "one,two"))              --> 8
+print(mymatch(g, "one two"))              --> nil Error at line 1 (col 3): expecting ',' before ' two'
+print(mymatch(g, "one,\n two,\nthree,"))  --> nil Error at line 3 (col 6): expecting an identifier before ''
+```
 
-<p>
-In the previous example we could have also created a table
-with the error messages to improve the readbility of the PEG.
-Below we rewrite the grammar following this approach: 
-</p>
 
-<pre class="example">
-local m = require'lpeglabel'
+#### Arithmetic Expressions
 
-local errUndef = 0
-local errId = 1
-local errComma = 2
+Here's an example of an LPegLabel grammar that make its own function called
+'expect', which takes a pattern and a label as parameters and throws the label
+if the pattern fails to be matched. This function can be extended later on to
+record all errors encountered once error recovery is implemented.
 
-local terror = {
-  [errUndef] = "Error",
-  [errId] = "Error: expecting an identifier",
-  [errComma] = "Error: expecting ','",
+```lua
+local lpeg = require"lpeglabel"
+
+local R, S, P, V, C, Ct, T = lpeg.R, lpeg.S, lpeg.P, lpeg.V, lpeg.C, lpeg.Ct, lpeg.T
+
+local labels = {
+  {"NoExp",     "no expression found"},
+  {"Extra",     "extra characters found after the expression"},
+  {"ExpTerm",   "expected a term after the operator"},
+  {"ExpExp",    "expected an expression after the parenthesis"},
+  {"MisClose",  "missing a closing ')' after the expression"},
 }
 
-local g = m.P{
-  "S",
-  S = m.V"Id" * m.V"List",
-  List = -m.P(1) + ("," + m.T(errComma)) * m.V"Id" * m.V"List",
-  Id = m.R'az'^1 + m.T(errId),
-}
-
-function mymatch (g, s)
-  local r, e = g:match(s)
-  if not r then
-    return terror[e]
-  end
-  return r
-end
-	
-print(mymatch(g, "a,b"))
-print(mymatch(g, "a b"))
-print(mymatch(g, ", b"))
-</pre>
-
-<h3>Throwing a label using the <em>relabel</em> module</h3>
-
-<p>
-We can also rewrite the previous example using the <em>relabel</em> module
-as follows:
-</p>
-<pre class="example">
-local re = require 'relabel' 
-
-local g = re.compile[[
-  S    <- Id List
-  List <- !.  /  (',' / %{2}) Id List
-  Id   <- [a-z]  /  %{1}	
-]]
-
-function mymatch (g, s)
-  local r, e = g:match(s)
-  if not r then
-    if e == 1 then
-      return "Error: expecting an identifier"
-    elseif e == 2 then
-      return "Error: expecting ','"
-    else
-      return "Error"
+local function expect(patt, labname)
+  for i, elem in ipairs(labels) do
+    if elem[1] == labname then
+      return patt + T(i)
     end
   end
-  return r
+
+  error("could not find label: " .. labname)
 end
-	
-print(mymatch(g, "a,b"))
-print(mymatch(g, "a b"))
-print(mymatch(g, ", b"))
-</pre>
 
-<p>
-Another way to describe the previous example using the <em>relabel</em> module
-is by using a table with the description of the errors (<em>terror</em>) and
-another table that associates a name to a given label (<em>tlabels</em>):
-</p>
-<pre class="example">
-local re = require 'relabel' 
+local num = R("09")^1 / tonumber
+local op = S("+-*/")
 
-local errUndef, errId, errComma = 0, 1, 2
-
-local terror = {
-  [errUndef] = "Error",
-  [errId] = "Error: expecting an identifier",
-  [errComma] = "Error: expecting ','",
-}
-
-local tlabels = { ["errUndef"] = errUndef,
-                  ["errId"]    = errId, 
-                  ["errComma"] = errComma }
-
-re.setlabels(tlabels)
-
-local g = re.compile[[
-  S    <- Id List
-  List <- !.  /  (',' / %{errComma}) Id List
-  Id   <- [a-z]  /  %{errId}	
-]]
-
-function mymatch (g, s)
-  local r, e = g:match(s)
-  if not r then
-    return terror[e]
+local function compute(tokens)
+  local result = tokens[1]
+  for i = 2, #tokens, 2 do
+    if tokens[i] == '+' then
+      result = result + tokens[i+1]
+    elseif tokens[i] == '-' then
+      result = result - tokens[i+1]
+    elseif tokens[i] == '*' then
+      result = result * tokens[i+1]
+    elseif tokens[i] == '/' then
+      result = result / tokens[i+1]
+    else
+      error('unknown operation: ' .. tokens[i])
+    end
   end
-  return r
+  return result
 end
-	
-print(mymatch(g, "a,b"))
-print(mymatch(g, "a b"))
-print(mymatch(g, ", b"))
-</pre>
 
-
-
-<h3>Throwing and catching a label</h3>
-
-<p>
-When a label is thrown, the grammar itself can handle this label
-by using the labeled ordered choice. Below we rewrite the example
-of the list of identifiers to show this feature:
-</p>
-<pre class="example">
-local m = require'lpeglabel'
-
-local errUndef, errId, errComma = 0, 1, 2
-
-local terror = {
-  [errUndef] = "Error",
-  [errId] = "Error: expecting an identifier",
-  [errComma] = "Error: expecting ','",
+local g = P {
+  "Exp",
+  Exp = Ct(V"Term" * (C(op) * expect(V"Term", "ExpTerm"))^0) / compute;
+  Term = num + V"Group";
+  Group = "(" * expect(V"Exp", "ExpExp") * expect(")", "MisClose");
 }
 
-g = m.P{
-  "S",
-  S = m.Lc(m.Lc(m.V"Id" * m.V"List", m.V"ErrId", errId),
-           m.V"ErrComma", errComma),
-  List = -m.P(1)  +  m.V"Comma" * m.V"Id" * m.V"List",
-  Id = m.R'az'^1  +  m.T(errId),
-  Comma = ","  +  m.T(errComma),
-  ErrId = m.Cc(errId) / terror,
-  ErrComma = m.Cc(errComma) / terror
-}
+g = expect(g, "NoExp") * expect(-P(1), "Extra")
 
-print(g:match("a,b"))
-print(g:match("a b"))
-print(g:match(",b"))
-</pre>
-
-<p>
-As was pointed out <a href="#f-lc">before</a>, the labeled ordered
-choice is not associative, so we should impose a left-associative
-order when using function <code>Lc</code>.
-</p>
-<p>
-Below we use the <em>re</em> module to throw and catch labels.
-As was pointed out <a href="#re-lc">before</a>, the <code>/{}</code>
-operator is left-associative, so we do not need to manually impose
-a left-associative order as we did in the previous example that
-used <code>Lc</code>:
-</p>
-<pre class="example">
-local re = require'relabel'
-
-local terror = {} 
-
-local function newError(l, msg) 
-  table.insert(terror, { l = l, msg = msg } )
+local function eval(input)
+  local result, label, suffix = g:match(input)
+  if result ~= nil then
+    return result
+  else
+    local pos = input:len() - suffix:len() + 1
+    local msg = labels[label][2]
+    return nil, "syntax error: " .. msg .. " (at index " .. pos .. ")"
+  end
 end
 
-newError("errId", "Error: expecting an identifier")
-newError("errComma", "Error: expecting ','")
+print(eval "98-76*(54/32)")
+--> 37.125
 
-local labelCode = {}
-local labelMsg = {}
-for k, v in ipairs(terror) do 
-  labelCode[v.l] = k
-  labelMsg[v.l] = v.msg
-end
+print(eval "(1+1-1*2/2")
+--> syntax error: missing a closing ')' after the expression (at index 11)
 
-re.setlabels(labelCode)
+print(eval "(1+)-1*(2/2)")
+--> syntax error: expected a term after the operator (at index 4)
 
-local p = re.compile([[
-  S        <- Id List  /{errId}  ErrId  /{errComma}  ErrComma
-  List     <- !.  /  Comma Id List
-  Id       <- [a-z]+  /  %{errId}
-  Comma    <- ','  /  %{errComma}
-  ErrId    <- '' -> errId
-  ErrComma <- '' ->  errComma
-]], labelMsg)
+print(eval "(1+1)-1*(/2)")
+--> syntax error: expected an expression after the parenthesis (at index 10)
 
-print(p:match("a,b"))
-print(p:match("a b"))
-print(p:match(",b"))
-</pre>
+print(eval "1+(1-(1*2))/2x")
+--> syntax error: extra chracters found after the expression (at index 14)
 
-
-<h3>Tiny Language</h3>
-<p>
-As a more complex example, below we have the grammar
-for the Tiny language, as described in 
-<a href="http://arxiv.org/abs/1405.6646">this</a> paper.
-The example below can also show the line where the syntactic
-error probably happened.
-</p>
-<pre class="example">
-local re = require 'relabel'
-
-local terror = {}
-
-local function newError(l, msg)
-  table.insert(terror, { l = l, msg = msg} )
-end
-
-newError("errSemi", "Error: missing ';'")  
-newError("errExpIf", "Error: expected expression after 'if'") 
-newError("errThen", "Error: expected 'then' keyword") 
-newError("errCmdSeq1", "Error: expected at least a command after 'then'") 
-newError("errCmdSeq2", "Error: expected at least a command after 'else'") 
-newError("errEnd", "Error: expected 'end' keyword") 
-newError("errCmdSeqRep", "Error: expected at least a command after 'repeat'") 
-newError("errUntil", "Error: expected 'until' keyword") 
-newError("errExpRep", "Error: expected expression after 'until'") 
-newError("errAssignOp", "Error: expected ':=' in assigment") 
-newError("errExpAssign", "Error: expected expression after ':='") 
-newError("errReadName", "Error: expected an identifier after 'read'") 
-newError("errWriteExp", "Error: expected expression after 'write'") 
-newError("errSimpExp", "Error: expected '(', ID, or number after '<' or '='")
-newError("errTerm", "Error: expected '(', ID, or number after '+' or '-'")
-newError("errFactor", "Error: expected '(', ID, or number after '*' or '/'")
-newError("errExpFac", "Error: expected expression after '('")
-newError("errClosePar", "Error: expected ')' after expression")
-
-local line
-
-local function incLine()
-  line = line + 1
-  return true
-end
-
-local function countLine(s, i)
-  line = 1
-  local p = re.compile([[
-    S <- (%nl -> incLine  / .)*
-  ]], { incLine = incLine}) 
-  p:match(s:sub(1, i))
-  return true
-end
-
-local labelCode = {}
-for k, v in ipairs(terror) do 
-  labelCode[v.l] = k
-end
-
-re.setlabels(labelCode)
-
-local g = re.compile([[
-  Tiny         <- CmdSeq  
-  CmdSeq       <- (Cmd (SEMICOLON / ErrSemi)) (Cmd (SEMICOLON / ErrSemi))*
-  Cmd          <- IfCmd / RepeatCmd / ReadCmd / WriteCmd  / AssignCmd 
-  IfCmd        <- IF (Exp / ErrExpIf)  (THEN / ErrThen)  (CmdSeq / ErrCmdSeq1)  (ELSE (CmdSeq / ErrCmdSeq2)  / '') (END / ErrEnd)
-  RepeatCmd    <- REPEAT  (CmdSeq / ErrCmdSeqRep)  (UNTIL / ErrUntil)  (Exp / ErrExpRep)
-  AssignCmd    <- NAME  (ASSIGNMENT / ErrAssignOp)  (Exp / ErrExpAssign)
-  ReadCmd      <- READ  (NAME / ErrReadName)
-  WriteCmd     <- WRITE  (Exp / ErrWriteExp)
-  Exp          <- SimpleExp  ((LESS / EQUAL) (SimpleExp / ErrSimpExp) / '')
-  SimpleExp    <- Term  ((ADD / SUB)  (Term / ErrTerm))*
-  Term         <- Factor  ((MUL / DIV)  (Factor / ErrFactor))*
-  Factor       <- OPENPAR  (Exp / ErrExpFac)  (CLOSEPAR / ErrClosePar)  / NUMBER  / NAME
-  ErrSemi      <- ErrCount %{errSemi}
-  ErrExpIf     <- ErrCount %{errExpIf}
-  ErrThen      <- ErrCount %{errThen}
-  ErrCmdSeq1   <- ErrCount %{errCmdSeq1}
-  ErrCmdSeq2   <- ErrCount %{errCmdSeq2}
-  ErrEnd       <- ErrCount %{errEnd}
-  ErrCmdSeqRep <- ErrCount %{errCmdSeqRep}
-  ErrUntil     <- ErrCount %{errUntil}
-  ErrExpRep    <- ErrCount %{errExpRep}
-  ErrAssignOp  <- ErrCount %{errAssignOp}
-  ErrExpAssign <- ErrCount %{errExpAssign}
-  ErrReadName  <- ErrCount %{errReadName}
-  ErrWriteExp  <- ErrCount %{errWriteExp}
-  ErrSimpExp   <- ErrCount %{errSimpExp}
-  ErrTerm      <- ErrCount %{errTerm}
-  ErrFactor    <- ErrCount %{errFactor}
-  ErrExpFac    <- ErrCount %{errExpFac}
-  ErrClosePar  <- ErrCount %{errClosePar}
-  ErrCount     <- '' => countLine 
-  ADD          <- Sp '+'
-  ASSIGNMENT   <- Sp ':='
-  CLOSEPAR     <- Sp ')'
-  DIV          <- Sp '/'
-  IF           <- Sp 'if'
-  ELSE         <- Sp 'else'
-  END          <- Sp 'end'
-  EQUAL        <- Sp '='
-  LESS         <- Sp '<'
-  MUL          <- Sp '*'
-  NAME         <- Sp !RESERVED [a-z]+
-  NUMBER       <- Sp [0-9]+
-  OPENPAR      <- Sp '('
-  READ         <- Sp 'read'
-  REPEAT       <- Sp 'repeat'
-  SEMICOLON    <- Sp ';'
-  SUB          <- Sp '-'
-  THEN         <- Sp 'then'
-  UNTIL        <- Sp 'until'
-  WRITE        <- Sp 'write'
-  RESERVED     <- (IF / ELSE / END / READ / REPEAT / THEN / UNTIL / WRITE) ![a-z]+
-  Sp           <- %s*	
-]], { countLine = countLine })
-</pre>
-
-
-<h2><a name="download"></a>Download</h2>
-
-<p>LPegLabel 
-<a href="https://github.com/sqmedeiros/lpeglabel/archive/master.zip">source code</a>.</p>
-
-
-<h2><a name="license">License</a></h2>
-
-<p>
-The MIT License (MIT)
-</p>
-<p>
-Copyright (c) 2014-2015 Sérgio Medeiros
-</p>
-<p>
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-</p>
-<p>
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-</p>
-<p>
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
-
-
-</p>
-
-</div> <!-- id="content" -->
-
-</div> <!-- id="main" -->
-
-<div id="about">
-</div> <!-- id="about" -->
-
-</div> <!-- id="container" -->
-
-</body>
-</html> 
+print(eval "-1+(1-(1*2))/2")
+--> syntax error: no expression found (at index 1)
+```
 

@@ -1,9 +1,3 @@
-Here's an example of an LPegLabel grammar that make its own function called
-'expect', which takes a pattern and a label as parameters and throws the label
-if the pattern fails to be matched. This function can be extended later on to
-record all errors encountered once error recovery is implemented.
-
-```lua
 local lpeg = require"lpeglabel"
 
 local R, S, P, V, C, Ct, T = lpeg.R, lpeg.S, lpeg.P, lpeg.V, lpeg.C, lpeg.Ct, lpeg.T
@@ -84,4 +78,3 @@ print(eval "1+(1-(1*2))/2x")
 
 print(eval "-1+(1-(1*2))/2")
 --> syntax error: no expression found (at index 1)
-```
