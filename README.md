@@ -59,7 +59,7 @@ of the new functions provided by LpegLabel:
 
 
 Returns a pattern that throws the label `l`.
-A label must be an integer between 0 and 63.
+A label must be an integer between 0 and 255.
 
 The label 0 is equivalent to the regular failure of PEGs.
 
@@ -103,7 +103,7 @@ Returns line and column information regarding position <i>i</i> of the subject.
 #### <a name="re-setl"></a><code>relabel.setlabels (tlabel)</code>
 
 Allows to specicify a table with labels. They keys of
-`tlabel` must be integers between 0 and 63,
+`tlabel` must be integers between 0 and 255,
 and the associated values should be strings.
 
 
