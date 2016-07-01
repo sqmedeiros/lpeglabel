@@ -1,11 +1,5 @@
 local m = require'lpeglabel'
-
-local function calcline (s, i)
-  if i == 1 then return 1, 1 end
-  local rest, line = s:sub(1,i):gsub("[^\n]*\n", "")
-  local col = #rest
-  return 1 + line, col ~= 0 and col or 1
-end
+local re = require'relabel'
 
 local g = m.P{
   "S",
@@ -19,7 +13,7 @@ local g = m.P{
 function mymatch (g, s)
   local r, e, sfail = g:match(s)
   if not r then
-    local line, col = calcline(s, #s - #sfail)
+    local line, col = re.calcline(s, #s - #sfail)
     local msg = "Error at line " .. line .. " (col " .. col .. ")"
     if e == 1 then
       return r, msg .. ": expecting an identifier before '" .. sfail .. "'"
@@ -35,4 +29,3 @@ end
 print(mymatch(g, "one,two"))
 print(mymatch(g, "one two"))
 print(mymatch(g, "one,\n two,\nthree,"))
-

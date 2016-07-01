@@ -433,6 +433,14 @@ local function setlabels (t)
   tlabels = t
 end
 
+local function calcline (s, i)
+  if i == 1 then return 1, 1 end
+  local rest, line = s:sub(1,i):gsub("[^\n]*\n", "")
+  local col = #rest
+  return 1 + line, col ~= 0 and col or 1
+end
+
+
 -- exported names
 local re = {
   compile = compile,
@@ -440,7 +448,8 @@ local re = {
   find = find,
   gsub = gsub,
   updatelocale = updatelocale,
-  setlabels = setlabels
+  setlabels = setlabels,
+	calcline = calcline
 }
 
 if version == "Lua 5.1" then _G.re = re end

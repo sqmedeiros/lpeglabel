@@ -43,6 +43,9 @@ of the new functions provided by LpegLabel:
 <tr><td><a href="#re-lc"><code>p1 /{l1, ..., ln} p2</code></a></td>
   <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l1, ..., ln)</code>
       </td></tr>
+<tr><td><a href="#re-line"><code>relabel.calcline(subject, i)</code></a></td>
+  <td>Calculates line and column information regarding position <i>i</i> of the subject</code>
+      </td></tr>
 <tr><td><a href="#re-setl"><code>relabel.setlabels (tlabel)</code></a></td>
   <td>Allows to specicify a table with mnemonic labels. 
       </td></tr>
@@ -92,6 +95,11 @@ but a single choice can not mix them. That is, the parser of `relabel`
 module will not recognize a pattern as `p1 / p2 /{l1} p3`.
 
 
+#### <a name="re-line"></a><code>relabel.calcline (subject, i)</code>
+
+Returns line and column information regarding position <i>i</i> of the subject.
+
+
 #### <a name="re-setl"></a><code>relabel.setlabels (tlabel)</code>
 
 Allows to specicify a table with labels. They keys of
@@ -101,22 +109,21 @@ and the associated values should be strings.
 
 ### Examples
 
-#### Throwing a label
+Below there a few examples of usage of LPegLabel.
+The code of these and of other examples is available
+in the *examples* directory. 
+
+
+#### Matching a list of identifiers separated by commas
 
 The following example defines a grammar that matches
 a list of identifiers separated by commas. A label
 is thrown when there is an error matching an identifier
-or a comma:
+or a comma: 
 
 ```lua
 local m = require'lpeglabel'
-
-local function calcline (s, i)
-  if i == 1 then return 1, 1 end
-  local rest, line = s:sub(1,i):gsub("[^\n]*\n", "")
-  local col = #rest
-  return 1 + line, col ~= 0 and col or 1
-end
+local re = require'relabel'
 
 local g = m.P{
   "S",
@@ -130,7 +137,7 @@ local g = m.P{
 function mymatch (g, s)
   local r, e, sfail = g:match(s)
   if not r then
-    local line, col = calcline(s, #s - #sfail)
+    local line, col = re.calcline(s, #s - #sfail)
     local msg = "Error at line " .. line .. " (col " .. col .. ")"
     if e == 1 then
       return r, msg .. ": expecting an identifier before '" .. sfail .. "'"
@@ -142,12 +149,149 @@ function mymatch (g, s)
   end
   return r
 end
+ 
+print(mymatch(g, "one,two"))              --> 8
+print(mymatch(g, "one two"))              --> nil Error at line 1 (col 3): expecting ',' before ' two'
+print(mymatch(g, "one,\n two,\nthree,"))  --> nil Error at line 3 (col 6): expecting an identifier before ''
+```
+
+In this example we could think about writing rule <em>List</em> as follows:
+```lua
+List = ((m.V"Comma" + m.T(2)) * (m.V"Id" + m.T(1)))^0,
+```
+
+but when matching this expression agains the end of input
+we would get a failure whose associated label would be **2**,
+and this would cause the failure of the *whole* repetition.
+ 
+
+##### Mnemonics instead of numbers
+
+In the previous example we could have created a table
+with the error messages to improve the readbility of the PEG.
+Below we rewrite the previous grammar following this approach: 
+
+```lua
+local m = require'lpeglabel'
+local re = require'relabel'
+
+local terror = {}
+
+local function newError(s)
+  table.insert(terror, s)
+  return #terror
+end
+
+local errUndef = newError("undefined")
+local errId = newError("expecting an identifier")
+local errComma = newError("expecting ','")
+
+local g = m.P{
+  "S",
+  S = m.V"Id" * m.V"List",
+  List = -m.P(1) + (m.V"Comma" + m.T(errComma)) * (m.V"Id" + m.T(errId)) * m.V"List",
+  Id = m.V"Sp" * m.R'az'^1,
+  Comma = m.V"Sp" * ",",
+  Sp = m.S" \n\t"^0,
+}
+
+function mymatch (g, s)
+  local r, e, sfail = g:match(s)
+  if not r then
+    local line, col = re.calcline(s, #s - #sfail)
+    local msg = "Error at line " .. line .. " (col " .. col .. "): "
+    return r, msg .. terror[e] .. " before '" .. sfail .. "'"
+  end
+  return r
+end
   
 print(mymatch(g, "one,two"))              --> 8
 print(mymatch(g, "one two"))              --> nil Error at line 1 (col 3): expecting ',' before ' two'
 print(mymatch(g, "one,\n two,\nthree,"))  --> nil Error at line 3 (col 6): expecting an identifier before ''
 ```
 
+
+##### *relabel* syntax
+
+Now we rewrite the previous example using the syntax
+supported by *relabel*:
+
+```lua
+local re = require 'relabel' 
+
+local g = re.compile[[
+  S      <- Id List
+  List   <- !.  /  (',' /  %{2}) (Id / %{1}) List
+  Id     <- Sp [a-z]+
+  Comma  <- Sp ','
+  Sp     <- %s*
+]]
+
+function mymatch (g, s)
+  local r, e, sfail = g:match(s)
+  if not r then
+    local line, col = re.calcline(s, #s - #sfail)
+    local msg = "Error at line " .. line .. " (col " .. col .. ")"
+    if e == 1 then
+      return r, msg .. ": expecting an identifier before '" .. sfail .. "'"
+    elseif e == 2 then
+      return r, msg .. ": expecting ',' before '" .. sfail .. "'"
+    else
+      return r, msg
+    end
+  end
+  return r
+end
+
+print(mymatch(g, "one,two"))              --> 8
+print(mymatch(g, "one two"))              --> nil Error at line 1 (col 3): expecting ',' before ' two'
+print(mymatch(g, "one,\n two,\nthree,"))  --> nil Error at line 3 (col 6): expecting an identifier before ''
+```
+
+With the help of function *setlabels* we can also rewrite the previous example to use
+mnemonic labels instead of plain numbers:
+
+```lua
+local re = require 'relabel' 
+
+local errinfo = {
+  {"errUndef",  "undefined"},
+  {"errId",     "expecting an identifier"},
+  {"errComma",  "expecting ','"},
+}
+
+local errmsgs = {}
+local labels = {}
+
+for i, err in ipairs(errinfo) do
+  errmsgs[i] = err[2]
+  labels[err[1]] = i
+end
+
+re.setlabels(labels)
+
+local g = re.compile[[
+  S      <- Id List
+  List   <- !.  /  (',' /  %{errComma}) (Id / %{errId}) List
+  Id     <- Sp [a-z]+
+  Comma  <- Sp ','
+  Sp     <- %s*
+]]
+
+function mymatch (g, s)
+  local r, e, sfail = g:match(s)
+  if not r then
+    local line, col = re.calcline(s, #s - #sfail)
+    local msg = "Error at line " .. line .. " (col " .. col .. "): "
+    return r, msg .. errmsgs[e] .. " before '" .. sfail .. "'"
+  end
+  return r
+end
+
+print(mymatch(g, "one,two"))              --> 8
+print(mymatch(g, "one two"))              --> nil Error at line 1 (col 3): expecting ',' before ' two'
+print(mymatch(g, "one,\n two,\nthree,"))  --> nil Error at line 3 (col 6): expecting an identifier before ''
+```
 
 #### Arithmetic Expressions
 
@@ -239,3 +383,40 @@ print(eval "-1+(1-(1*2))/2")
 --> syntax error: no expression found (at index 1)
 ```
 
+#### Catching labels
+
+When a label is thrown, the grammar itself can handle this label
+by using the labeled ordered choice. Below we rewrite the example
+of the list of identifiers to show this feature:
+
+
+```lua
+local m = require'lpeglabel'
+
+local terror = {}
+
+local function newError(s)
+  table.insert(terror, s)
+  return #terror
+end
+
+local errUndef = newError("undefined")
+local errId = newError("expecting an identifier")
+local errComma = newError("expecting ','")
+
+local g = m.P{
+  "S",
+  S = m.Lc(m.Lc(m.V"Id" * m.V"List", m.V"ErrId", errId),
+           m.V"ErrComma", errComma),
+  List = -m.P(1) + (m.V"Comma" + m.T(errComma)) * (m.V"Id" + m.T(errId)) * m.V"List",
+  Id = m.V"Sp" * m.R'az'^1,
+  Comma = m.V"Sp" * ",",
+  Sp = m.S" \n\t"^0,
+  ErrId = m.Cc(errId) / terror,
+  ErrComma = m.Cc(errComma) / terror
+}
+
+print(m.match(g, "one,two"))  --> 8
+print(m.match(g, "one two"))  --> expecting ','
+print(m.match(g, "one,\n two,\nthree,"))  --> expecting an identifier
+```
