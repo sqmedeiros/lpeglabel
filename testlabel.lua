@@ -180,6 +180,24 @@ assert(p:match("abc") == 2)
 r, l, serror = p:match("")
 assert(r == nil and l == 0 and serror == "")
 
+-- testing the limit of labels
+p = m.T(0)
+s = "abc"
+r, l, serror = p:match(s) 
+assert(r == nil and l == 0 and serror == "abc")
+
+p = m.T(255)
+s = "abc"
+r, l, serror = p:match(s) 
+assert(r == nil and l == 255 and serror == "abc")
+
+local r = pcall(m.T, -1)
+assert(r == false)
+
+local r = pcall(m.T, 256)
+assert(r == false)
+
+
 print("+")
 
 --[[ grammar based on Figure 8 of paper submitted to SCP
