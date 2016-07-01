@@ -11,7 +11,7 @@
 
 #include "lptypes.h"
 #include "lpcode.h"
-#include "lpprint.h" /* labeled failure */
+
 
 /* signals a "no-instruction */
 #define NOINST		-1
@@ -492,25 +492,10 @@ static int addinstruction (CompileState *compst, Opcode op, int aux) {
 static int addoffsetinst (CompileState *compst, Opcode op) {
   int i = addinstruction(compst, op, 0);  /* instruction */
   addinstruction(compst, (Opcode)0, 0);  /* open space for offset */
-  assert(op == ITestSet || sizei(&getinstr(compst, i)) == 2 || op == ILabChoice); /* labeled failure */
+  assert(op == ITestSet || sizei(&getinstr(compst, i)) == 2);
   return i;
 }
 
-/* labeled failure begin */
-static int addthrowinstruction (CompileState *compst, byte lab) {
-  return addinstruction(compst, IThrow, lab);
-}
-
-/*static int addoffsetlabinst (CompileState *compst, const byte *cs) {
-  int j;
-	int i = addinstruction(compst, ILabChoice, 0);  
-  addinstruction(compst, (Opcode)0, 0);  
-  j = nextinstruction(compst);  
-	getinstr(compst, j).labels = cs;
-
-  return i; 
-}*/
-/* labeled failure end */
 
 /*
 ** Set the offset of an instruction
@@ -720,17 +705,14 @@ static void codelabchoice (CompileState *compst, TTree *p1, TTree *p2, int opt,
   	int emptyp2 = (p2->tag == TTrue);
 		int pcommit;
     int test = NOINST;
-   	/*  int pchoice = addoffsetlabinst(compst, cs);*/
 		int pchoice = addoffsetinst(compst, ILabChoice);
 		addcharset(compst, cs);
     codegen(compst, p1, emptyp2, test, fullset);
     pcommit = addoffsetinst(compst, ICommit);
     jumptohere(compst, pchoice);
     jumptohere(compst, test);
-		/*printf("vou codificar codelabchoice %d\n", p2->tag);*/
     codegen(compst, p2, opt, NOINST, fl);
     jumptohere(compst, pcommit);
-		/*printf("fim codelabchoice\n");*/
 }
 /* labeled failure end */
 
@@ -962,7 +944,7 @@ static void codegen (CompileState *compst, TTree *tree, int opt, int tt,
       tree = sib2(tree); goto tailcall;
     }
     case TThrow: { /* labeled failure */
-			addthrowinstruction(compst, (byte) tree->u.label);
+      addinstruction(compst, IThrow, (byte) tree->u.label);
 			break;
 		}
 		case TLabChoice: { /* labeled failure */

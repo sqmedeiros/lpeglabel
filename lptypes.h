@@ -160,7 +160,7 @@ typedef Charset Labelset;
 
 #define IDXLFAIL 0
 
-#define testlabel testchar
+#define LFAIL 0
 /* labeled failure end */
 
 #endif

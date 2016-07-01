@@ -53,7 +53,7 @@ typedef union Instruction {
 
 void printpatt (Instruction *p, int n);
 const char *match (lua_State *L, const char *o, const char *s, const char *e,
-                   Instruction *op, Capture *capture, int ptop, Labelset *labelf, const char **sfail); /* labeled failure */
+                   Instruction *op, Capture *capture, int ptop, byte *labelf, const char **sfail); /* labeled failure */
 
 
 #endif

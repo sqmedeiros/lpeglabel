@@ -1115,6 +1115,7 @@ local re = require "relabel"
 local match, compile = re.match, re.compile
 
 
+
 assert(match("a", ".") == 2)
 assert(match("a", "''") == 1)
 assert(match("", " ! . ") == 1)

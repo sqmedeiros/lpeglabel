@@ -34,6 +34,7 @@ const byte numsiblings[] = {
 
 static TTree *newgrammar (lua_State *L, int arg);
 
+
 /*
 ** returns a reasonable name for value at index 'idx' on the stack
 */
@@ -563,7 +564,7 @@ static int lp_seq (lua_State *L) {
   else if (tree1->tag == TTrue)
     lua_pushvalue(L, 2);  /* true . x = x */
   else
-    newroot2sib(L, TSeq); 
+    newroot2sib(L, TSeq);
   return 1;
 }
 
@@ -718,11 +719,11 @@ static int lp_behind (lua_State *L) {
 
 /* labeled failure begin */
 /*
-** Throws a label   
+** Throws a label 
 */
 static int lp_throw (lua_State *L) {
 	int label = luaL_checkinteger(L, -1);
-	luaL_argcheck(L, label >= 0 && label < MAXLABELS, -1, "max or min label index exceeded");
+	luaL_argcheck(L, label >= 0 && label < MAXLABELS, -1, "the number of a label must be between 0 and 255");
 	newthrowleaf(L, label);
 	return 1;
 }
@@ -736,7 +737,7 @@ static int lp_labchoice (lua_State *L) {
 	int i;
 	for (i = 3; i <= n; i++) {
 		int d = luaL_checkinteger(L, i);
-		luaL_argcheck(L, d >= 0 && d < MAXLABELS, i, "max or min label index exceeded");
+		luaL_argcheck(L, d >= 0 && d < MAXLABELS, i, "the number of a label must be between 0 and 255");
     setlabel(treelabelset(tree), (byte)d);
 	}
   return 1;
@@ -1209,26 +1210,17 @@ static int lp_match (lua_State *L) {
   const char *s = luaL_checklstring(L, SUBJIDX, &l);
   size_t i = initposition(L, l);
   int ptop = lua_gettop(L);
-  Labelset labelf; /* labeled failure */
+  byte labelf; /* labeled failure */
   const char *sfail = NULL; /* labeled failure */
   lua_pushnil(L);  /* initialize subscache */
   lua_pushlightuserdata(L, capture);  /* initialize caplistidx */
   lua_getuservalue(L, 1);  /* initialize penvidx */
   r = match(L, s, s + i, s + l, code, capture, ptop, &labelf, &sfail); /* labeled failure */
   if (r == NULL) { /* labeled failure begin */
-    long long int j = 0;
-    int n = 1;
     lua_pushnil(L);
-    while (j < MAXLABELS) {
-      if (testlabel(labelf.cs, j)) {	
-        lua_pushinteger(L, j);
-        n++;
-				break; /* Changing the semantics: only one label */
-      }
-      j++;
-    }
+		lua_pushinteger(L, labelf);	
 		lua_pushstring(L, sfail); /* Pushing the subject where the failure occurred */
-    return n + 1;
+    return 3;
   }  /* labeled failure end */
   return getcaptures(L, s, r, ptop);
 }
