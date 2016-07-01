@@ -44,10 +44,13 @@ typedef struct TTree {
   byte tag;
   byte cap;  /* kind of capture (if it is a capture) */
   unsigned short key;  /* key in ktable for Lua data (0 if no key) */
-  Labelset labels; /* labeled failure */
   union {
-    int ps;  /* occasional second sibling */
     int n;  /* occasional counter */
+		int label; /* labeled failure */
+		struct {   /* labeled failure */
+    	int ps;  /* occasional second sibling */
+			int plab; /* occasional label set */
+		} s; /* labeled failure */
   } u;
 } TTree;
 
@@ -68,7 +71,7 @@ extern const byte numsiblings[];
 
 /* access to siblings */
 #define sib1(t)         ((t) + 1)
-#define sib2(t)         ((t) + (t)->u.ps)
+#define sib2(t)         ((t) + (t)->u.s.ps)
 
 
 

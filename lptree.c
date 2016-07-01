@@ -34,7 +34,6 @@ const byte numsiblings[] = {
 
 static TTree *newgrammar (lua_State *L, int arg);
 
-
 /*
 ** returns a reasonable name for value at index 'idx' on the stack
 */
@@ -63,7 +62,7 @@ static void fixonecall (lua_State *L, int postable, TTree *g, TTree *t) {
     luaL_error(L, "rule '%s' undefined in given grammar", val2str(L, -1));
   }
   t->tag = TCall;
-  t->u.ps = n - (t - g);  /* position relative to node */
+  t->u.s.ps = n - (t - g);  /* position relative to node */
   assert(sib2(t)->tag == TRule);
   sib2(t)->key = t->key;
 }
@@ -80,13 +79,13 @@ static void correctassociativity (TTree *tree) {
   TTree *t1 = sib1(tree);
   assert(tree->tag == TChoice || tree->tag == TSeq);
   while (t1->tag == tree->tag) {
-    int n1size = tree->u.ps - 1;  /* t1 == Op t11 t12 */
-    int n11size = t1->u.ps - 1;
+    int n1size = tree->u.s.ps - 1;  /* t1 == Op t11 t12 */
+    int n11size = t1->u.s.ps - 1;
     int n12size = n1size - n11size - 1;
     memmove(sib1(tree), sib1(t1), n11size * sizeof(TTree)); /* move t11 */
-    tree->u.ps = n11size + 1;
+    tree->u.s.ps = n11size + 1;
     sib2(tree)->tag = tree->tag;
-    sib2(tree)->u.ps = n12size + 1;
+    sib2(tree)->u.s.ps = n12size + 1;
   }
 }
 
@@ -375,16 +374,6 @@ static TTree *newleaf (lua_State *L, int tag) {
 }
 
 
-/* labeled failure begin */
-static TTree *newlabelleaf (lua_State *L, Labelset ls) {
-  TTree *tree = newtree(L, 1);
-  tree->tag = TThrow;
-	tree->labels = ls;
-  return tree;
-}
-/* labeled failure end */
-
-
 static TTree *newcharset (lua_State *L) {
   TTree *tree = newtree(L, bytes2slots(CHARSETSIZE) + 1);
   tree->tag = TSet;
@@ -398,7 +387,7 @@ static TTree *newcharset (lua_State *L) {
 ** 'sibsize'); returns position for second sibling
 */
 static TTree *seqaux (TTree *tree, TTree *sib, int sibsize) {
-  tree->tag = TSeq; tree->u.ps = sibsize + 1;
+  tree->tag = TSeq; tree->u.s.ps = sibsize + 1;
   memcpy(sib1(tree), sib, sibsize * sizeof(TTree));
   return sib2(tree);
 }
@@ -412,7 +401,7 @@ static TTree *seqaux (TTree *tree, TTree *sib, int sibsize) {
 static void fillseq (TTree *tree, int tag, int n, const char *s) {
   int i;
   for (i = 0; i < n - 1; i++) {  /* initial n-1 copies of Seq tag; Seq ... */
-    tree->tag = TSeq; tree->u.ps = 2;
+    tree->tag = TSeq; tree->u.s.ps = 2;
     sib1(tree)->tag = tag;
     sib1(tree)->u.n = s ? (byte)s[i] : 0;
     tree = sib2(tree);
@@ -519,12 +508,38 @@ static TTree *newroot2sib (lua_State *L, int tag) {
   TTree *tree2 = getpatt(L, 2, &s2);
   TTree *tree = newtree(L, 1 + s1 + s2);  /* create new tree */
   tree->tag = tag;
-  tree->u.ps =  1 + s1;
+  tree->u.s.ps =  1 + s1;
   memcpy(sib1(tree), tree1, s1 * sizeof(TTree));
   memcpy(sib2(tree), tree2, s2 * sizeof(TTree));
   joinktables(L, 1, sib2(tree), 2);
   return tree;
 }
+
+
+/* labeled failure begin */
+static TTree *newthrowleaf (lua_State *L, int lab) {
+  TTree *tree = newtree(L, 1);
+  tree->tag = TThrow;
+	tree->u.label = lab;
+  return tree;
+}
+
+static TTree *newlabchoice (lua_State *L) {
+  int s1, s2;
+  TTree *tree1 = getpatt(L, 1, &s1);
+  TTree *tree2 = getpatt(L, 2, &s2);
+  TTree *tree = newtree(L, bytes2slots(LABELSETSIZE) + 1 + s1 + s2);  /* create new tree */
+  tree->tag = TLabChoice;
+  tree->u.s.ps =  1 + s1;
+	tree->u.s.plab = 1 + s1 + s2;
+	memcpy(sib1(tree), tree1, s1 * sizeof(TTree));
+  memcpy(sib2(tree), tree2, s2 * sizeof(TTree));
+  loopset(i, treelabelset(tree)[i] = 0);
+	joinktables(L, 1, sib2(tree), 2);
+  return tree;
+}
+/* labeled failure end */
+
 
 
 static int lp_P (lua_State *L) {
@@ -548,7 +563,7 @@ static int lp_seq (lua_State *L) {
   else if (tree1->tag == TTrue)
     lua_pushvalue(L, 2);  /* true . x = x */
   else
-    newroot2sib(L, TSeq);
+    newroot2sib(L, TSeq); 
   return 1;
 }
 
@@ -599,12 +614,12 @@ static int lp_star (lua_State *L) {
     /* size = (choice + seq + tree1 + true) * n, but the last has no seq */
     tree = newtree(L, n * (size1 + 3) - 1);
     for (; n > 1; n--) {  /* repeat (n - 1) times */
-      tree->tag = TChoice; tree->u.ps = n * (size1 + 3) - 2;
+      tree->tag = TChoice; tree->u.s.ps = n * (size1 + 3) - 2;
       sib2(tree)->tag = TTrue;
       tree = sib1(tree);
       tree = seqaux(tree, tree1, size1);
     }
-    tree->tag = TChoice; tree->u.ps = size1 + 1;
+    tree->tag = TChoice; tree->u.s.ps = size1 + 1;
     sib2(tree)->tag = TTrue;
     memcpy(sib1(tree), tree1, size1 * sizeof(TTree));
   }
@@ -647,7 +662,7 @@ static int lp_sub (lua_State *L) {
   else {
     TTree *tree = newtree(L, 2 + s1 + s2);
     tree->tag = TSeq;  /* sequence of... */
-    tree->u.ps =  2 + s2;
+    tree->u.s.ps =  2 + s2;
     sib1(tree)->tag = TNot;  /* ...not... */
     memcpy(sib1(sib1(tree)), t2, s2 * sizeof(TTree));  /* ...t2 */
     memcpy(sib2(tree), t1, s1 * sizeof(TTree));  /* ... and t1 */
@@ -703,18 +718,12 @@ static int lp_behind (lua_State *L) {
 
 /* labeled failure begin */
 /*
-** Throws a label or a set of labels  
+** Throws a label   
 */
 static int lp_throw (lua_State *L) {
-	int n = lua_gettop(L);
-	Labelset ls = 0;
-	int i;
-	for (i = 1; i <= n; i++) {
-		long long int d = (long long int)luaL_checkinteger(L, i);
-		luaL_argcheck(L, d >= 0 && d < (long long int)MAXLABELS, i, "invalid label index");
-		setlabel(ls, d);
-	}
-	newlabelleaf(L, ls);
+	int label = luaL_checkinteger(L, -1);
+	luaL_argcheck(L, label >= 0 && label < MAXLABELS, -1, "max or min label index exceeded");
+	newthrowleaf(L, label);
 	return 1;
 }
 
@@ -722,17 +731,14 @@ static int lp_throw (lua_State *L) {
 ** labeled choice function
 */
 static int lp_labchoice (lua_State *L) {
-	TTree *tree;
 	int n = lua_gettop(L);
+	TTree *tree = newlabchoice(L);
 	int i;
-	Labelset ls = 0;
 	for (i = 3; i <= n; i++) {
-		long long int d = (long long int)luaL_checkinteger(L, i);
-		luaL_argcheck(L, d >= 0 && d < (long long int)MAXLABELS, i, "invalid label index");
-		setlabel(ls, d);
+		int d = luaL_checkinteger(L, i);
+		luaL_argcheck(L, d >= 0 && d < MAXLABELS, i, "max or min label index exceeded");
+    setlabel(treelabelset(tree), (byte)d);
 	}
-  tree = newroot2sib(L, TLabChoice);
-	tree->labels = ls;
   return 1;
 }
 /* labeled failure end */
@@ -883,7 +889,7 @@ static int lp_constcapture (lua_State *L) {
     tree = sib1(tree);
     for (i = 1; i <= n - 1; i++) {
       tree->tag = TSeq;
-      tree->u.ps = 3;  /* skip TCapture and its sibling */
+      tree->u.s.ps = 3;  /* skip TCapture and its sibling */
       auxemptycap(sib1(tree), Cconst);
       sib1(tree)->key = addtoktable(L, i);
       tree = sib2(tree);
@@ -985,7 +991,7 @@ static void buildgrammar (lua_State *L, TTree *grammar, int frule, int n) {
     nd->tag = TRule;
     nd->key = 0;
     nd->cap = i;  /* rule number */
-    nd->u.ps = rulesize + 1;  /* point to next rule */
+    nd->u.s.ps = rulesize + 1;  /* point to next rule */
     memcpy(sib1(nd), rn, rulesize * sizeof(TTree));  /* copy rule */
     mergektable(L, ridx, sib1(nd));  /* merge its ktable into new one */
     nd = sib2(nd);  /* move to next rule */
@@ -1213,8 +1219,8 @@ static int lp_match (lua_State *L) {
     long long int j = 0;
     int n = 1;
     lua_pushnil(L);
-    while (j < (long long int) MAXLABELS) {
-      if (labelf & (1ULL << j)) {	
+    while (j < MAXLABELS) {
+      if (testlabel(labelf.cs, j)) {	
         lua_pushinteger(L, j);
         n++;
 				break; /* Changing the semantics: only one label */

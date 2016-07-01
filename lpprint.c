@@ -109,12 +109,12 @@ void printinst (const Instruction *op, const Instruction *p) {
       break;
     }
     case IThrow: { /* labeled failure */
-      printf("%d", (p + 1)->labels);
+      printf("%d", p->i.aux);
       break;
     }
 		case ILabChoice: { /* labeled failure */
       printjmp(op, p);
-			printf(" %d", (p + 2)->labels);
+      printcharset((p+2)->buff);
       break;
     }
     default: break;
@@ -217,14 +217,15 @@ void printtree (TTree *tree, int ident) {
       break;
     }
     case TThrow: { /* labeled failure */
-      printf(" labels: %d\n", tree->labels);
+      printf(" labels: %d\n", tree->u.label);
       break;
     }
     default: {
       int sibs = numsiblings[tree->tag];
       printf("\n");
       if (tree->tag == TLabChoice) { /* labeled failure */
-      	printf(" labels: %d\n", tree->labels);
+      	printcharset(treelabelset(tree));
+      	printf("\n");
 			}
       if (sibs >= 1) {
         printtree(sib1(tree), ident + 2);

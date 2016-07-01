@@ -1,5 +1,7 @@
 local m = require 'lpeglabel'
 
+p = m.Lc(true, true, 1, 3)
+
 local p, r, l, s, serror
 
 -- throws a label 
@@ -132,7 +134,6 @@ assert(p:match("B") == 2)
 
 p = m.Lc(m.P"A", m.P(false), 1) + m.P("B")
 assert(p:match("B") == 2)
-
 
 --[[
 S -> A /{1} 'a'

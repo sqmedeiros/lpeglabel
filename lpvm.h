@@ -47,7 +47,6 @@ typedef union Instruction {
     short key;
   } i;
   int offset;
-  Labelset labels; /* labeled failure */
   byte buff[1];
 } Instruction;
 

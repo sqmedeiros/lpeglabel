@@ -110,18 +110,6 @@ typedef struct Charset {
 #define setchar(cs,b)   ((cs)[(b) >> 3] |= (1 << ((b) & 7)))
 
 
-/* labeled failure begin */
-typedef long long int Labelset;
-
-#define MAXLABELS (sizeof(long long int) * 8)
-
-#define LFAIL 1
-
-/* set bit 'b' in set 's' */
-#define setlabel(s, b) ((s) |= (1ULL << (b)))
-/* labeled failure end */
-
-
 /*
 ** in capture instructions, 'kind' of capture and its offset are
 ** packed in field 'aux', 4 bits for each
@@ -156,6 +144,24 @@ typedef long long int Labelset;
 
 #define testchar(st,c)	(((int)(st)[((c) >> 3)] & (1 << ((c) & 7))))
 
+/* labeled failure begin */
+#define MAXLABELS (UCHAR_MAX + 1)
+
+#define LABELSETSIZE CHARSETSIZE
+
+typedef Charset Labelset;
+
+#define setlabel setchar
+
+#define testlabel testchar
+
+/* access to labelset */
+#define treelabelset(t)      ((byte *)((t) + (t)->u.s.plab))
+
+#define IDXLFAIL 0
+
+#define testlabel testchar
+/* labeled failure end */
 
 #endif
 

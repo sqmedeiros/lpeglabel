@@ -11,7 +11,7 @@
 
 #include "lptypes.h"
 #include "lpcode.h"
-
+#include "lpprint.h" /* labeled failure */
 
 /* signals a "no-instruction */
 #define NOINST		-1
@@ -424,10 +424,11 @@ int sizei (const Instruction *i) {
     case ITestSet: return CHARSETINSTSIZE + 1;
     case ITestChar: case ITestAny: case IChoice: case IJmp: case ICall:
     case IOpenCall: case ICommit: case IPartialCommit: case IBackCommit:
-    case IThrow:  /* labeled failure */
       return 2;
+    case IThrow:  /* labeled failure */ 
+			return 1;
     case ILabChoice: 
-      return 3; /* labeled failure */
+      return (CHARSETINSTSIZE - 1) + 2; /* labeled failure */
     default: return 1;
   }
 }
@@ -491,27 +492,24 @@ static int addinstruction (CompileState *compst, Opcode op, int aux) {
 static int addoffsetinst (CompileState *compst, Opcode op) {
   int i = addinstruction(compst, op, 0);  /* instruction */
   addinstruction(compst, (Opcode)0, 0);  /* open space for offset */
-  assert(op == ITestSet || sizei(&getinstr(compst, i)) == 2);
+  assert(op == ITestSet || sizei(&getinstr(compst, i)) == 2 || op == ILabChoice); /* labeled failure */
   return i;
 }
 
 /* labeled failure begin */
-static int addthrowinstruction (CompileState *compst, Labelset ls) {
-  int i = nextinstruction(compst);
-  getinstr(compst, i).i.code = IThrow;
-  i = nextinstruction(compst);
-  getinstr(compst, i).labels = ls;
-  return i;
+static int addthrowinstruction (CompileState *compst, byte lab) {
+  return addinstruction(compst, IThrow, lab);
 }
 
-static int addoffsetlabinst (CompileState *compst, Labelset ls) {
+/*static int addoffsetlabinst (CompileState *compst, const byte *cs) {
   int j;
-	int i = addinstruction(compst, ILabChoice, 0);  /* instruction */
-  addinstruction(compst, (Opcode)0, 0);  /* open space for offset */
-  j = nextinstruction(compst);  /* open space for labels */
-	getinstr(compst, j).labels = ls;
+	int i = addinstruction(compst, ILabChoice, 0);  
+  addinstruction(compst, (Opcode)0, 0);  
+  j = nextinstruction(compst);  
+	getinstr(compst, j).labels = cs;
+
   return i; 
-}
+}*/
 /* labeled failure end */
 
 /*
@@ -718,18 +716,21 @@ static void codechoice (CompileState *compst, TTree *p1, TTree *p2, int opt,
 
 /* labeled failure begin */
 static void codelabchoice (CompileState *compst, TTree *p1, TTree *p2, int opt,
-                        const Charset *fl, Labelset ls) {
+                        const Charset *fl, const byte *cs) {
   	int emptyp2 = (p2->tag == TTrue);
 		int pcommit;
     int test = NOINST;
-    int pchoice = addoffsetlabinst(compst, ls);
+   	/*  int pchoice = addoffsetlabinst(compst, cs);*/
+		int pchoice = addoffsetinst(compst, ILabChoice);
+		addcharset(compst, cs);
     codegen(compst, p1, emptyp2, test, fullset);
     pcommit = addoffsetinst(compst, ICommit);
     jumptohere(compst, pchoice);
     jumptohere(compst, test);
+		/*printf("vou codificar codelabchoice %d\n", p2->tag);*/
     codegen(compst, p2, opt, NOINST, fl);
     jumptohere(compst, pcommit);
-
+		/*printf("fim codelabchoice\n");*/
 }
 /* labeled failure end */
 
@@ -961,11 +962,11 @@ static void codegen (CompileState *compst, TTree *tree, int opt, int tt,
       tree = sib2(tree); goto tailcall;
     }
     case TThrow: { /* labeled failure */
-			addthrowinstruction(compst, tree->labels);
+			addthrowinstruction(compst, (byte) tree->u.label);
 			break;
 		}
 		case TLabChoice: { /* labeled failure */
-			codelabchoice(compst, sib1(tree), sib2(tree), opt, fl, tree->labels); 
+			codelabchoice(compst, sib1(tree), sib2(tree), opt, fl, treelabelset(tree)); 
 			break;
 		}
     default: assert(0);
