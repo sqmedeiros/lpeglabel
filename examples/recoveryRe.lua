@@ -77,15 +77,15 @@ local function eval(input)
   if #errors == 0 then
     return result
   else
-    local out = ""
+    local out = {}
     for i, err in ipairs(errors) do
       local pos = err[2]
       local msg = errmsgs[err[1]]
       local line, col = re.calcline(input, pos)
-      out = out .. "syntax error: " .. msg .. " (line " .. line .. ", col " .. col .. ")\n"
+      table.insert(out, "syntax error: " .. msg .. " (line " .. line .. ", col " .. col .. ")")
     end
     errors = {}
-    return nil, out
+    return nil, table.concat(out, "\n")
   end
 end
 

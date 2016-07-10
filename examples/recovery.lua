@@ -70,14 +70,14 @@ local function eval(input)
   if #errors == 0 then
     return result
   else
-    local out = ""
+    local out = {}
     for i, err in ipairs(errors) do
       local pos = err[2]
       local msg = labels[err[1]][2]
-      out = out .. "syntax error: " .. msg .. " (at index " .. pos .. ")\n"
+      table.insert(out, "syntax error: " .. msg .. " (at index " .. pos .. ")")
     end
     errors = {}
-    return nil, out
+    return nil, table.concat(out, "\n")
   end
 end
 
