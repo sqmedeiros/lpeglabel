@@ -31,11 +31,11 @@ re.setlabels(labels)
 -- The `errors` table will hold the list of errors recorded during parsing
 local errors = {}
 
--- The `recordError` function simply records the label and position of
+-- The `recorderror` function simply records the label and position of
 -- the failure (index in input string) into the `errors` table.
 -- Note: The unused `input` parameter is necessary, as this will be called
 -- by LPeg's match-time capture.
-function recordError(input, pos, label)
+local function recorderror(input, pos, label)
   table.insert(errors, {label, pos})
   return true
 end
@@ -82,16 +82,16 @@ local g = re.compile([[
   num  <- [0-9]+ -> tonumber
 
   -- Before throwing an error, we make sure to record it first.
-  ErrNoExp     <- ("" -> "NoExp"     => recordError) %{NoExp}
-  ErrExtra     <- ("" -> "Extra"     => recordError) %{Extra}
-  ErrExpTerm   <- ("" -> "ExpTerm"   => recordError) %{ExpTerm}
-  ErrExpExp    <- ("" -> "ExpExp"    => recordError) %{ExpExp}
-  ErrMisClose  <- ("" -> "MisClose"  => recordError) %{MisClose}
+  ErrNoExp     <- ("" -> "NoExp"     => recorderror) %{NoExp}
+  ErrExtra     <- ("" -> "Extra"     => recorderror) %{Extra}
+  ErrExpTerm   <- ("" -> "ExpTerm"   => recorderror) %{ExpTerm}
+  ErrExpExp    <- ("" -> "ExpExp"    => recorderror) %{ExpExp}
+  ErrMisClose  <- ("" -> "MisClose"  => recorderror) %{MisClose}
 
   dummy <- "" -> "0" -> tonumber
 ]], {
   compute = compute;
-  recordError = recordError;
+  recorderror = recorderror;
   tonumber = tonumber;
 })
 

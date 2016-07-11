@@ -15,10 +15,10 @@ local labels = {
   {"MisClose",  "missing a closing ')' after the expression"},
 }
 
--- The `labelIndex` function gives us the index of a label in the
+-- The `labelindex` function gives us the index of a label in the
 -- `labels` table, which serves as the integer representation of the label.
 -- We need this because LPegLabel requires us to use integers for the labels.
-local function labelIndex(labname)
+local function labelindex(labname)
   for i, elem in ipairs(labels) do
     if elem[1] == labname then
       return i
@@ -35,12 +35,12 @@ local errors = {}
 -- Before throwing the label, it records the label to be thrown along with
 -- the position of the failure (index in input string) into the `errors` table.
 local function expect(patt, labname)
-  local i = labelIndex(labname)
-  function recordError(input, pos)
+  local i = labelindex(labname)
+  function recorderror(input, pos)
     table.insert(errors, {i, pos})
     return true
   end
-  return patt + Cmt("", recordError) * T(i)
+  return patt + Cmt("", recorderror) * T(i)
 end
 
 local num = R("09")^1 / tonumber
@@ -76,15 +76,15 @@ local g = P {
   "Exp",
   Exp = Ct(V"Term" * (C(op) * V"OpRecov")^0) / compute;
   -- `OpRecov` handles missing terms/operands by returning a dummy (zero).
-  OpRecov = Lc(V"Operand", Cc(0), labelIndex("ExpTerm"));
+  OpRecov = Lc(V"Operand", Cc(0), labelindex("ExpTerm"));
   Operand = expect(V"Term", "ExpTerm");
   Term = num + V"Group";
   -- `Group` handles missing closing parenthesis by simply ignoring it.
   -- Like all the others, the error is still recorded of course.
-  Group = "(" * V"InnerExp" * Lc(expect(")", "MisClose"), P"", labelIndex("MisClose"));
+  Group = "(" * V"InnerExp" * Lc(expect(")", "MisClose"), P"", labelindex("MisClose"));
   -- `InnerExp` handles missing expressions by skipping to the next closing
   -- parenthesis. A dummy (zero) is returned in place of the expression.
-  InnerExp = Lc(expect(V"Exp", "ExpExp"), (P(1) - ")")^0 * Cc(0), labelIndex("ExpExp"));
+  InnerExp = Lc(expect(V"Exp", "ExpExp"), (P(1) - ")")^0 * Cc(0), labelindex("ExpExp"));
 }
 
 g = expect(g, "NoExp") * expect(-P(1), "Extra")
