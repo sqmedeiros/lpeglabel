@@ -1,9 +1,4 @@
-local lpeg = require"lpeglabel"
 local re = require"relabel"
-
-local R, S, P, V = lpeg.R, lpeg.S, lpeg.P, lpeg.V
-local C, Cc, Ct, Cmt = lpeg.C, lpeg.Cc, lpeg.Ct, lpeg.Cmt
-local T, Lc = lpeg.T, lpeg.Lc
 
 local errinfo = {
   {"NoExp",     "no expression found"},
