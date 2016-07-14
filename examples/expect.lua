@@ -2,6 +2,9 @@ local lpeg = require"lpeglabel"
 
 local R, S, P, V, C, Ct, T = lpeg.R, lpeg.S, lpeg.P, lpeg.V, lpeg.C, lpeg.Ct, lpeg.T
 
+-- The `labels` table contains the list of labels that we will be using
+-- as well as the corresponding error message for each label, which will
+-- be used in our error reporting later on.
 local labels = {
   {"NoExp",     "no expression found"},
   {"Extra",     "extra characters found after the expression"},
@@ -10,6 +13,11 @@ local labels = {
   {"MisClose",  "missing a closing ')' after the expression"},
 }
 
+-- The `expect` function takes a pattern and a label defined in
+-- the `labels` table and returns a pattern that throws the specified
+-- label if the original pattern fails to match.
+-- Note: LPegLabel requires us to use integers for the labels, so we
+-- use the index of the label in the `labels` table to represent it.
 local function expect(patt, labname)
   for i, elem in ipairs(labels) do
     if elem[1] == labname then
@@ -23,6 +31,9 @@ end
 local num = R("09")^1 / tonumber
 local op = S("+-*/")
 
+-- The `compute` function takes an alternating list of numbers and
+-- operators and computes the result of applying the operations
+-- to the numbers in a left to right order (no operator precedence).
 local function compute(tokens)
   local result = tokens[1]
   for i = 2, #tokens, 2 do
@@ -41,6 +52,9 @@ local function compute(tokens)
   return result
 end
 
+-- Our grammar is a simple arithmetic expression of integers that
+-- does not take operator precedence into account but allows grouping
+-- via parenthesis.
 local g = P {
   "Exp",
   Exp = Ct(V"Term" * (C(op) * expect(V"Term", "ExpTerm"))^0) / compute;
@@ -50,6 +64,10 @@ local g = P {
 
 g = expect(g, "NoExp") * expect(-P(1), "Extra")
 
+-- The `eval` function takes an input string to match against the grammar
+-- we've just defined. If the input string matches, then the result of the
+-- computation is returned, otherwise we return the error message and
+-- position of the first failure encountered.
 local function eval(input)
   local result, label, suffix = g:match(input)
   if result ~= nil then
