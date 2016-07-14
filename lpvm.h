@@ -35,7 +35,8 @@ typedef enum Opcode {
   ICloseCapture,
   ICloseRunTime,
   IThrow,   /* "fails" with a specific label labeled failure */
-  ILabChoice   /* labeled choice */
+  ILabChoice,   /* labeled choice */
+  IRecov    /* stack a recovery; next fail with label 'f' will jump to 'offset'  */
 } Opcode;
 
 

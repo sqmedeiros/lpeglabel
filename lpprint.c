@@ -61,7 +61,7 @@ void printinst (const Instruction *op, const Instruction *p) {
     "choice", "jmp", "call", "open_call",
     "commit", "partial_commit", "back_commit", "failtwice", "fail", "giveup",
      "fullcapture", "opencapture", "closecapture", "closeruntime",
-    "throw", "labeled_choice" /* labeled failure */
+    "throw", "labeled_choice", "recovery" /* labeled failure */
   };
   printf("%02ld: %s ", (long)(p - op), names[p->i.code]);
   switch ((Opcode)p->i.code) {
@@ -112,7 +112,7 @@ void printinst (const Instruction *op, const Instruction *p) {
       printf("%d", p->i.aux);
       break;
     }
-		case ILabChoice: { /* labeled failure */
+		case ILabChoice: case IRecov: { /* labeled failure */
       printjmp(op, p);
       printcharset((p+2)->buff);
       break;
@@ -165,7 +165,7 @@ static const char *tagnames[] = {
   "call", "opencall", "rule", "grammar",
   "behind",
   "capture", "run-time",
-  "throw", "labeled-choice"  /* labeled failure */
+  "throw", "labeled-choice", "recov"  /* labeled failure */
 };
 
 
@@ -223,7 +223,7 @@ void printtree (TTree *tree, int ident) {
     default: {
       int sibs = numsiblings[tree->tag];
       printf("\n");
-      if (tree->tag == TLabChoice) { /* labeled failure */
+      if (tree->tag == TLabChoice || tree->tag == TRecov) { /* labeled failure */
       	printcharset(treelabelset(tree));
       	printf("\n");
 			}

@@ -25,7 +25,7 @@ typedef enum TTag {
   TBehind,  /* match behind */
   TCapture,  /* regular capture */
   TRunTime,  /* run-time capture */
-  TThrow, TLabChoice     /* labeled failure */
+  TThrow, TLabChoice, TRecov     /* labeled failure */
 } TTag;
 
 /* number of siblings for each tree */

@@ -164,7 +164,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
   const Instruction *p = op;  /* current instruction */
 	Labelset lsfail;
 	setlabelfail(&lsfail);
-  stack->p = &giveup; stack->s = s; stack->caplevel = 0; stack++;
+  stack->p = &giveup; stack->s = s; stack->ls = &lsfail; stack->caplevel = 0; stack++;  /* labeled failure */
   lua_pushlightuserdata(L, stackbase);
   for (;;) {
 #if defined(DEBUG)
@@ -280,17 +280,31 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         p += (CHARSETINSTSIZE - 1) + 2;
         continue;
       }
+			case IRecov: { /* labeled failure */
+        if (stack == stacklimit)
+          stack = doublestack(L, &stacklimit, ptop);
+        stack->p = p + getoffset(p);
+        stack->s = NULL;
+        stack->ls = (const Labelset *) ((p + 2)->buff);
+        stack->caplevel = captop;
+        stack++;
+        p += (CHARSETINSTSIZE - 1) + 2;
+        continue;
+      }
+
       case ICall: {
         if (stack == stacklimit)
           stack = doublestack(L, &stacklimit, ptop);
         stack->s = NULL;
         stack->p = p + 2;  /* save return address */
+        stack->ls = NULL;
         stack++;
         p += getoffset(p);
         continue;
       }
       case ICommit: {
-        assert(stack > getstackbase(L, ptop) && (stack - 1)->s != NULL);
+        assert(stack > getstackbase(L, ptop) && (stack - 1)->ls != NULL); /* labeled failure */
+        /* assert((stack - 1)->s != NULL); labeled failure: IRecov does not push s onto the stack */
         stack--;
         p += getoffset(p);
         continue;
@@ -322,10 +336,14 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
       *labelf = LFAIL; /* labeled failure */
 			*sfail = s;
       fail: { /* pattern failed: try to backtrack */
+        const Labelset *auxlab = NULL;
         do {  /* remove pending calls */
           assert(stack > getstackbase(L, ptop));
-          s = (--stack)->s;
-        } while (s == NULL || (stack->p != &giveup && !testlabel(stack->ls->cs, *labelf)));
+          auxlab = (--stack)->ls;
+        } while (auxlab == NULL || (stack->p != &giveup && !testlabel(stack->ls->cs, *labelf)));
+        if (stack->p == &giveup || stack->s != NULL) { /* labeled failure */
+					s = stack->s;
+				}
         if (ndyncap > 0)  /* is there matchtime captures? */
           ndyncap -= removedyncap(L, capture, stack->caplevel, captop);
         captop = stack->caplevel;

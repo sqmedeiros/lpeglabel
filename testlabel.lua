@@ -2,6 +2,15 @@ local m = require 'lpeglabel'
 
 local p, r, l, s, serror
 
+local function checkeqlab (x, ...)
+  y = { ... }
+  assert(type(x) == "table")
+  assert(#x == #y)
+  for i = 1, 3 do
+    assert(x[i] == y[i])
+  end
+end
+
 -- throws a label 
 p = m.T(1)
 s = "abc"
@@ -538,4 +547,31 @@ A := a;]]
 assert(g:match(s) == terror['undefined']) 
 
 
+print("+")
+
+
+-- test recovery operator
+p = m.Rec("a", "b") 
+assert(p:match("a") == 2)
+assert(p:match("b") == 2)
+checkeqlab({nil, 0, "c"}, p:match("c"))
+
+p = m.Rec("a", "b", 3) 
+assert(p:match("a") == 2)
+checkeqlab({nil, 0, "b"}, p:match("b"))
+checkeqlab({nil, 0, "c"}, p:match("c"))
+
+p = m.Rec(m.T(3), "b") 
+checkeqlab({nil, 3, "a"}, p:match("a"))
+checkeqlab({nil, 3, "b"}, p:match("b"))
+
+p = m.Rec(m.T(3), "b", 3) 
+p:pcode()
+checkeqlab({nil, 0, "a"}, p:match("a"))
+assert(p:match("b") == 2)
+
+
 print("OK")
+
+
+

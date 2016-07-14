@@ -28,7 +28,7 @@ const byte numsiblings[] = {
   0, 0, 2, 1,  /* call, opencall, rule, grammar */
   1,  /* behind */
   1, 1,  /* capture, runtime capture */
-  0, 2  /* labeled failure throw, labeled choice */
+  0, 2, 2  /* labeled failure throw, labeled choice, recovery */
 };
 
 
@@ -525,12 +525,12 @@ static TTree *newthrowleaf (lua_State *L, int lab) {
   return tree;
 }
 
-static TTree *newlabchoice (lua_State *L) {
+static TTree *newrootlab2sib (lua_State *L, int tag) {
   int s1, s2;
   TTree *tree1 = getpatt(L, 1, &s1);
   TTree *tree2 = getpatt(L, 2, &s2);
   TTree *tree = newtree(L, bytes2slots(LABELSETSIZE) + 1 + s1 + s2);  /* create new tree */
-  tree->tag = TLabChoice;
+  tree->tag = tag;
   tree->u.s.ps =  1 + s1;
 	tree->u.s.plab = 1 + s1 + s2;
 	memcpy(sib1(tree), tree1, s1 * sizeof(TTree));
@@ -733,7 +733,7 @@ static int lp_throw (lua_State *L) {
 */
 static int lp_labchoice (lua_State *L) {
 	int n = lua_gettop(L);
-	TTree *tree = newlabchoice(L);
+	TTree *tree = newrootlab2sib(L, TLabChoice);
 	int i;
 	for (i = 3; i <= n; i++) {
 		int d = luaL_checkinteger(L, i);
@@ -742,6 +742,24 @@ static int lp_labchoice (lua_State *L) {
 	}
   return 1;
 }
+
+
+static int lp_recovery (lua_State *L) {
+	int n = lua_gettop(L);
+	TTree *tree = newrootlab2sib(L, TRecov);
+  if (n == 2) {  /* catches fail as default */
+		setlabel(treelabelset(tree), LFAIL);
+  } else {
+		int i;
+		for (i = 3; i <= n; i++) {
+			int d = luaL_checkinteger(L, i);
+			luaL_argcheck(L, d >= 0 && d < MAXLABELS, i, "the number of a label must be between 0 and 255");
+    	setlabel(treelabelset(tree), (byte)d);
+		}
+	}
+  return 1;
+}
+
 /* labeled failure end */
 
 
@@ -1325,6 +1343,7 @@ static struct luaL_Reg pattreg[] = {
   {"type", lp_type},
   {"T", lp_throw}, /* labeled failure throw */
   {"Lc", lp_labchoice}, /* labeled failure choice */
+  {"Rec", lp_recovery}, /* labeled failure choice */
   {NULL, NULL}
 };
 
