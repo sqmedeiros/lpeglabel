@@ -566,12 +566,29 @@ checkeqlab({nil, 3, "a"}, p:match("a"))
 checkeqlab({nil, 3, "b"}, p:match("b"))
 
 p = m.Rec(m.T(3), "b", 3) 
-p:pcode()
 checkeqlab({nil, 0, "a"}, p:match("a"))
 assert(p:match("b") == 2)
 
+--[[
+S -> (A //{fail} (!c .)*) C
+A -> a*b 
+C -> c+
+]]
+g = m.P{
+	"S",
+	S = m.Rec(m.V"A", (-m.P"c" * m.P(1))^0) * m.V"C",
+	A = m.P"a"^0 * "b",
+	C = m.P"c"^1,
+}
+
+assert(g:match("abc") == 4)
+assert(g:match("aabc") == 5)
+assert(g:match("aadc") == 5)
+assert(g:match("bc") == 3)
+checkeqlab({nil, 0, "bc"}, g:match("bbc"))
+assert(g:match("xxc") == 4)
+assert(g:match("c") == 2)
+checkeqlab({nil, 0, ""}, g:match("fail"))
 
 print("OK")
-
-
 

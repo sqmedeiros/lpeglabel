@@ -1089,7 +1089,7 @@ static int verifyrule (lua_State *L, TTree *tree, int *passed, int npassed,
         return nb;
       /* else return verifyrule(L, sib2(tree), passed, npassed, nb); */
       tree = sib2(tree); goto tailcall;
-    case TChoice: case TLabChoice:  /* must check both children */  /* labeled failure */
+    case TChoice: case TLabChoice: case TRecov: /* must check both children */  /* labeled failure */
       nb = verifyrule(L, sib1(tree), passed, npassed, nb);
       /* return verifyrule(L, sib2(tree), passed, npassed, nb); */
       tree = sib2(tree); goto tailcall;
