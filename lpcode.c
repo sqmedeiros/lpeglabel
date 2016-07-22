@@ -725,16 +725,17 @@ static void codelabchoice (CompileState *compst, TTree *p1, TTree *p2, int opt,
 static void coderecovery (CompileState *compst, TTree *p1, TTree *p2, int opt,
                         const Charset *fl, const byte *cs) {
   	int emptyp2 = (p2->tag == TTrue);
-		int pcommit;
+		int pjmp;
     int test = NOINST;
 		int precovery = addoffsetinst(compst, IRecov);
 		addcharset(compst, cs);
     codegen(compst, p1, emptyp2, test, fullset);
-    pcommit = addoffsetinst(compst, ICommit);
+    pjmp = addoffsetinst(compst, IJmp);
     jumptohere(compst, precovery);
     jumptohere(compst, test);
     codegen(compst, p2, opt, NOINST, fl);
-    jumptohere(compst, pcommit);
+    addinstruction(compst, IRet, 0);
+    jumptohere(compst, pjmp);
 }
 /* labeled failure end */
 
