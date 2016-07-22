@@ -171,7 +171,6 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
   int captop = 0;  /* point to first empty slot in captures */
   int ndyncap = 0;  /* number of dynamic captures (in Lua stack) */
   const Instruction *p = op;  /* current instruction */
-  const Instruction *pk = NULL;  /* resume instruction */
 	Labelset lsfail;
 	setlabelfail(&lsfail);
   stack->p = &giveup; stack->s = s; stack->ls = &lsfail; stack->caplevel = 0; stack++;  /* labeled failure */
@@ -205,7 +204,6 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         if (s < e) { p++; s++; }
         else {
           *labelf = LFAIL; /* labeled failure */
-          pk = p + 1; 
 					*sfail = s;
           goto fail;
         }
@@ -220,7 +218,6 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         if ((byte)*s == p->i.aux && s < e) { p++; s++; }
         else {
           *labelf = LFAIL; /* labeled failure */
-          pk = p + 1; 
 					*sfail = s;
           goto fail;
         }
@@ -237,7 +234,6 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
           { p += CHARSETINSTSIZE; s++; }
         else {
           *labelf = LFAIL; /* labeled failure */
-          pk = p + CHARSETINSTSIZE; 
 					*sfail = s;
           goto fail;
         }
@@ -254,7 +250,6 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         int n = p->i.aux;
         if (n > s - o) {
           *labelf = LFAIL; /* labeled failure */
-          pk = p + 1; 
 					*sfail = s;
           goto fail;
         }
@@ -362,7 +357,6 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         /* go through */
       case IFail:
       *labelf = LFAIL; /* labeled failure */
-      pk = NULL;
 			*sfail = s;
       fail: { /* pattern failed: try to backtrack */
         const Labelset *auxlab = NULL;
@@ -391,7 +385,6 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         if (res == -1) { /* fail? */
       		*labelf = LFAIL;  /* labeled failure */
 					*sfail = (const char *) s; /* TODO: ??? */
-          pk = NULL;
           goto fail;
         }
         s = o + res;  /* else update current position */
