@@ -82,15 +82,9 @@ for i, err in ipairs(errinfo) do
   labels[err[1]] = i
 end
 
-local syntaxerrs = {}
-
 local function expect (pattern, labelname)
   local label = labels[labelname]
-  local record = function (input, pos)
-    tinsert(syntaxerrs, { label = label, pos = pos })
-    return true
-  end
-  return pattern + m.Cmt("", record) * m.T(label)
+  return pattern + m.T(label)
 end
 
 
@@ -236,72 +230,20 @@ local function labchoice (...)
   return p
 end
 
--- error recovery
-local skip = m.P { "Skip",
-  Skip = (-m.P"/" * -m.P(name * arrow) * m.V"Ignored")^0 * m.Cc(dummy);
-  Ignored = m.V"Group" + any;
-  Group = "(" * (-m.P")" * m.V"Ignored")^0 * ")"
-        + "{" * (-m.P"}" * m.V"Ignored")^0 * "}"
-        + "[" * (-m.P"]" * m.V"Ignored")^0 * "]"
-        + "'" * (-m.P"'" * m.V"Ignored")^0 * "'"
-        + '"' * (-m.P'"' * m.V"Ignored")^0 * '"';
-}
-
-local ignore = m.Cmt(any, function (input, pos)
-  return syntaxerrs[#syntaxerrs].pos, dummy
-end)
-
-local pointAtStart = m.Cmt(any, function (input, pos)
-  -- like ignore but makes the last syntax error point at the start
-  local ret = syntaxerrs[#syntaxerrs].pos
-  syntaxerrs[#syntaxerrs].pos = pos-1
-  return ret, dummy
-end)
-
-
-local function labify (labelnames)
-  for i, l in ipairs(labelnames) do
-    labelnames[i] = labels[l]
-  end
-  return labelnames
-end
-
-local labelset1 = labify {
-  "ExpPatt2", "ExpPatt3",
-  "ExpPatt4", "ExpPatt5", "ExpPatt6", "ExpPatt7",
-  "ExpPatt8", "ExpPattOrClose",
-  "ExpNum", "ExpCap",
-  "ExpName1", "ExpName2", "ExpName3",
-  "ExpNameOrLab", "ExpItem",
-  "MisClose6", "MisClose7"
-}
-
-local labelset2 = labify {
-  "MisClose1", "MisClose2", "MisClose3", "MisClose4", "MisClose5"
-}
-
-local labelset3 = labify {
-  "ExpPatt1", "ExpLab1", "ExpLab2", "MisClose7"
-}
-
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"RecovSeq" * (S * "/" * m.Lc((m.Ct(m.V"Labels") + m.Cc(nil))
-                                                * expect(S * m.V"RecovSeq",
-                                                    "ExpPatt1"),
-                                               m.Cc(nil) * skip,
-                                               unpack(labelset3))
+            + (m.V"Seq" * (S * "/" * (m.Ct(m.V"Labels") + m.Cc(nil))
+                                   * expect(S * m.V"Seq", "ExpPatt1")
                             )^0
               ) / labchoice);
   Labels = m.P"{" * expect(S * m.V"Label", "ExpLab1")
            * (S * "," * expect(S * m.V"Label", "ExpLab2"))^0
            * expect(S * "}", "MisClose7");
-  RecovSeq = m.Lc(m.V"Seq", skip, unpack(labelset1));
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix" * (S * m.V"Prefix")^0, mt.__mul);
   Prefix = "&" * expect(S * m.V"Prefix", "ExpPatt2") / mt.__len
          + "!" * expect(S * m.V"Prefix", "ExpPatt3") / mt.__unm
          + m.V"Suffix";
-  Suffix = m.Cf(m.V"RecovPrimary" *
+  Suffix = m.Cf(m.V"Primary" *
           ( S * ( m.P"+" * m.Cc(1, mt.__pow)
                 + m.P"*" * m.Cc(0, mt.__pow)
                 + m.P"?" * m.Cc(-1, mt.__pow)
@@ -318,11 +260,9 @@ local exp = m.P{ "Exp",
                            "ExpName1")
                 )
           )^0, function (a,b,f) return f(a,b) end );
-  RecovPrimary = m.Lc(m.V"Primary", ignore, unpack(labelset2));
   Primary = "(" * expect(m.V"Exp", "ExpPatt4") * expect(S * ")", "MisClose1")
-          + m.Lc(String / mm.P, pointAtStart,
-              labels["MisTerm1"], labels["MisTerm2"])
-          + m.Lc(Class, pointAtStart, labels["MisClose8"])
+          + String / mm.P
+          + Class
           + defined
           + "%" * expect(m.V"Labels", "ExpNameOrLab") / mm.T
           + "{:" * (name * ":" + m.Cc(nil)) * expect(m.V"Exp", "ExpPatt5")
@@ -374,23 +314,20 @@ local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
   p = p .. " " -- for better reporting of column numbers in errors when at EOF
   local ok, cp, label, suffix = pcall(function() return pattern:match(p, 1, defs) end)
-  if not ok and #syntaxerrs == 0 then
+  if not ok and cp then
     if type(cp) == "string" then
       cp = cp:gsub("^[^:]+:[^:]+: ", "")
     end
     error(cp, 3)
   end
-  if #syntaxerrs > 0 then
+  if not cp then
     local lines = splitlines(p)
-    local errors = {}
-    for i, err in ipairs(syntaxerrs) do
-      local line, col = lineno(p, err.pos)
-      tinsert(errors, "L" .. line .. ":C" .. col .. ": " .. errmsgs[err.label])
-      tinsert(errors, lines[line])
-      tinsert(errors, rep(" ", col-1) .. "^")
-    end
-    syntaxerrs = {}
-    error("syntax error(s) in pattern\n" .. concat(errors, "\n"), 3)
+    local line, col = lineno(p, #p - #suffix + 1)
+    local err = {}
+    tinsert(err, "L" .. line .. ":C" .. col .. ": " .. errmsgs[label])
+    tinsert(err, lines[line])
+    tinsert(err, rep(" ", col-1) .. "^")
+    error("syntax error(s) in pattern\n" .. concat(err, "\n"), 3)
   end
   return cp
 end
