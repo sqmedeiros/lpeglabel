@@ -82,15 +82,13 @@ for i, err in ipairs(errinfo) do
   labels[err[1]] = i
 end
 
-local syntaxerrs = {}
-
 local function expect (pattern, labelname)
   local label = labels[labelname]
-  local record = function (input, pos)
+  local record = function (input, pos, syntaxerrs)
     tinsert(syntaxerrs, { label = label, pos = pos })
     return true
   end
-  return pattern + m.Cmt("", record) * m.T(label)
+  return pattern + m.Cmt(m.Carg(2), record) * m.T(label)
 end
 
 
@@ -247,14 +245,14 @@ local skip = m.P { "Skip",
         + '"' * (-m.P'"' * m.V"Ignored")^0 * '"';
 }
 
-local ignore = m.Cmt(any, function (input, pos)
+local ignore = m.Cmt(m.Carg(2), function (input, pos, syntaxerrs)
   return syntaxerrs[#syntaxerrs].pos, dummy
 end)
 
-local pointAtStart = m.Cmt(any, function (input, pos)
+local pointAtStart = m.Cmt(m.Carg(2), function (input, pos, syntaxerrs)
   -- like ignore but makes the last syntax error point at the start
   local ret = syntaxerrs[#syntaxerrs].pos
-  syntaxerrs[#syntaxerrs].pos = pos-1
+  syntaxerrs[#syntaxerrs].pos = pos
   return ret, dummy
 end)
 
@@ -373,7 +371,8 @@ end
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
   p = p .. " " -- for better reporting of column numbers in errors when at EOF
-  local ok, cp, label, suffix = pcall(function() return pattern:match(p, 1, defs) end)
+  local syntaxerrs = {}
+  local ok, cp, label, suffix = pcall(function() return pattern:match(p, 1, defs, syntaxerrs) end)
   if not ok and #syntaxerrs == 0 then
     if type(cp) == "string" then
       cp = cp:gsub("^[^:]+:[^:]+: ", "")
@@ -389,7 +388,6 @@ local function compile (p, defs)
       tinsert(errors, lines[line])
       tinsert(errors, rep(" ", col-1) .. "^")
     end
-    syntaxerrs = {}
     error("syntax error(s) in pattern\n" .. concat(errors, "\n"), 3)
   end
   return cp
