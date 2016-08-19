@@ -371,12 +371,6 @@ L1:C13: expected a label after the comma
             ^
 ]])
 
-testerror([[%{ a,,b,,c }]], [[
-L1:C6: expected a label after the comma
-%{ a,,b,,c }
-     ^
-]])
-
 -- testing ExpNameOrLab
 
 testerror([[% s]], [[
@@ -468,9 +462,9 @@ L1:C8: missing closing '>'
 -- testing MisClose7
 
 testerror([['{' %{ a, b '}']], [[
-L1:C12: missing closing '}'
+L1:C9: missing closing '}'
 '{' %{ a, b '}'
-           ^
+        ^
 ]])
 
 -- testing MisClose8
