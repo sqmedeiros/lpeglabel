@@ -199,9 +199,6 @@ testerror([[{ {~ } ~}]], [[
 L1:C5: expected a pattern after '{~'
 { {~ } ~}
     ^
-L1:C10: missing closing '}'
-{ {~ } ~}
-         ^
 ]])
 
 testerror([[{~ ^_^ ~}]], [[
@@ -421,9 +418,6 @@ testerror([[{: group: 'p' :}]], [[
 L1:C9: missing closing ':}'
 {: group: 'p' :}
         ^
-L1:C9: unexpected characters after the pattern
-{: group: 'p' :}
-        ^
 ]])
 
 testerror([[S <- {: 'p'  T <- 'q']], [[
@@ -447,9 +441,6 @@ testerror([['p' {| 'q' / 'r' }]], [[
 L1:C17: missing closing '|}'
 'p' {| 'q' / 'r' }
                 ^
-L1:C18: unexpected characters after the pattern
-'p' {| 'q' / 'r' }
-                 ^
 ]])
 
 -- testing MisClose5
@@ -485,186 +476,49 @@ L1:C12: missing closing '}'
 -- testing MisClose8
 
 testerror([[[]], [[
-L1:C1: missing closing ']'
+L1:C2: missing closing ']'
 [
-^
+ ^
 ]])
 
 testerror([[[^]], [[
-L1:C1: missing closing ']'
+L1:C3: missing closing ']'
 [^
-^
+  ^
 ]])
 
 testerror([[[] ]], [[
-L1:C1: missing closing ']'
+L1:C4: missing closing ']'
 []
-^
+   ^
 ]])
 
 testerror([[[^] 	]], [[
-L1:C1: missing closing ']'
+L1:C6: missing closing ']'
 [^]
-^
+     ^
 ]])
 
 testerror([[[_-___-_|]], [[
-L1:C1: missing closing ']'
+L1:C10: missing closing ']'
 [_-___-_|
-^
+         ^
 ]])
 
 -- testing MisTerm1
 
 testerror([['That is the question...]], [[
-L1:C1: missing terminating single quote
+L1:C25: missing terminating single quote
 'That is the question...
-^
+                        ^
 ]])
 
 -- testing MisTerm2
 
 testerror([[Q <- "To be or not to be...]], [[
-L1:C6: missing terminating double quote
+L1:C28: missing terminating double quote
 Q <- "To be or not to be...
-     ^
-]])
-
--- testing error recovery, more complex grammars (multiline),
--- and pointer positions in error recovery
-
-testerror([[&'p'/&/!/'p'^'q']], [[
-L1:C7: expected a pattern after '&'
-&'p'/&/!/'p'^'q'
-      ^
-L1:C9: expected a pattern after '!'
-&'p'/&/!/'p'^'q'
-        ^
-L1:C14: expected a number after '^', '+' or '-' (no space)
-&'p'/&/!/'p'^'q'
-             ^
-]])
-
-testerror([[
-  A <- 'a' (B 'b'
-  B <- 'x' / !
-  C <- 'c'
-]], [[
-L1:C18: missing closing ')'
-  A <- 'a' (B 'b'
-                 ^
-L2:C15: expected a pattern after '!'
-  B <- 'x' / !
-              ^
-]])
-
-testerror([['a' / &@ ('c' / 'd')]], [[
-L1:C8: expected a pattern after '&'
-'a' / &@ ('c' / 'd')
-       ^
-]])
-
-testerror([['x' / & / 'y']], [[
-L1:C8: expected a pattern after '&'
-'x' / & / 'y'
-       ^
-]])
-
-testerror([[&/'p'/!/'q']], [[
-L1:C2: expected a pattern after '&'
-&/'p'/!/'q'
- ^
-L1:C8: expected a pattern after '!'
-&/'p'/!/'q'
-       ^
-]])
-
-testerror([['p'//'q']], [[
-L1:C5: expected a pattern after '/' or the label(s)
-'p'//'q'
-    ^
-]])
-
-testerror([[
-  S <- 'forgot to close / T
-  T <- 'T' & / 't'
-]], [[
-L1:C8: missing terminating single quote
-  S <- 'forgot to close / T
-       ^
-L2:C13: expected a pattern after '&'
-  T <- 'T' & / 't'
-            ^
-]])
-
-testerror([[
-  S <- [a-z / T
-  T <- 'x' / & / 'y'
-]], [[
-L1:C8: missing closing ']'
-  S <- [a-z / T
-       ^
-L2:C15: expected a pattern after '&'
-  T <- 'x' / & / 'y'
-              ^
-]])
-
-testerror([[
-  S <- ('p' -- comment
-]], [[
-L1:C12: missing closing ')'
-  S <- ('p' -- comment
-           ^
-]])
-
--- an unfortunate second error exists because we don't know
--- what's part of the quotation
-testerror([[
-  X <- ('p / Q (R
-    / S))
-  Q <- 'q'
-  R <- 'r'
-  S <- 's'
-]], [[
-L1:C9: missing terminating single quote
-  X <- ('p / Q (R
-        ^
-L2:C9: unexpected characters after the pattern
-    / S))
-        ^
-]])
-
-testerror([[
-  A <- 'A' /{'lab'} B / !
-
-  B <- %{1, 2 3} 'b' / '6' & / 'B'
-
-  C <- A^B
-]], [[
-L1:C14: expected at least one label after '{'
-  A <- 'A' /{'lab'} B / !
-             ^
-L1:C26: expected a pattern after '!'
-  A <- 'A' /{'lab'} B / !
-                         ^
-L3:C15: missing closing '}'
-  B <- %{1, 2 3} 'b' / '6' & / 'B'
-              ^
-L3:C29: expected a pattern after '&'
-  B <- %{1, 2 3} 'b' / '6' & / 'B'
-                            ^
-L5:C10: expected a number after '^', '+' or '-' (no space)
-  C <- A^B
-         ^
-]])
-
-testerror([['p'/{1/'q'/&]], [[
-L1:C7: missing closing '}'
-'p'/{1/'q'/&
-      ^
-L1:C13: expected a pattern after '&'
-'p'/{1/'q'/&
-            ^
+                           ^
 ]])
 
 -- testing non-syntax errors
