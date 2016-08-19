@@ -322,7 +322,9 @@ local exp = m.P{ "Exp",
               labels["MisTerm1"], labels["MisTerm2"])
           + m.Lc(Class, pointAtStart, labels["MisClose8"])
           + defined
-          + "%" * expect(m.V"Labels", "ExpNameOrLab") / mm.T
+          + "%" * expect(m.P"{", "ExpNameOrLab")
+            * expect(S * m.V"Label", "ExpLab1")
+            * expect(S * "}", "MisClose7") / mm.T
           + "{:" * (name * ":" + m.Cc(nil)) * expect(m.V"Exp", "ExpPatt5")
             * expect(S * ":}", "MisClose2")
             / function (n, p) return mm.Cg(p, n) end

@@ -374,12 +374,6 @@ L1:C13: expected a label after the comma
             ^
 ]])
 
-testerror([[%{ a,,b,,c }]], [[
-L1:C6: expected a label after the comma
-%{ a,,b,,c }
-     ^
-]])
-
 -- testing ExpNameOrLab
 
 testerror([[% s]], [[
@@ -477,9 +471,9 @@ L1:C8: missing closing '>'
 -- testing MisClose7
 
 testerror([['{' %{ a, b '}']], [[
-L1:C12: missing closing '}'
+L1:C9: missing closing '}'
 '{' %{ a, b '}'
-           ^
+        ^
 ]])
 
 -- testing MisClose8
@@ -647,9 +641,9 @@ L1:C14: expected at least one label after '{'
 L1:C26: expected a pattern after '!'
   A <- 'A' /{'lab'} B / !
                          ^
-L3:C15: missing closing '}'
+L3:C11: missing closing '}'
   B <- %{1, 2 3} 'b' / '6' & / 'B'
-              ^
+          ^
 L3:C29: expected a pattern after '&'
   B <- %{1, 2 3} 'b' / '6' & / 'B'
                             ^
