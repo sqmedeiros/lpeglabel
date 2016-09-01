@@ -35,7 +35,11 @@ of the new functions provided by LpegLabel:
   <td>Throws label <code>l</code></td></tr>
 <tr><td><a href="#f-lc"><code>lpeglabel.Lc (p1, p2, l1, ..., ln)</code></a></td>
   <td>Matches <code>p1</code> and tries to match <code>p2</code>
-			if the matching of <code>p1</code> gives one of l<sub>1</sub>, ..., l<sub>n</sub> 
+      if the matching of <code>p1</code> gives one of l<sub>1</sub>, ..., l<sub>n</sub> 
+      </td></tr>
+<tr><td><a href="#f-rec"><code>lpeglabel.Rec (p1, p2 [, l1, ..., ln])</code></a></td>
+  <td>Like <code>Lc</code> but does not reset the position of the parser
+      when trying <code>p2</code>. By default, it catches regular PEG failures
       </td></tr>
 <tr><td><a href="#re-t"><code>%{l}</code></a></td>
   <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.T(l)</code>
@@ -64,7 +68,7 @@ A label must be an integer between 0 and 255.
 The label 0 is equivalent to the regular failure of PEGs.
 
 
-#### <a name="f-lc"></a><code>lpeglabel.Lc(p1, p2, l1, ..., ln)</code>#
+#### <a name="f-lc"></a><code>lpeglabel.Lc(p1, p2, l1, ..., ln)</code>
 
 Returns a pattern equivalent to a *labeled ordered choice*.
 If the matching of `p1` gives one of the labels `l1, ..., ln`,
@@ -77,6 +81,15 @@ regular ordered choice `p1 / p2`.
 Although PEG's ordered choice is associative, the labeled ordered choice is not.
 When using this function, the user should take care to build a left-associative
 labeled ordered choice pattern.
+
+
+#### <a name="f-rec"></a><code>lpeglabel.Rec(p1, p2 [, l1, ..., ln])</code>
+
+The *recovery operator* is similar to labeled order choice except
+that the matching of `p2` is tried from the failure position of `p1`.
+
+If no label is provided, the regular PEG failure is caught
+i.e. `lpeg.Rec(p1, p2)` is equivalent to `lpeg.Rec(p1, p2, 0)`.
 
 
 #### <a name="re-t"></a><code>%{l}</code>
@@ -419,4 +432,109 @@ local g = m.P{
 print(m.match(g, "one,two"))  --> 8
 print(m.match(g, "one two"))  --> expecting ','
 print(m.match(g, "one,\n two,\nthree,"))  --> expecting an identifier
+```
+
+#### Error Recovery
+
+By using labeled ordered choice or the recovery operator, when a label
+is thrown, the parser may record the error and still continue parsing
+to find more errors. We can even record the error right away without
+actually throwing a label (relying on the regular PEG failure instead).
+Below we rewrite the arithmetic expression example and modify
+the `expect` function to use the recovery operator for error recovery:
+
+```lua
+local lpeg = require"lpeglabel"
+
+local R, S, P, V = lpeg.R, lpeg.S, lpeg.P, lpeg.V
+local C, Cc, Ct, Cmt, Carg = lpeg.C, lpeg.Cc, lpeg.Ct, lpeg.Cmt, lpeg.Carg
+local T, Lc, Rec = lpeg.T, lpeg.Lc, lpeg.Rec
+
+local labels = {
+  {"NoExp",     "no expression found"},
+  {"Extra",     "extra characters found after the expression"},
+  {"ExpTerm",   "expected a term after the operator"},
+  {"ExpExp",    "expected an expression after the parenthesis"},
+  {"MisClose",  "missing a closing ')' after the expression"},
+}
+
+local function labelindex(labname)
+  for i, elem in ipairs(labels) do
+    if elem[1] == labname then
+      return i
+    end
+  end
+  error("could not find label: " .. labname)
+end
+
+local function expect(patt, labname, recpatt)
+  local i = labelindex(labname)
+  local function recorderror(input, pos, errors)
+    table.insert(errors, {i, pos})
+    return true
+  end
+	if not recpatt then recpatt = P"" end
+  return Rec(patt, Cmt(Carg(1), recorderror) * recpatt)
+end
+
+local num = R("09")^1 / tonumber
+local op = S("+-*/")
+
+local function compute(tokens)
+  local result = tokens[1]
+  for i = 2, #tokens, 2 do
+    if tokens[i] == '+' then
+      result = result + tokens[i+1]
+    elseif tokens[i] == '-' then
+      result = result - tokens[i+1]
+    elseif tokens[i] == '*' then
+      result = result * tokens[i+1]
+    elseif tokens[i] == '/' then
+      result = result / tokens[i+1]
+    else
+      error('unknown operation: ' .. tokens[i])
+    end
+  end
+  return result
+end
+
+
+local g = P {
+  "Exp",
+  Exp = Ct(V"Term" * (C(op) * V"Operand")^0) / compute;
+  Operand = expect(V"Term", "ExpTerm", Cc(0));
+  Term = num + V"Group";
+  Group = "(" *  V"InnerExp" * expect(")", "MisClose");
+  InnerExp = expect(V"Exp", "ExpExp", (P(1) - ")")^0 * Cc(0));
+}
+
+g = expect(g, "NoExp", P(1)^0) * expect(-P(1), "Extra")
+
+local function eval(input)
+  local errors = {}
+  local result, label, suffix = g:match(input, 1, errors)
+  if #errors == 0 then
+    return result
+  else
+    local out = {}
+    for i, err in ipairs(errors) do
+      local pos = err[2]
+      local msg = labels[err[1]][2]
+      table.insert(out, "syntax error: " .. msg .. " (at index " .. pos .. ")")
+    end
+    return nil, table.concat(out, "\n")
+  end
+end
+
+print(eval "98-76*(54/32)")
+--> 37.125
+
+print(eval "-1+(1-(1*2))/2")
+--> syntax error: no expression found (at index 1)
+
+print(eval "(1+1-1*(2/2+)-():")
+--> syntax error: expected a term after the operator (at index 13)
+--> syntax error: expected an expression after the parenthesis (at index 16)
+--> syntax error: missing a closing ')' after the expression (at index 17)
+--> syntax error: extra characters found after the expression (at index 17)
 ```
