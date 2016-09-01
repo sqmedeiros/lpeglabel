@@ -1,4 +1,14 @@
-HISTORY for LPegLabel 0.12.2-2
+HISTORY for LPegLabel 1.0.0-1
+
+* Changes from version 0.12.2-2 to 1.0.0-1
+  ---------------------------------
+  + base code updated to LPeg 1.0 
+  + new functions: lpeglabel.Rec and relabel.calcline
+  + improved documentation
+  + new examples
+  + some bugs fixed 
+
+
 
 * Changes from version 0.12.2-1 to 0.12.2-2
   ---------------------------------
