@@ -161,8 +161,6 @@ typedef Charset Labelset;
 #define IDXLFAIL 0
 
 #define LFAIL 0
-
-#define MAXRECOVERY 200
 /* labeled failure end */
 
 #endif

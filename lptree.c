@@ -748,7 +748,7 @@ static int lp_recovery (lua_State *L) {
 	int n = lua_gettop(L);
 	TTree *tree = newrootlab2sib(L, TRecov);
   if (n == 2) {  /* catches fail as default */
-		setlabel(treelabelset(tree), LFAIL);
+		/*setlabel(treelabelset(tree), LFAIL);  recovery does not catch regular fail */
   } else {
 		int i;
 		for (i = 3; i <= n; i++) {
@@ -1361,8 +1361,8 @@ static struct luaL_Reg metareg[] = {
 };
 
 
-int luaopen_lpeglabel (lua_State *L);  /* labeled failure */
-int luaopen_lpeglabel (lua_State *L) { /* labeled failure */
+int luaopen_lpeglabelrec (lua_State *L);  /* labeled failure */
+int luaopen_lpeglabelrec (lua_State *L) { /* labeled failure */
   luaL_newmetatable(L, PATTERN_T);
   lua_pushnumber(L, MAXBACK);  /* initialize maximum backtracking */
   lua_setfield(L, LUA_REGISTRYINDEX, MAXSTACKIDX);

@@ -1,4 +1,4 @@
-local m = require 'lpeglabel'
+local m = require 'lpeglabelrec'
 
 local p, r, l, s, serror
 
@@ -557,6 +557,7 @@ print("+")
 p = m.Rec("a", "b")
 assert(p:match("a") == 2)
 --assert(p:match("b") == 2)
+checkeqlab({nil, 0, "b"}, p:match("b"))
 checkeqlab({nil, 0, "c"}, p:match("c"))
 
 p = m.Rec("a", "b", 3) 
@@ -607,7 +608,7 @@ C -> c+
 ]]
 g = m.P{
 	"S",
-	S = m.Rec(m.V"A", (-m.P"c" * m.P(1))^0) * m.V"C",
+	S = m.Rec(m.V"A", (-m.P"c" * m.P(1))^0, 0) * m.V"C", --explicitly put 0 in Rec
 	A = m.P"a"^0 * m.P"b" + m.T(0),
 	C = m.P"c"^1,
 }

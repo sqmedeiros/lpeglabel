@@ -4,7 +4,7 @@
 
 -- require"strict"    -- just to be pedantic
 
-local m = require"lpeglabel"
+local m = require"lpeglabelrec"
 
 
 -- for general use
