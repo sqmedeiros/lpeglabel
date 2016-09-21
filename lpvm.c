@@ -360,8 +360,8 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
 					stack++;
 				}
         if (ndyncap > 0)  /* is there matchtime captures? */
-          ndyncap -= removedyncap(L, capture, stack->caplevel, captop);
-        captop = stack->caplevel;
+          ndyncap -= removedyncap(L, capture, pstack->caplevel, captop);
+        captop = pstack->caplevel;
         p = pstack->p;
         continue;
       }
