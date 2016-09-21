@@ -351,17 +351,18 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         if (pstack->p == &giveup || pstack->s != NULL) { /* labeled failure: giveup or backtrack frame */
 					stack = pstack;
 					s = stack->s;
+        	if (ndyncap > 0)  /* is there matchtime captures? */
+        		ndyncap -= removedyncap(L, capture, stack->caplevel, captop);
+        	captop = stack->caplevel;
 				} else { /* labeled failure: recovery frame */
 					if (stack == stacklimit)
           	stack = doublestack(L, &stacklimit, ptop);
 					stack->s = NULL;
         	stack->p = pk;  /* save return address */
         	stack->ls = NULL;
+        	stack->caplevel = captop; /* TODO: necessary?? */
 					stack++;
 				}
-        if (ndyncap > 0)  /* is there matchtime captures? */
-          ndyncap -= removedyncap(L, capture, pstack->caplevel, captop);
-        captop = pstack->caplevel;
         p = pstack->p;
         continue;
       }
