@@ -761,5 +761,55 @@ print(eval "(1+1-1*(2/2+)-():")
 --> syntax error: extra characters found after the expression (at index 
 
 
+print("+")
+
+local g = m.P{
+	"S",
+	S = V"End" + V'A' * V'S',
+	A = P'a' + T(1),
+	End = P"." * (-P(1) + T(2)),
+}
+
+assert(g:match("a.") == 3)
+assert(g:match("aa.") == 4)
+assert(g:match(".") == 2)
+checkeqlab({nil, 1, "ba."}, g:match("ba."))
+checkeqlab({nil, 1, "ba."}, g:match("aba."))
+checkeqlab({nil, 1, "cba."}, g:match("cba."))
+checkeqlab({nil, 2, "a"}, g:match("a.a"))
+
+
+local g2 = m.P{
+	"S",
+	S = m.Rec(g, V"B", 1),
+	B = P'b'^1 + T(3)
+}
+
+assert(g2:match("a.") == 3)
+assert(g2:match("aa.") == 4)
+assert(g2:match(".") == 2)
+assert(g2:match("ba.") == 4)
+assert(g2:match("aba.") == 5)
+checkeqlab({nil, 3, "cba."}, g2:match("cba."))
+checkeqlab({nil, 2, "a"}, g2:match("a.a"))
+
+local g3 = m.P{
+	"S",
+	S = m.Rec(g2, V"C", 2, 3),
+	C = P'c'^1 + T(4)
+}
+
+assert(g3:match("a.") == 3)
+assert(g3:match("aa.") == 4)
+assert(g3:match(".") == 2)
+assert(g3:match("ba.") == 4)
+assert(g3:match("aba.") == 5)
+assert(g3:match("cba.") == 5)
+checkeqlab({nil, 4, "a"}, g3:match("a.a"))
+checkeqlab({nil, 4, "dc"}, g3:match("dc"))
+checkeqlab({nil, 4, "d"}, g3:match(".d"))
+
+
+
 print("OK")
 
