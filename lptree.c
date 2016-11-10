@@ -723,37 +723,25 @@ static int lp_behind (lua_State *L) {
 */
 static int lp_throw (lua_State *L) {
 	int label = luaL_checkinteger(L, -1);
-	luaL_argcheck(L, label >= 0 && label < MAXLABELS, -1, "the number of a label must be between 0 and 255");
+	luaL_argcheck(L, label >= 1 && label < MAXLABELS, -1, "the number of a label must be between 1 and 255");
 	newthrowleaf(L, label);
 	return 1;
 }
 
 /*
-** labeled choice function
+** labeled recovery function
 */
-static int lp_labchoice (lua_State *L) {
-	int n = lua_gettop(L);
-	TTree *tree = newrootlab2sib(L, TLabChoice);
-	int i;
-	for (i = 3; i <= n; i++) {
-		int d = luaL_checkinteger(L, i);
-		luaL_argcheck(L, d >= 0 && d < MAXLABELS, i, "the number of a label must be between 0 and 255");
-    setlabel(treelabelset(tree), (byte)d);
-	}
-  return 1;
-}
-
-
 static int lp_recovery (lua_State *L) {
 	int n = lua_gettop(L);
 	TTree *tree = newrootlab2sib(L, TRecov);
+  luaL_argcheck(L, n >= 3, 3, "non-nil value expected");
   if (n == 2) {  /* catches fail as default */
 		/*setlabel(treelabelset(tree), LFAIL);  recovery does not catch regular fail */
   } else {
 		int i;
 		for (i = 3; i <= n; i++) {
 			int d = luaL_checkinteger(L, i);
-			luaL_argcheck(L, d >= 0 && d < MAXLABELS, i, "the number of a label must be between 0 and 255");
+			luaL_argcheck(L, d >= 1 && d < MAXLABELS, i, "the number of a label must be between 1 and 255");
     	setlabel(treelabelset(tree), (byte)d);
 		}
 	}
@@ -1089,7 +1077,7 @@ static int verifyrule (lua_State *L, TTree *tree, int *passed, int npassed,
         return nb;
       /* else return verifyrule(L, sib2(tree), passed, npassed, nb); */
       tree = sib2(tree); goto tailcall;
-    case TChoice: case TLabChoice: case TRecov: /* must check both children */  /* labeled failure */
+    case TChoice:  case TRecov: /* must check both children */  /* labeled failure */
       nb = verifyrule(L, sib1(tree), passed, npassed, nb);
       /* return verifyrule(L, sib2(tree), passed, npassed, nb); */
       tree = sib2(tree); goto tailcall;
@@ -1342,7 +1330,6 @@ static struct luaL_Reg pattreg[] = {
   {"setmaxstack", lp_setmax},
   {"type", lp_type},
   {"T", lp_throw}, /* labeled failure throw */
-  {"Lc", lp_labchoice}, /* labeled failure choice */
   {"Rec", lp_recovery}, /* labeled failure choice */
   {NULL, NULL}
 };

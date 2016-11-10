@@ -274,17 +274,6 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         p += 2;
         continue;
       }
-      case ILabChoice: { /* labeled failure */
-        if (stack == stacklimit)
-          stack = doublestack(L, &stacklimit, ptop);
-        stack->p = p + getoffset(p);
-        stack->s = s;
-        stack->ls = (const Labelset *) ((p + 2)->buff);
-        stack->caplevel = captop;
-        stack++;
-        p += (CHARSETINSTSIZE - 1) + 2;
-        continue;
-      }
 			case IRecov: { /* labeled failure */
         if (stack == stacklimit)
           stack = doublestack(L, &stacklimit, ptop);

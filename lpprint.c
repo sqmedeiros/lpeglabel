@@ -112,7 +112,7 @@ void printinst (const Instruction *op, const Instruction *p) {
       printf("%d", p->i.aux);
       break;
     }
-		case ILabChoice: case IRecov: { /* labeled failure */
+		case IRecov: { /* labeled failure */
       printjmp(op, p);
       printcharset((p+2)->buff);
       break;
@@ -223,7 +223,7 @@ void printtree (TTree *tree, int ident) {
     default: {
       int sibs = numsiblings[tree->tag];
       printf("\n");
-      if (tree->tag == TLabChoice || tree->tag == TRecov) { /* labeled failure */
+      if (tree->tag == TRecov) { /* labeled failure */
       	printcharset(treelabelset(tree));
       	printf("\n");
 			}
