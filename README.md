@@ -10,43 +10,47 @@ LPegLabel is a conservative extension of the
 [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg)
 library that provides an implementation of Parsing
 Expression Grammars (PEGs) with labeled failures. 
-Labels can be used to signal different kinds of erros
-and to specify which alternative in a labeled ordered
-choice should handle a given label. Labels can also be
-combined with the standard patterns of LPeg.
+Labels can be used to signal different kinds of errors
+and to specify which recovery pattern should handle a
+given label. Labels can also be combined with the standard
+patterns of LPeg.
 
 This document describes the new functions available
 in LpegLabel and presents some examples of usage.
-For a more detailed discussion about PEGs with labeled failures
-please see [A Parsing Machine for Parsing Expression
-Grammars with Labeled Failures](https://docs.google.com/viewer?a=v&pid=sites&srcid=ZGVmYXVsdGRvbWFpbnxzcW1lZGVpcm9zfGd4OjMzZmE3YzM0Y2E2MGM5Y2M).
-
 
 In LPegLabel, the result of an unsuccessful matching
 is a triple **nil, lab, sfail**, where **lab**
 is the label associated with the failure, and
 **sfail** is the suffix input being matched when
-**lab** was thrown. Below there is a brief summary
+**lab** was thrown. 
+
+With labeled failures it is possible to distinguish
+between a regular failure and an error. Usually, a
+regular failure is produced when the matching of a
+character fails, and it is caught by an ordered choice.
+An error, by its turn, is produced by the throw operator
+and may be caught by the recovery operator. 
+ 
+Below there is a brief summary
 of the new functions provided by LpegLabel: 
 
 <table border="1">
 <tbody><tr><td><b>Function</b></td><td><b>Description</b></td></tr>
-<tr><td><a href="#f-t"><code>lpeglabel.T (l)</code></a></td>
-  <td>Throws label <code>l</code></td></tr>
-<tr><td><a href="#f-lc"><code>lpeglabel.Lc (p1, p2, l1, ..., ln)</code></a></td>
-  <td>Matches <code>p1</code> and tries to match <code>p2</code>
-			if the matching of <code>p1</code> gives one of l<sub>1</sub>, ..., l<sub>n</sub> 
-      </td></tr>
+<tr><td><a href="#f-t"><code>lpeglabelrec.T (l)</code></a></td>
+  <td>Throws a label <code>l</code> to signal an error</td></tr>
+<tr><td><a href="#f-rec"><code>lpeglabelrec.Rec (p1, p2, l1, [l2, ..., ln])</code></a></td>
+  <td>Specifies a recovery pattern <code>p2</code> for <code>p1</code>,
+ when the matching of <code>p1</code> gives one of the labels l1, ..., ln.</td></tr>
 <tr><td><a href="#re-t"><code>%{l}</code></a></td>
-  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.T(l)</code>
+  <td>Syntax of <em>relabelrec</em> module. Equivalent to <code>lpeglabelrec.T(l)</code>
       </td></tr>
-<tr><td><a href="#re-lc"><code>p1 /{l1, ..., ln} p2</code></a></td>
-  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l1, ..., ln)</code>
+<tr><td><a href="#re-rec"><code>p1 //{l1, ..., ln} p2</code></a></td>
+  <td>Syntax of <em>relabelrec</em> module. Equivalent to <code>lpeglabelrec.Rec(p1, p2, l1, ..., ln)</code>
       </td></tr>
-<tr><td><a href="#re-line"><code>relabel.calcline(subject, i)</code></a></td>
+<tr><td><a href="#re-line"><code>relabelrec.calcline(subject, i)</code></a></td>
   <td>Calculates line and column information regarding position <i>i</i> of the subject</code>
       </td></tr>
-<tr><td><a href="#re-setl"><code>relabel.setlabels (tlabel)</code></a></td>
+<tr><td><a href="#re-setl"><code>relabelrec.setlabels (tlabel)</code></a></td>
   <td>Allows to specicify a table with mnemonic labels. 
       </td></tr>
 </tbody></table>
@@ -55,55 +59,44 @@ of the new functions provided by LpegLabel:
 ### Functions
 
 
-#### <a name="f-t"></a><code>lpeglabel.T(l)</code>
+#### <a name="f-t"></a><code>lpeglabelrec.T(l)</code>
 
 
 Returns a pattern that throws the label `l`.
-A label must be an integer between 0 and 255.
-
-The label 0 is equivalent to the regular failure of PEGs.
+A label must be an integer between 1 and 255.
 
 
-#### <a name="f-lc"></a><code>lpeglabel.Lc(p1, p2, l1, ..., ln)</code>#
+#### <a name="f-rec"></a><code>lpeglabelrec.Rec(p1, p2, l1, ..., ln)</code>
 
-Returns a pattern equivalent to a *labeled ordered choice*.
+Returns a *recovery pattern*.
 If the matching of `p1` gives one of the labels `l1, ..., ln`,
-then the matching of `p2` is tried from the same position. Otherwise,
-the result of the matching of `p1` is the pattern's result.
+then the matching of `p2` is tried from the failure position of `p1`.
+Otherwise, the result of the matching of `p1` is the pattern's result.
 
-The labeled ordered choice `lpeg.Lc(p1, p2, 0)` is equivalent to the
-regular ordered choice `p1 / p2`.
-
-Although PEG's ordered choice is associative, the labeled ordered choice is not.
-When using this function, the user should take care to build a left-associative
-labeled ordered choice pattern.
 
 
 #### <a name="re-t"></a><code>%{l}</code>
 
-Syntax of *relabel* module. Equivalent to `lpeg.T(l)`.
+Syntax of *relabelrec* module. Equivalent to `lpeg.T(l)`.
 
 
-#### <a name="re-lc"></a><code>p1 /{l1, ..., ln} p2</code>
+#### <a name="re-lc"></a><code>p1 //{l1, ..., ln} p2</code>
 
-Syntax of *relabel* module. Equivalent to `lpeg.Lc(p1, p2, l1, ..., ln)`.
+Syntax of *relabelrec* module. Equivalent to `lpeglabelrec.Rec(p1, p2, l1, ..., ln)`.
 
-The `/{}` operator is left-associative. 
-
-A grammar can use both choice operators (`/` and `/{}`),
-but a single choice can not mix them. That is, the parser of `relabel`
-module will not recognize a pattern as `p1 / p2 /{l1} p3`.
+The `//{}` operator is left-associative. 
 
 
-#### <a name="re-line"></a><code>relabel.calcline (subject, i)</code>
+
+#### <a name="re-line"></a><code>relabelrec.calcline (subject, i)</code>
 
 Returns line and column information regarding position <i>i</i> of the subject.
 
 
-#### <a name="re-setl"></a><code>relabel.setlabels (tlabel)</code>
+#### <a name="re-setl"></a><code>relabelrec.setlabels (tlabel)</code>
 
 Allows to specicify a table with labels. They keys of
-`tlabel` must be integers between 0 and 255,
+`tlabel` must be integers between 1 and 255,
 and the associated values should be strings.
 
 
@@ -122,8 +115,8 @@ is thrown when there is an error matching an identifier
 or a comma: 
 
 ```lua
-local m = require'lpeglabel'
-local re = require'relabel'
+local m = require'lpeglabelrec'
+local re = require'relabelrec'
 
 local g = m.P{
   "S",
@@ -160,7 +153,7 @@ In this example we could think about writing rule <em>List</em> as follows:
 List = ((m.V"Comma" + m.T(2)) * (m.V"Id" + m.T(1)))^0,
 ```
 
-but when matching this expression agains the end of input
+but when matching this expression against the end of input
 we would get a failure whose associated label would be **2**,
 and this would cause the failure of the *whole* repetition.
  
@@ -168,12 +161,12 @@ and this would cause the failure of the *whole* repetition.
 ##### Mnemonics instead of numbers
 
 In the previous example we could have created a table
-with the error messages to improve the readbility of the PEG.
+with the error messages to improve the readability of the PEG.
 Below we rewrite the previous grammar following this approach: 
 
 ```lua
-local m = require'lpeglabel'
-local re = require'relabel'
+local m = require'lpeglabelrec'
+local re = require'relabelrec'
 
 local terror = {}
 
@@ -210,14 +203,99 @@ print(mymatch(g, "one two"))              --> nil Error at line 1 (col 3): expec
 print(mymatch(g, "one,\n two,\nthree,"))  --> nil Error at line 3 (col 6): expecting an identifier before ''
 ```
 
+#### Error Recovery
 
-##### *relabel* syntax
+By using the recovery operator we can specify a recovery pattern that
+should be matched when a label is thrown. After matching this pattern,
+and possibly recording the error, the parser can continue parsing to
+find more errors. 
 
-Now we rewrite the previous example using the syntax
-supported by *relabel*:
+Below we rewrite the previous example to illustrate a recovery strategy.
+Grammar `g` remains the same, but we add a recovery grammar `grec` that
+handles the labels thrown by `g`.
+
+arithmetic expression example and modify
+the `expect` function to use the recovery operator for error recovery:
 
 ```lua
-local re = require 'relabel' 
+local m = require'lpeglabelrec'
+local re = require'relabelrec'
+
+local terror = {}
+
+local function newError(s)
+  table.insert(terror, s)
+  return #terror
+end
+
+local errUndef = newError("undefined")
+local errId = newError("expecting an identifier")
+local errComma = newError("expecting ','")
+
+local id = m.R'az'^1
+
+local g = m.P{
+  "S",
+  S = m.V"Id" * m.V"List",
+  List = -m.P(1) + m.V"Comma" * m.V"Id" * m.V"List",
+  Id = m.V"Sp" * id + m.T(errId),
+  Comma = m.V"Sp" * "," + m.T(errComma),
+  Sp = m.S" \n\t"^0,
+}
+
+local subject, errors
+
+function recorderror(pos, lab)
+  local line, col = re.calcline(subject, pos)
+  table.insert(errors, { line = line, col = col, msg = terror[lab] })
+end
+
+function record (lab)
+  return (m.Cp() * m.Cc(lab)) / recorderror
+end
+
+function sync (p)
+  return (-p * m.P(1))^0
+end
+
+local grec = m.P{
+  "S",
+  S = m.Rec(m.Rec(g, m.V"ErrComma", errComma), m.V"ErrId", errId),
+  ErrComma = record(errComma) * sync(-m.P(1) + id),
+  ErrId = record(errId) * sync(-m.P(1) + ",")
+}
+
+
+function mymatch (g, s)
+  errors = {}
+  subject = s  
+  local r, e, sfail = g:match(s)
+  if #errors > 0 then
+    local out = {}
+    for i, err in ipairs(errors) do
+      local msg = "Error at line " .. err.line .. " (col " .. err.col .. "): " .. err.msg
+      table.insert(out,  msg)
+    end
+    return nil, table.concat(out, "\n")
+  end
+  return r
+end
+  
+print(mymatch(grec, "one,two"))
+print(mymatch(grec, "one two three"))
+print(mymatch(grec, "1,\n two, \n3,"))
+print(mymatch(grec, "one\n two123, \nthree,"))
+```
+
+
+
+##### *relabelrec* syntax
+
+Now we rewrite the previous example using the syntax
+supported by *relabelrec*:
+
+```lua
+local re = require 'relabelrec' 
 
 local g = re.compile[[
   S      <- Id List
@@ -252,7 +330,7 @@ With the help of function *setlabels* we can also rewrite the previous example t
 mnemonic labels instead of plain numbers:
 
 ```lua
-local re = require 'relabel' 
+local re = require 'relabelrec' 
 
 local errinfo = {
   {"errUndef",  "undefined"},
@@ -292,6 +370,11 @@ print(mymatch(g, "one,two"))              --> 8
 print(mymatch(g, "one two"))              --> nil Error at line 1 (col 3): expecting ',' before ' two'
 print(mymatch(g, "one,\n two,\nthree,"))  --> nil Error at line 3 (col 6): expecting an identifier before ''
 ```
+
+
+
+
+
 
 #### Arithmetic Expressions
 
@@ -419,4 +502,109 @@ local g = m.P{
 print(m.match(g, "one,two"))  --> 8
 print(m.match(g, "one two"))  --> expecting ','
 print(m.match(g, "one,\n two,\nthree,"))  --> expecting an identifier
+```
+
+#### Error Recovery
+
+By using labeled ordered choice or the recovery operator, when a label
+is thrown, the parser may record the error and still continue parsing
+to find more errors. We can even record the error right away without
+actually throwing a label (relying on the regular PEG failure instead).
+Below we rewrite the arithmetic expression example and modify
+the `expect` function to use the recovery operator for error recovery:
+
+```lua
+local lpeg = require"lpeglabel"
+
+local R, S, P, V = lpeg.R, lpeg.S, lpeg.P, lpeg.V
+local C, Cc, Ct, Cmt, Carg = lpeg.C, lpeg.Cc, lpeg.Ct, lpeg.Cmt, lpeg.Carg
+local T, Lc, Rec = lpeg.T, lpeg.Lc, lpeg.Rec
+
+local labels = {
+  {"NoExp",     "no expression found"},
+  {"Extra",     "extra characters found after the expression"},
+  {"ExpTerm",   "expected a term after the operator"},
+  {"ExpExp",    "expected an expression after the parenthesis"},
+  {"MisClose",  "missing a closing ')' after the expression"},
+}
+
+local function labelindex(labname)
+  for i, elem in ipairs(labels) do
+    if elem[1] == labname then
+      return i
+    end
+  end
+  error("could not find label: " .. labname)
+end
+
+local function expect(patt, labname, recpatt)
+  local i = labelindex(labname)
+  local function recorderror(input, pos, errors)
+    table.insert(errors, {i, pos})
+    return true
+  end
+  if not recpatt then recpatt = P"" end
+  return Rec(patt, Cmt(Carg(1), recorderror) * recpatt)
+end
+
+local num = R("09")^1 / tonumber
+local op = S("+-*/")
+
+local function compute(tokens)
+  local result = tokens[1]
+  for i = 2, #tokens, 2 do
+    if tokens[i] == '+' then
+      result = result + tokens[i+1]
+    elseif tokens[i] == '-' then
+      result = result - tokens[i+1]
+    elseif tokens[i] == '*' then
+      result = result * tokens[i+1]
+    elseif tokens[i] == '/' then
+      result = result / tokens[i+1]
+    else
+      error('unknown operation: ' .. tokens[i])
+    end
+  end
+  return result
+end
+
+
+local g = P {
+  "Exp",
+  Exp = Ct(V"Term" * (C(op) * V"Operand")^0) / compute;
+  Operand = expect(V"Term", "ExpTerm", Cc(0));
+  Term = num + V"Group";
+  Group = "(" *  V"InnerExp" * expect(")", "MisClose");
+  InnerExp = expect(V"Exp", "ExpExp", (P(1) - ")")^0 * Cc(0));
+}
+
+g = expect(g, "NoExp", P(1)^0) * expect(-P(1), "Extra")
+
+local function eval(input)
+  local errors = {}
+  local result, label, suffix = g:match(input, 1, errors)
+  if #errors == 0 then
+    return result
+  else
+    local out = {}
+    for i, err in ipairs(errors) do
+      local pos = err[2]
+      local msg = labels[err[1]][2]
+      table.insert(out, "syntax error: " .. msg .. " (at index " .. pos .. ")")
+    end
+    return nil, table.concat(out, "\n")
+  end
+end
+
+print(eval "98-76*(54/32)")
+--> 37.125
+
+print(eval "-1+(1-(1*2))/2")
+--> syntax error: no expression found (at index 1)
+
+print(eval "(1+1-1*(2/2+)-():")
+--> syntax error: expected a term after the operator (at index 13)
+--> syntax error: expected an expression after the parenthesis (at index 16)
+--> syntax error: missing a closing ')' after the expression (at index 17)
+--> syntax error: extra characters found after the expression (at index 17)
 ```

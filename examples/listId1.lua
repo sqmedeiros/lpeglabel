@@ -1,12 +1,14 @@
-local m = require'lpeglabel'
-local re = require'relabel'
+local m = require'lpeglabelrec'
+local re = require'relabelrec'
+
+local id = m.R'az'^1
 
 local g = m.P{
   "S",
   S = m.V"Id" * m.V"List",
-  List = -m.P(1) + (m.V"Comma" + m.T(2)) * (m.V"Id" + m.T(1)) * m.V"List",
-  Id = m.V"Sp" * m.R'az'^1,
-  Comma = m.V"Sp" * ",",
+  List = -m.P(1) + m.V"Comma" * m.V"Id" * m.V"List",
+  Id = m.V"Sp" * id + m.T(1),
+  Comma = m.V"Sp" * "," + m.T(2),
   Sp = m.S" \n\t"^0,
 }
 

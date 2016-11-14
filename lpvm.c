@@ -336,8 +336,8 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         do {  /* remove pending calls */
           assert(pstack > getstackbase(L, ptop));
           auxlab = (--pstack)->ls;
-        } while (auxlab == NULL || (pstack->p != &giveup && labelf != LFAIL && !testlabel(pstack->ls->cs, *labelf)));
-        if (pstack->p == &giveup || pstack->s != NULL) { /* labeled failure: giveup or backtrack frame */
+        } while (auxlab == NULL || !(pstack->p == &giveup || testlabel(pstack->ls->cs, *labelf)));
+        if (pstack->s != NULL) { /* labeled failure: giveup or backtrack frame */
 					stack = pstack;
 					s = stack->s;
         	if (ndyncap > 0)  /* is there matchtime captures? */
@@ -349,7 +349,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
 					stack->s = NULL;
         	stack->p = pk;  /* save return address */
         	stack->ls = NULL;
-        	stack->caplevel = captop; /* TODO: necessary?? */
+        	stack->caplevel = captop; /* TODO: really necessary?? */
 					stack++;
 				}
         p = pstack->p;
@@ -366,7 +366,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         res = resdyncaptures(L, fr, s - o, e - o);  /* get result */
         if (res == -1) { /* fail? */
       		*labelf = LFAIL;  /* labeled failure */
-					*sfail = (const char *) s; /* TODO: ??? */
+					*sfail = (const char *) s; 
 					pk = NULL;
           goto fail;
         }

@@ -28,7 +28,7 @@ const byte numsiblings[] = {
   0, 0, 2, 1,  /* call, opencall, rule, grammar */
   1,  /* behind */
   1, 1,  /* capture, runtime capture */
-  0, 2, 2  /* labeled failure throw, labeled choice, recovery */
+  0, 2  /* labeled failure throw, recovery */
 };
 
 

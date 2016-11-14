@@ -1,5 +1,5 @@
-local m = require'lpeglabel'
-local re = require'relabel'
+local m = require'lpeglabelrec'
+local re = require'relabelrec'
 
 local terror = {}
 
@@ -12,14 +12,17 @@ local errUndef = newError("undefined")
 local errId = newError("expecting an identifier")
 local errComma = newError("expecting ','")
 
+local id = m.R'az'^1
+
 local g = m.P{
   "S",
   S = m.V"Id" * m.V"List",
-  List = -m.P(1) + (m.V"Comma" + m.T(errComma)) * (m.V"Id" + m.T(errId)) * m.V"List",
-  Id = m.V"Sp" * m.R'az'^1,
-  Comma = m.V"Sp" * ",",
+  List = -m.P(1) + m.V"Comma" * m.V"Id" * m.V"List",
+  Id = m.V"Sp" * id + m.T(errId),
+  Comma = m.V"Sp" * "," + m.T(errComma),
   Sp = m.S" \n\t"^0,
 }
+
 
 function mymatch (g, s)
   local r, e, sfail = g:match(s)
