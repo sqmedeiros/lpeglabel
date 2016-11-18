@@ -2,7 +2,7 @@ local lpeg = require"lpeglabelrec"
 
 local R, S, P, V = lpeg.R, lpeg.S, lpeg.P, lpeg.V
 local C, Cc, Ct, Cmt = lpeg.C, lpeg.Cc, lpeg.Ct, lpeg.Cmt
-local T, Lc, Rec = lpeg.T, lpeg.Lc, lpeg.Rec
+local T, Rec = lpeg.T, lpeg.Rec
 
 local labels = {
   {"NoExp",     "no expression found"},
@@ -29,12 +29,11 @@ local function expect(patt, labname, recpatt)
     table.insert(errors, {i, pos})
     return true
   end
-	if not recpatt then recpatt = P"" end
-  return Rec(patt, Cmt("", recorderror) * recpatt)
+  return patt + T(i)
 end
 
 local num = R("09")^1 / tonumber
-local op = S("+-*/")
+local op = S("+-")
 
 local function compute(tokens)
   local result = tokens[1]
@@ -43,10 +42,6 @@ local function compute(tokens)
       result = result + tokens[i+1]
     elseif tokens[i] == '-' then
       result = result - tokens[i+1]
-    elseif tokens[i] == '*' then
-      result = result * tokens[i+1]
-    elseif tokens[i] == '/' then
-      result = result / tokens[i+1]
     else
       error('unknown operation: ' .. tokens[i])
     end
@@ -54,21 +49,47 @@ local function compute(tokens)
   return result
 end
 
-
 local g = P {
-  "Exp",
-  Exp = Ct(V"Term" * (C(op) * V"OpRecov")^0) / compute;
-  OpRecov = V"Operand";
-  Operand = expect(V"Term", "ExpTerm", Cc(0));
-  Term = num + V"Group";
-  Group = "(" *  V"InnerExp" * expect(")", "MisClose", "");
+	"Exp",
+	Exp = Ct(V"Operand" * (C(op) * V"Operand")^0) / compute,
+	Operand = expect(V"Term", "ExpTerm"),
+	Term = num + V"Group",
+	Group = "(" *  V"InnerExp" * expect(")", "MisClose", "");
   InnerExp = expect(V"Exp", "ExpExp", (P(1) - ")")^0 * Cc(0));
+
 }
 
-g = expect(g, "NoExp", P(1)^0) * expect(-P(1), "Extra")
+local subject, errors
 
+function recorderror(pos, lab)
+	local line, col = re.calcline(subject, pos)
+	table.insert(errors, { line = line, col = col, msg = terror[lab] })
+end
+
+function record (labname)
+	return (m.Cp() * m.Cc(labelindex(labname))) / recorderror
+end
+
+function sync (p)
+	return (-p * m.P(1))^0
+end
+
+function defaultValue ()
+	return m.Cc"NONE" 
+end
+
+local recg = P {
+	"S",
+	S = Rec(m.V"A", Cc(0), labelindex("ExpTerm")), -- default value is 0
+	A = Rec(m.V"B", Cc(0), labelindex("ExpExp")),
+	B = Rec(m.V"Sg", Cc(0), labelindex("InnerExp")),
+	Sg = Rec(g, Cc(0), labelindex("MisClose")),
+	ErrExpTerm = record(labelindex("ExpTerm")) * sync() * defaultValue()
+}
+ 
+                
 local function eval(input)
-  local result, label, suffix = g:match(input)
+  local result, label, suffix = recg:match(input)
   if #errors == 0 then
     return result
   else
@@ -83,26 +104,16 @@ local function eval(input)
   end
 end
 
-print(eval "98-76*(54/32)")
---> 37.125
+print(eval "90-70*5")
+--> 20
 
-print(eval "(1+1-1*2/2")
---> syntax error: missing a closing ')' after the expression (at index 11)
+print(eval "2+")
+--> 2 + 0
 
-print(eval "(1+)-1*(2/2)")
---> syntax error: expected a term after the operator (at index 4)
+print(eval "-2")
+--> 0 - 2 
 
-print(eval "(1+1)-1*(/2)")
---> syntax error: expected an expression after the parenthesis (at index 10)
 
-print(eval "1+(1-(1*2))/2x")
---> syntax error: extra chracters found after the expression (at index 14)
+print(eval "1+3+-9")
+--> 1 + 3 + 0 - 9
 
-print(eval "-1+(1-(1*2))/2")
---> syntax error: no expression found (at index 1)
-
-print(eval "(1+1-1*(2/2+)-():")
---> syntax error: expected a term after the operator (at index 13)
---> syntax error: expected an expression after the parenthesis (at index 16)
---> syntax error: missing a closing ')' after the expression (at index 17)
---> syntax error: extra characters found after the expression (at index 17)

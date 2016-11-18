@@ -1,4 +1,4 @@
-local re = require 'relabel'
+local re = require 'relabelrec'
 
 local terror = {}
 
@@ -25,21 +25,6 @@ newError("errFactor", "Error: expected '(', ID, or number after '*' or '/'")
 newError("errExpFac", "Error: expected expression after '('")
 newError("errClosePar", "Error: expected ')' after expression")
 
-local line
-
-local function incLine()
-	line = line + 1
-	return true
-end
-
-local function countLine(s, i)
-	line = 1
-	local p = re.compile([[
-		S <- (%nl -> incLine  / .)*
-	]], { incLine = incLine}) 
-	p:match(s:sub(1, i))
-	return true
-end
 
 local labelCode = {}
 for k, v in ipairs(terror) do 
@@ -48,7 +33,7 @@ end
 
 re.setlabels(labelCode)
 
-local g = re.compile([[
+local g = re.compile[[
   Tiny         <- CmdSeq  
   CmdSeq       <- (Cmd (SEMICOLON / ErrSemi)) (Cmd (SEMICOLON / ErrSemi))*
   Cmd          <- IfCmd / RepeatCmd / ReadCmd / WriteCmd  / AssignCmd 
@@ -61,25 +46,24 @@ local g = re.compile([[
   SimpleExp    <- Term  ((ADD / SUB)  (Term / ErrTerm))*
   Term         <- Factor  ((MUL / DIV)  (Factor / ErrFactor))*
   Factor       <- OPENPAR  (Exp / ErrExpFac)  (CLOSEPAR / ErrClosePar)  / NUMBER  / NAME
-  ErrSemi      <- ErrCount %{errSemi}
-	ErrExpIf     <- ErrCount %{errExpIf}
-	ErrThen      <- ErrCount %{errThen}
-	ErrCmdSeq1   <- ErrCount %{errCmdSeq1}
-	ErrCmdSeq2   <- ErrCount %{errCmdSeq2}
-	ErrEnd       <- ErrCount %{errEnd}
-	ErrCmdSeqRep <- ErrCount %{errCmdSeqRep}
-	ErrUntil     <- ErrCount %{errUntil}
-	ErrExpRep    <- ErrCount %{errExpRep}
-	ErrAssignOp  <- ErrCount %{errAssignOp}
-	ErrExpAssign <- ErrCount %{errExpAssign}
-	ErrReadName  <- ErrCount %{errReadName}
-	ErrWriteExp  <- ErrCount %{errWriteExp}
-	ErrSimpExp   <- ErrCount %{errSimpExp}
-	ErrTerm      <- ErrCount %{errTerm}
-	ErrFactor    <- ErrCount %{errFactor}
-	ErrExpFac    <- ErrCount %{errExpFac}
-	ErrClosePar  <- ErrCount %{errClosePar}
-	ErrCount     <- '' => countLine 
+  ErrSemi      <- %{errSemi}
+	ErrExpIf     <- %{errExpIf}
+	ErrThen      <- %{errThen}
+	ErrCmdSeq1   <- %{errCmdSeq1}
+	ErrCmdSeq2   <- %{errCmdSeq2}
+	ErrEnd       <- %{errEnd}
+	ErrCmdSeqRep <- %{errCmdSeqRep}
+	ErrUntil     <- %{errUntil}
+	ErrExpRep    <- %{errExpRep}
+	ErrAssignOp  <- %{errAssignOp}
+	ErrExpAssign <- %{errExpAssign}
+	ErrReadName  <- %{errReadName}
+	ErrWriteExp  <- %{errWriteExp}
+	ErrSimpExp   <- %{errSimpExp}
+	ErrTerm      <- %{errTerm}
+	ErrFactor    <- %{errFactor}
+	ErrExpFac    <- %{errExpFac}
+	ErrClosePar  <- %{errClosePar}
   ADD          <- Sp '+'
   ASSIGNMENT   <- Sp ':='
   CLOSEPAR     <- Sp ')'
@@ -102,12 +86,17 @@ local g = re.compile([[
   WRITE        <- Sp 'write'
 	RESERVED     <- (IF / ELSE / END / READ / REPEAT / THEN / UNTIL / WRITE) ![a-z]+
   Sp           <- %s*	
-]], { countLine = countLine })
+]]
 
 
-local function printError(n, e)
-	assert(n == nil)
-	print("Line " .. line .. ": " .. terror[e].msg)
+local function mymatch(g, s)
+	local r, e, sfail = g:match(s)
+  if not r then
+    local line, col = re.calcline(s, #s - #sfail)
+    local msg = "Error at line " .. line .. " (col " .. col .. "): "
+		return r, msg .. terror[e].msg
+	end 
+	return r
 end
 
 local s = [[
@@ -118,7 +107,7 @@ repeat
   n := n - 1
 until (n < 1);
 write f;]]
-printError(g:match(s))
+print(mymatch(g, s))
 
 s = [[
 n := 5;
@@ -128,14 +117,14 @@ repeat
   n := n - 1;
 until (n < 1);
 read ;]]
-printError(g:match(s))
+print(mymatch(g, s))
 
 s = [[
 if a < 1 then
   b := 2;
 else
   b := 3;]]
-printError(g:match(s))
+print(mymatch(g, s))
 
 s = [[
 n := 5;
@@ -145,7 +134,7 @@ repeat
   n := n - 1;
 untill (n < 1);
 ]]
-printError(g:match(s))
+print(mymatch(g, s))
 
 s = [[
 n := 5;
@@ -155,9 +144,8 @@ repeat
   n := n - 1;
 3 (n < 1);
 ]]
-printError(g:match(s))
+print(mymatch(g, s))
 
-printError(g:match("a : 2"))
-printError(g:match("a := (2"))
-
+print(mymatch(g, "a : 2"))
+print(mymatch(g, "a := (2"))
 

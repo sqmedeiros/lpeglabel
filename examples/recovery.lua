@@ -1,4 +1,4 @@
-local lpeg = require"lpeglabel"
+local lpeg = require"lpeglabelrec"
 
 local R, S, P, V = lpeg.R, lpeg.S, lpeg.P, lpeg.V
 local C, Cc, Ct, Cmt = lpeg.C, lpeg.Cc, lpeg.Ct, lpeg.Cmt
