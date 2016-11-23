@@ -41,8 +41,8 @@ end
 local grec = m.P{
   "S",
   S = m.Rec(m.Rec(g, m.V"ErrComma", errComma), m.V"ErrId", errId),
-  ErrComma = record(errComma) * sync(-m.P(1) + id),
-	ErrId = record(errId) * sync(-m.P(1) + ",")
+  ErrComma = record(errComma) * sync(id),
+	ErrId = record(errId) * sync(m.P",")
 }
 
 
