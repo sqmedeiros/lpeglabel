@@ -68,7 +68,7 @@ function sync (p)
 end
 
 function defaultValue (p)
-	return p or m.Cc(0) 
+	return p or m.Cc(1000) 
 end
 
 local recg = P {
@@ -91,6 +91,7 @@ local function eval(input)
     for i, err in ipairs(errors) do
       local pos = err.col
       local msg = err.msg
+			print("sub", subject)
       table.insert(out, "syntax error: " .. msg .. " (at index " .. pos .. ")")
     end
     print(table.concat(out, "\n"))
@@ -111,7 +112,7 @@ print(eval "1+3+-9")
 --> 1 + 3 + [0] - 9
 
 print(eval "1+()3+")
---> 1 + ([0]) [+] 3 + [0]
+--> 1 + ([0]) [3 +] [0]
 
 print(eval "8-(2+)-5")
 --> 8 - (2 + [0]) - 5 
@@ -119,3 +120,8 @@ print(eval "8-(2+)-5")
 print(eval "()")
 
 print(eval "")
+
+print(eval "1+()+")
+
+print(eval "3)")
+

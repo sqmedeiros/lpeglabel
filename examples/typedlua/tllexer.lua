@@ -1,16 +1,12 @@
 local tllexer = {}
 
-local lpeg = require "lpeglabel"
+local lpeg = require "lpeglabelrec"
 lpeg.locale(lpeg)
 
 local tlerror = require "tlerror"
 
 function tllexer.try (pat, label)
   return pat + lpeg.T(tlerror.labels[label])
-end
-
-function tllexer.catch (pat, label)
-  return lpeg.Lc(pat, lpeg.P(false), tlerror.labels[label])
 end
 
 local function setffp (s, i, t, n)
@@ -45,7 +41,10 @@ local CloseEQ = lpeg.Cmt(Close * lpeg.Cb("init"),
 local LongString = Open * (lpeg.P(1) - CloseEQ)^0 * tllexer.try(Close, "LongString") /
                    function (s, o) return s end
 
-local Comment = lpeg.Lc(lpeg.P("--") * LongString / function () return end,
+local LongStringCm1 = Open * (lpeg.P(1) - CloseEQ)^0 * Close /
+                   function (s, o) return s end
+
+local Comment =	lpeg.Rec(lpeg.P"--" * #Open * (LongStringCm1 / function() return end + lpeg.T(tlerror.labels["LongString"])),
                 lpeg.T(tlerror.labels["LongComment"]), tlerror.labels["LongString"]) +
                 lpeg.P("--") * (lpeg.P(1) - lpeg.P("\n"))^0
 

@@ -173,6 +173,15 @@ p = m.Rec(#m.T(22), m.P"a", 22)
 r, l, serror = p:match("bbc")
 assert(r == nil and l == 0 and serror == "bbc")
 
+p = m.Rec(#m.P("a") * m.T(22), m.T(15), 22)
+r, l, serror = p:match("abc")
+assert(r == nil and l == 15 and serror == "abc")
+
+p = m.Rec(#(m.P("a") * m.T(22)), m.T(15), 22)
+r, l, serror = p:match("abc")
+assert(r == nil and l == 15 and serror == "bc")
+
+
 
 -- tests related to repetition
 p = m.T(1)^0
