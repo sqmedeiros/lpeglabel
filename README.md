@@ -31,8 +31,7 @@ character fails, and it is caught by an ordered choice.
 An error, by its turn, is produced by the throw operator
 and may be caught by the recovery operator. 
  
-Below there is a brief summary
-of the new functions provided by LpegLabel: 
+Below there is a brief summary of the new functions provided by LpegLabel: 
 
 <table border="1">
 <tbody><tr><td><b>Function</b></td><td><b>Description</b></td></tr>
@@ -112,57 +111,11 @@ in the *examples* directory.
 The following example defines a grammar that matches
 a list of identifiers separated by commas. A label
 is thrown when there is an error matching an identifier
-or a comma: 
+or a comma.
 
-```lua
-local m = require'lpeglabelrec'
-local re = require'relabelrec'
+We use function `newError` to store error messages in a
+table and to return the index associated with each error message.
 
-local g = m.P{
-  "S",
-  S = m.V"Id" * m.V"List",
-  List = -m.P(1) + (m.V"Comma" + m.T(2)) * (m.V"Id" + m.T(1)) * m.V"List",
-  Id = m.V"Sp" * m.R'az'^1,
-  Comma = m.V"Sp" * ",",
-  Sp = m.S" \n\t"^0,
-}
-
-function mymatch (g, s)
-  local r, e, sfail = g:match(s)
-  if not r then
-    local line, col = re.calcline(s, #s - #sfail)
-    local msg = "Error at line " .. line .. " (col " .. col .. ")"
-    if e == 1 then
-      return r, msg .. ": expecting an identifier before '" .. sfail .. "'"
-    elseif e == 2 then
-      return r, msg .. ": expecting ',' before '" .. sfail .. "'"
-    else
-      return r, msg
-    end
-  end
-  return r
-end
- 
-print(mymatch(g, "one,two"))              --> 8
-print(mymatch(g, "one two"))              --> nil Error at line 1 (col 3): expecting ',' before ' two'
-print(mymatch(g, "one,\n two,\nthree,"))  --> nil Error at line 3 (col 6): expecting an identifier before ''
-```
-
-In this example we could think about writing rule <em>List</em> as follows:
-```lua
-List = ((m.V"Comma" + m.T(2)) * (m.V"Id" + m.T(1)))^0,
-```
-
-but when matching this expression against the end of input
-we would get a failure whose associated label would be **2**,
-and this would cause the failure of the *whole* repetition.
- 
-
-##### Mnemonics instead of numbers
-
-In the previous example we could have created a table
-with the error messages to improve the readability of the PEG.
-Below we rewrite the previous grammar following this approach: 
 
 ```lua
 local m = require'lpeglabelrec'
@@ -203,19 +156,71 @@ print(mymatch(g, "one two"))              --> nil Error at line 1 (col 3): expec
 print(mymatch(g, "one,\n two,\nthree,"))  --> nil Error at line 3 (col 6): expecting an identifier before ''
 ```
 
+In this example we could think about writing rule <em>List</em> as follows:
+```lua
+List = ((m.V"Comma" + m.T(errComma)) * (m.V"Id" + m.T(errId)))^0,
+```
+
+but when matching this expression against the end of input
+we would get a failure whose associated label would be **errComma**,
+and this would cause the failure of the *whole* repetition.
+
+
+
 #### Error Recovery
 
-By using the recovery operator we can specify a recovery pattern that
-should be matched when a label is thrown. After matching this pattern,
-and possibly recording the error, the parser can continue parsing to
-find more errors. 
+By using the `Rec` function we can specify a recovery pattern that
+should be matched when a label is thrown. After matching the recovery
+pattern, and possibly recording the error, the parser will resume
+the <em>regular</em> matching. For example, in the example below
+we expect to match rule `A`, but in case label 42 is thrown
+then we will try to match `recp`:
+```lua
+local m = require'lpeglabelrec'
 
-Below we rewrite the previous example to illustrate a recovery strategy.
-Grammar `g` remains the same, but we add a recovery grammar `grec` that
-handles the labels thrown by `g`.
+local recp = m.P"oast"
 
-arithmetic expression example and modify
-the `expect` function to use the recovery operator for error recovery:
+local g = m.P{
+	"S",
+	S = m.Rec(m.V"A", recp, 42) * ".",
+	A = m.P"t" * (m.P("est") + m.T(42))
+}
+
+print(g:match("test."))   --> 6
+
+print(g:match("toast."))  --> 7
+
+print(g:match("oast."))   --> nil 0 oast.
+
+print(g:match("toward."))   --> nil 0 ward.
+```
+When trying to match 'toast.', in rule `A` the first
+'t' is matched, and then label 42 is thrown, with the associated
+inpux suffix 'oast.'. In rule `S` this label is caught
+and the recovery pattern matches 'oast', so pattern `'.'`
+matches the rest of the input.
+
+When matching 'oast.', pattern `m.P"t"` fails, and
+the result of the matching is <b>nil,	0, oast.</b>.
+
+When matching 'toward.', label 42 is throw, with the associated
+input suffix 'oward.'. The matching of the recovery pattern fails to,
+so the result of the matching is <b>nil, 0, ward.</b>.
+
+Usually, the recovery pattern is an expression that never fails.
+In the previous example, we could have used `(m.P(1) - m.P".")^0`
+as the recovery pattern.
+
+Below we rewrite the grammar that describes a list of identifiers
+to use a recovery strategy. Grammar `g` remains the same, but we add a
+recovery grammar `grec` that handles the labels thrown by `g`.
+
+In grammar `grec` we use functions `record` and `sync`.
+Function `record` gives us a pattern that captures two
+values: the current subject position (where a label was thrown)
+and the label itself. These values will be used to record
+all the errors found. Function `sync` give us synchronization
+pattern, that macthes the input   
 
 ```lua
 local m = require'lpeglabelrec'
