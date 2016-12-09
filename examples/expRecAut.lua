@@ -1,12 +1,8 @@
 local m = require"lpeglabelrec"
 local re = require"relabelrec"
 
-local R, S, P, V = m.R, m.S, m.P, m.V
-local C, Cc, Ct, Cmt = m.C, m.Cc, m.Ct, m.Cmt
-local T, Rec = m.T, m.Rec
-
-local num = R("09")^1 / tonumber
-local op = S("+-")
+local num = m.R("09")^1 / tonumber
+local op = m.S("+-")
 
 local labels = {}
 local nlabels = 0
@@ -27,7 +23,7 @@ local errors, subject
 
 local function expect(patt, labname)
   local i = labels[labname].id
-  return patt + T(i)
+  return patt + m.T(i)
 end
 
 local function compute(tokens)
@@ -44,13 +40,13 @@ local function compute(tokens)
   return result
 end
 
-local g = P {
+local g = m.P {
 	"Exp",
-	Exp = Ct(V"OperandFirst" * (C(op) * V"Operand")^0) / compute,
-	OperandFirst = expect(V"Term", "ExpTermFirst"),
-	Operand = expect(V"Term", "ExpTermOp"),
-	Term = num + V"Group",
-	Group = "(" * V"Exp" * expect(")", "MisClose"),
+	Exp = m.Ct(m.V"OperandFirst" * (m.C(op) * m.V"Operand")^0) / compute,
+	OperandFirst = expect(m.V"Term", "ExpTermFirst"),
+	Operand = expect(m.V"Term", "ExpTermOp"),
+	Term = num + m.V"Group",
+	Group = "(" * m.V"Exp" * expect(")", "MisClose"),
 }
 
 function recorderror(pos, lab)
@@ -70,27 +66,18 @@ function defaultValue (p)
 	return p or m.Cc(1000) 
 end
 
-local recg2 = g
+local grec = g * expect(m.P(-1), "Extra")
 for k, v in pairs(labels) do
-	recg2 = Rec(recg2, record(k) * sync(v.psync) * v.pcap, v.id)
+	grec = m.Rec(grec, record(k) * sync(v.psync) * v.pcap, v.id)
 end
 
-local recg = P {
-	"S",
-	S = Rec(V"A", V"ErrExpTermFirst", labels["ExpTermFirst"].id), -- default value is 0
-	A = Rec(V"Sg", V"ErrExpTermOp", labels["ExpTermOp"].id),
-	Sg = Rec(g, V"ErrMisClose", labels["MisClose"].id),
-	ErrExpTermFirst = record("ExpTermFirst") * sync(op + ")") * defaultValue(),
-	ErrExpTermOp = record("ExpTermOp") * sync(op + ")") * defaultValue(),
-	ErrMisClose = record("MisClose") * sync(P")") * defaultValue(m.P""),
-}
- 
-                
 local function eval(input)
 	errors = {}
+	io.write("Input: ", input, "\n")
 	subject = input
-  local result, label, suffix = recg2:match(input)
-  if #errors > 0 then
+  local result, label, suffix = grec:match(input)
+  io.write("Syntactic errors found: " .. #errors, "\n")
+	if #errors > 0 then
     local out = {}
     for i, err in ipairs(errors) do
       local pos = err.col
@@ -99,13 +86,14 @@ local function eval(input)
     end
     print(table.concat(out, "\n"))
   end
+	io.write("Result = ")
 	return result	
 end
 
-print(eval "90-70*5")
---> 20
+print(eval "90-70-(5)+3")
+--> 18
 
-print(eval "2+")
+print(eval "15+")
 --> 2 + 0
 
 print(eval "-2")
@@ -130,3 +118,5 @@ print(eval "1+(")
 
 print(eval "3)")
 
+print(eval "11+()3")
+--> 1 + ([0]) [+] 3 + [0]

@@ -56,7 +56,7 @@ function mymatch (g, s)
     	local msg = "Error at line " .. err.line .. " (col " .. err.col .. "): " .. err.msg
       table.insert(out,  msg)
     end
-    return nil, table.concat(out, "\n")
+    return nil, table.concat(out, "\n") .. "\n"
   end
   return r
 end

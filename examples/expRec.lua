@@ -1,10 +1,6 @@
 local m = require"lpeglabelrec"
 local re = require"relabelrec"
 
-local R, S, P, V = m.R, m.S, m.P, m.V
-local C, Cc, Ct, Cmt = m.C, m.Cc, m.Ct, m.Cmt
-local T, Rec = m.T, m.Rec
-
 local labels = {
   {"ExpTermFirst",  "expected an expression"},
   {"ExpTermOp",   "expected a term after the operator"},
@@ -22,14 +18,14 @@ end
 
 local errors, subject
 
-local function expect(patt, labname, recpatt)
+local function expect(patt, labname)
   local i = labelindex(labname)
-  return patt + T(i)
+  return patt + m.T(i)
 end
 
 
-local num = R("09")^1 / tonumber
-local op = S("+-")
+local num = m.R("09")^1 / tonumber
+local op = m.S("+-")
 
 local function compute(tokens)
   local result = tokens[1]
@@ -45,13 +41,13 @@ local function compute(tokens)
   return result
 end
 
-local g = P {
+local g = m.P {
 	"Exp",
-	Exp = Ct(V"OperandFirst" * (C(op) * V"Operand")^0) / compute,
-	OperandFirst = expect(V"Term", "ExpTermFirst"),
-	Operand = expect(V"Term", "ExpTermOp"),
-	Term = num + V"Group",
-	Group = "(" * V"Exp" * expect(")", "MisClose"),
+	Exp = m.Ct(m.V"OperandFirst" * (m.C(op) * m.V"Operand")^0) / compute,
+	OperandFirst = expect(m.V"Term", "ExpTermFirst"),
+	Operand = expect(m.V"Term", "ExpTermOp"),
+	Term = num + m.V"Group",
+	Group = "(" * m.V"Exp" * expect(")", "MisClose"),
 }
 
 function recorderror(pos, lab)
@@ -71,22 +67,23 @@ function defaultValue (p)
 	return p or m.Cc(1000) 
 end
 
-local recg = P {
+local grec = m.P {
 	"S",
-	S = Rec(V"A", V"ErrExpTermFirst", labelindex("ExpTermFirst")), -- default value is 0
-	A = Rec(V"Sg", V"ErrExpTermOp", labelindex("ExpTermOp")),
-	Sg = Rec(g, V"ErrMisClose", labelindex("MisClose")),
+	S = m.Rec(m.V"A", m.V"ErrExpTermFirst", labelindex("ExpTermFirst")), -- default value is 0
+	A = m.Rec(m.V"Sg", m.V"ErrExpTermOp", labelindex("ExpTermOp")),
+	Sg = m.Rec(g, m.V"ErrMisClose", labelindex("MisClose")),
 	ErrExpTermFirst = record("ExpTermFirst") * sync(op + ")") * defaultValue(),
 	ErrExpTermOp = record("ExpTermOp") * sync(op + ")") * defaultValue(),
-	ErrMisClose = record("MisClose") * sync(P")") * defaultValue(m.P""),
+	ErrMisClose = record("MisClose") * sync(m.P")") * defaultValue(m.P""),
 }
- 
-                
+               
 local function eval(input)
 	errors = {}
+	io.write("Input: ", input, "\n")
 	subject = input
-  local result, label, suffix = recg:match(input)
-  if #errors > 0 then
+  local result, label, suffix = grec:match(input)
+  io.write("Syntactic errors found: " .. #errors, "\n")
+	if #errors > 0 then
     local out = {}
     for i, err in ipairs(errors) do
       local pos = err.col
@@ -95,13 +92,14 @@ local function eval(input)
     end
     print(table.concat(out, "\n"))
   end
+	io.write("Result = ")
 	return result	
 end
 
-print(eval "90-70*5")
+print(eval "90-70-(5)+3")
 --> 20
 
-print(eval "2+")
+print(eval "15+")
 --> 2 + 0
 
 print(eval "-2")
@@ -125,4 +123,6 @@ print(eval "1+()+")
 print(eval "1+(")
 
 print(eval "3)")
+
+print(eval "11+())3")
 
