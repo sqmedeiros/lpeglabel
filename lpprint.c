@@ -61,7 +61,7 @@ void printinst (const Instruction *op, const Instruction *p) {
     "choice", "jmp", "call", "open_call",
     "commit", "partial_commit", "back_commit", "failtwice", "fail", "giveup",
      "fullcapture", "opencapture", "closecapture", "closeruntime",
-    "throw", "labeled_choice", "recovery" /* labeled failure */
+    "throw", "recovery" /* labeled failure */
   };
   printf("%02ld: %s ", (long)(p - op), names[p->i.code]);
   switch ((Opcode)p->i.code) {
