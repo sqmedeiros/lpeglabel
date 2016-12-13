@@ -1,10 +1,10 @@
-local re = require 'relabel' 
+local re = require 'relabelrec' 
 
 local g = re.compile[[
   S      <- Id List
-  List   <- !.  /  (',' /  %{2}) (Id / %{1}) List
-  Id     <- Sp [a-z]+
-  Comma  <- Sp ','
+  List   <- !.  /  Comma Id List
+  Id     <- Sp [a-z]+ / %{2}
+  Comma  <- Sp ',' / %{3}
   Sp     <- %s*
 ]]
 

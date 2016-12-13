@@ -401,15 +401,18 @@ assert(m == e)
 -- unfinished comments
 
 s = [=[
---[[ testing
+--[[ 
+
+testing
 unfinished
+
 comment
-]=]
+      ]=]
 --[=[
 test.lua:3:1: syntax error, unexpected 'comment', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 e = [=[
-test.lua:1:1: unfinished long comment
+test.lua:1:2: unfinished long comment
 ]=]
 
 r, m = parse(s)

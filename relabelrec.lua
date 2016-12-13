@@ -6,7 +6,7 @@ local pcall = pcall
 local setmetatable = setmetatable
 local unpack, tinsert, concat = table.unpack or unpack, table.insert, table.concat
 local rep = string.rep
-local m = require"lpeglabel"
+local m = require"lpeglabelrec"
 
 -- 'm' will be used to parse expressions, and 'mm' will be used to
 -- create expressions; that is, 're' runs on 'm', creating patterns
@@ -216,14 +216,14 @@ local function NT (n, b)
   end
 end
 
-local function labchoice (...)
+local function choicerec (...)
   local t = { ... }
   local n = #t
   local p = t[1]
   local i = 2
   while i + 1 <= n do
     -- t[i] == nil when there are no labels
-    p = t[i] and mm.Lc(p, t[i+1], unpack(t[i])) or mt.__add(p, t[i+1])
+    p = t[i] and mm.Rec(p, t[i+1], unpack(t[i])) or mt.__add(p, t[i+1])
     i = i + 2
   end
 
@@ -232,10 +232,10 @@ end
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"Seq" * (S * "/" * (m.Ct(m.V"Labels") + m.Cc(nil))
+            + (m.V"Seq" * (S * (("//" * m.Ct(m.V"Labels")) + ("/" * m.Cc(nil)))
                                    * expect(S * m.V"Seq", "ExpPatt1")
                             )^0
-              ) / labchoice);
+              ) / choicerec);
   Labels = m.P"{" * expect(S * m.V"Label", "ExpLab1")
            * (S * "," * expect(S * m.V"Label", "ExpLab2"))^0
            * expect(S * "}", "MisClose7");
