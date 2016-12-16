@@ -4,7 +4,7 @@
 
 -- require"strict"    -- just to be pedantic
 
-local m = require"lpeglabelrec"
+local m = require"lpeglabel"
 
 
 -- for general use
@@ -1110,7 +1110,7 @@ checkeq(t, {'a', 'aa', 20, 'a', 'aaa', 'aaa'})
 -- Tests for 're' module
 -------------------------------------------------------------------
 
-local re = require "relabelrec"
+local re = require "relabel"
 
 local match, compile = re.match, re.compile
 

@@ -1,4 +1,4 @@
-LIBNAME = lpeglabelrec
+LIBNAME = lpeglabel
 LUADIR = ../lua/
 
 COPT = -O2
@@ -29,24 +29,24 @@ FILES = lpvm.o lpcap.o lptree.o lpcode.o lpprint.o
 
 # For Linux
 linux:
-	make lpeglabelrec.so "DLLFLAGS = -shared -fPIC"
+	make lpeglabel.so "DLLFLAGS = -shared -fPIC"
 
 # For Mac OS
 macosx:
-	make lpeglabelrec.so "DLLFLAGS = -bundle -undefined dynamic_lookup"
+	make lpeglabel.so "DLLFLAGS = -bundle -undefined dynamic_lookup"
 
-lpeglabelrec.so: $(FILES)
-	env $(CC) $(DLLFLAGS) $(FILES) -o lpeglabelrec.so
+lpeglabel.so: $(FILES)
+	env $(CC) $(DLLFLAGS) $(FILES) -o lpeglabel.so
 
 $(FILES): makefile
 
-test: test.lua testlabel.lua testerrors.lua relabel.lua lpeglabelrec.so
+test: test.lua testlabel.lua testerrors.lua relabel.lua lpeglabel.so
 	lua test.lua
 	lua testlabel.lua
 	lua testerrors.lua
 
 clean:
-	rm -f $(FILES) lpeglabelrec.so
+	rm -f $(FILES) lpeglabel.so
 
 
 lpcap.o: lpcap.c lpcap.h lptypes.h

@@ -1,4 +1,4 @@
-local re = require 'relabelrec'
+local re = require 'relabel'
 
 function testerror(repatt, msg)
   msg = msg:match("^%s*(.-)%s*$") -- trim

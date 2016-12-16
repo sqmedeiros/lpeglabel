@@ -1,6 +1,6 @@
 local tllexer = {}
 
-local lpeg = require "lpeglabelrec"
+local lpeg = require "lpeglabel"
 lpeg.locale(lpeg)
 
 local tlerror = require "tlerror"

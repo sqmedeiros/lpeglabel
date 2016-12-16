@@ -1,4 +1,4 @@
-local m = require 'lpeglabelrec'
+local m = require 'lpeglabel'
 
 local p, r, l, s, serror
 
@@ -363,7 +363,7 @@ assert(r == nil and l == 5 and serror == s)
 print("+")
 
 
-local re = require 'relabelrec'
+local re = require 'relabel'
 
 g = re.compile[['a' //{4,9} [a-z]
 ]]

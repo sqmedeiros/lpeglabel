@@ -35,21 +35,21 @@ Below there is a brief summary of the new functions provided by LpegLabel:
 
 <table border="1">
 <tbody><tr><td><b>Function</b></td><td><b>Description</b></td></tr>
-<tr><td><a href="#f-t"><code>lpeglabelrec.T (l)</code></a></td>
+<tr><td><a href="#f-t"><code>lpeglabel.T (l)</code></a></td>
   <td>Throws a label <code>l</code> to signal an error</td></tr>
-<tr><td><a href="#f-rec"><code>lpeglabelrec.Rec (p1, p2, l1 [, l2, ..., ln])</code></a></td>
+<tr><td><a href="#f-rec"><code>lpeglabel.Rec (p1, p2, l1 [, l2, ..., ln])</code></a></td>
   <td>Specifies a recovery pattern <code>p2</code> for <code>p1</code>,
  when the matching of <code>p1</code> gives one of the labels l1, ..., ln.</td></tr>
 <tr><td><a href="#re-t"><code>%{l}</code></a></td>
-  <td>Syntax of <em>relabelrec</em> module. Equivalent to <code>lpeglabelrec.T(l)</code>
+  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeglabel.T(l)</code>
       </td></tr>
 <tr><td><a href="#re-rec"><code>p1 //{l1 [, l2, ..., ln} p2</code></a></td>
-  <td>Syntax of <em>relabelrec</em> module. Equivalent to <code>lpeglabelrec.Rec(p1, p2, l1, ..., ln)</code>
+  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeglabel.Rec(p1, p2, l1, ..., ln)</code>
       </td></tr>
-<tr><td><a href="#re-line"><code>relabelrec.calcline(subject, i)</code></a></td>
+<tr><td><a href="#re-line"><code>relabel.calcline(subject, i)</code></a></td>
   <td>Calculates line and column information regarding position <i>i</i> of the subject</code>
       </td></tr>
-<tr><td><a href="#re-setl"><code>relabelrec.setlabels (tlabel)</code></a></td>
+<tr><td><a href="#re-setl"><code>relabel.setlabels (tlabel)</code></a></td>
   <td>Allows to specicify a table with mnemonic labels. 
       </td></tr>
 </tbody></table>
@@ -58,14 +58,14 @@ Below there is a brief summary of the new functions provided by LpegLabel:
 ### Functions
 
 
-#### <a name="f-t"></a><code>lpeglabelrec.T(l)</code>
+#### <a name="f-t"></a><code>lpeglabel.T(l)</code>
 
 
 Returns a pattern that throws the label `l`.
 A label must be an integer between 1 and 255.
 
 
-#### <a name="f-rec"></a><code>lpeglabelrec.Rec(p1, p2, l1, ..., ln)</code>
+#### <a name="f-rec"></a><code>lpeglabel.Rec(p1, p2, l1, ..., ln)</code>
 
 Returns a *recovery pattern*.
 If the matching of `p1` gives one of the labels `l1, ..., ln`,
@@ -76,23 +76,23 @@ Otherwise, the result of the matching of `p1` is the pattern's result.
 
 #### <a name="re-t"></a><code>%{l}</code>
 
-Syntax of *relabelrec* module. Equivalent to `lpeg.T(l)`.
+Syntax of *relabel* module. Equivalent to `lpeg.T(l)`.
 
 
 #### <a name="re-lc"></a><code>p1 //{l1, ..., ln} p2</code>
 
-Syntax of *relabelrec* module. Equivalent to `lpeglabelrec.Rec(p1, p2, l1, ..., ln)`.
+Syntax of *relabel* module. Equivalent to `lpeglabel.Rec(p1, p2, l1, ..., ln)`.
 
 The `//{}` operator is left-associative. 
 
 
 
-#### <a name="re-line"></a><code>relabelrec.calcline (subject, i)</code>
+#### <a name="re-line"></a><code>relabel.calcline (subject, i)</code>
 
 Returns line and column information regarding position <i>i</i> of the subject.
 
 
-#### <a name="re-setl"></a><code>relabelrec.setlabels (tlabel)</code>
+#### <a name="re-setl"></a><code>relabel.setlabels (tlabel)</code>
 
 Allows to specicify a table with labels. They keys of
 `tlabel` must be integers between 1 and 255,
@@ -118,8 +118,8 @@ table and to return the index associated with each error message.
 
 
 ```lua
-local m = require'lpeglabelrec'
-local re = require'relabelrec'
+local m = require'lpeglabel'
+local re = require'relabel'
 
 local terror = {}
 
@@ -176,7 +176,7 @@ the <em>regular</em> matching. For example, in the example below
 we expect to match rule `A`, but when a failure occur the label 42
 is thrown and then we will try to match the recovery pattern `recp`:
 ```lua
-local m = require'lpeglabelrec'
+local m = require'lpeglabel'
 
 local recp = m.P"oast"
 
@@ -223,8 +223,8 @@ When the matching of an identifier fails, a defaul value ('NONE')
 is provided.
 
 ```lua
-local m = require'lpeglabelrec'
-local re = require'relabelrec'
+local m = require'lpeglabel'
+local re = require'relabel'
 
 local terror = {}
 
@@ -311,14 +311,14 @@ print(mymatch(grec, "one\n two123, \nthree,"))
 -- Error at line 3 (col 6): expecting an identifier
 ```
 
-##### *relabelrec* syntax
+##### *relabel* syntax
 
 Below we describe again a grammar that matches a list of identifiers,
-now using the syntax supported by *relabelrec*, where `//{}` is the
+now using the syntax supported by *relabel*, where `//{}` is the
 recovery operator, and `%{}` is the throw operator:
 
 ```lua
-local re = require 'relabelrec' 
+local re = require 'relabel' 
 
 local errinfo = {
   {"errUndef",  "undefined"},
@@ -428,8 +428,8 @@ task to build manually the recovery grammar `grec`. In the next example
 we will show how to build the recovery grammar in a more automatic way. 
 
 ```lua
-local m = require"lpeglabelrec"
-local re = require"relabelrec"
+local m = require"lpeglabel"
+local re = require"relabel"
 
 local labels = {
   {"ExpTermFirst",  "expected an expression"},
@@ -566,8 +566,8 @@ In the example below we also throw an error when the grammar
 does not match the whole subject.
 
 ```lua
-local m = require"lpeglabelrec"
-local re = require"relabelrec"
+local m = require"lpeglabel"
+local re = require"relabel"
 
 local num = m.R("09")^1 / tonumber
 local op = m.S("+-")

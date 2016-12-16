@@ -1,5 +1,5 @@
-local m = require'lpeglabelrec'
-local re = require'relabelrec'
+local m = require'lpeglabel'
+local re = require'relabel'
 
 local id = m.R'az'^1
 

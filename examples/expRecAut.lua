@@ -1,5 +1,5 @@
-local m = require"lpeglabelrec"
-local re = require"relabelrec"
+local m = require"lpeglabel"
+local re = require"relabel"
 
 local num = m.R("09")^1 / tonumber
 local op = m.S("+-")
