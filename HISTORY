@@ -1,5 +1,12 @@
 HISTORY for LPegLabel 1.0.0-1
 
+* Changes from version 1.0.0-1 to 1.1.0-1
+  ---------------------------------
+  + new semantics of lpeglabel.Rec
+  - labeled ordered choice removed
+  + examples updated
+
+
 * Changes from version 0.12.2-2 to 1.0.0-1
   ---------------------------------
   + base code updated to LPeg 1.0 
@@ -7,7 +14,6 @@ HISTORY for LPegLabel 1.0.0-1
   + improved documentation
   + new examples
   + some bugs fixed 
-
 
 
 * Changes from version 0.12.2-1 to 0.12.2-2
