@@ -1,4 +1,4 @@
-local re = require 'relabel'
+local re = require 'relabelrec'
 
 function testerror(repatt, msg)
   msg = msg:match("^%s*(.-)%s*$") -- trim
@@ -53,26 +53,26 @@ L1:C5: unexpected characters after the pattern
 
 -- testing ExpPatt1
 
-testerror([['p' /{1}]], [[
-L1:C9: expected a pattern after '/' or the label(s)
-'p' /{1}
-        ^
+testerror([['p' //{1}]], [[
+L1:C10: expected a pattern after '/' or '//{...}'
+'p' //{1}
+         ^
 ]])
 
-testerror([['p' /{1} /{2} 'q']], [[
-L1:C9: expected a pattern after '/' or the label(s)
-'p' /{1} /{2} 'q'
-        ^
+testerror([['p' //{1} //{2} 'q']], [[
+L1:C10: expected a pattern after '/' or '//{...}'
+'p' //{1} //{2} 'q'
+         ^
 ]])
 
 testerror([['p' /]], [[
-L1:C6: expected a pattern after '/' or the label(s)
+L1:C6: expected a pattern after '/' or '//{...}'
 'p' /
      ^
 ]])
 
 testerror([['p' / / 'q']], [[
-L1:C6: expected a pattern after '/' or the label(s)
+L1:C6: expected a pattern after '/' or '//{...}'
 'p' / / 'q'
      ^
 ]])
@@ -351,10 +351,10 @@ L1:C2: expected the name of a rule after '<' (no space)
 
 -- testing ExpLab1
 
-testerror([['p' /{} 'q']], [[
-L1:C7: expected at least one label after '{'
-'p' /{} 'q'
-      ^
+testerror([['p' //{} 'q']], [[
+L1:C8: expected at least one label after '{'
+'p' //{} 'q'
+       ^
 ]])
 
 testerror([[%{ 'label' }]], [[
@@ -365,10 +365,10 @@ L1:C3: expected at least one label after '{'
 
 -- testing ExpLab2
 
-testerror([['p' /{1,2,3,} 'q']], [[
-L1:C13: expected a label after the comma
-'p' /{1,2,3,} 'q'
-            ^
+testerror([['p' //{1,2,3,} 'q']], [[
+L1:C14: expected a label after the comma
+'p' //{1,2,3,} 'q'
+             ^
 ]])
 
 -- testing ExpNameOrLab
