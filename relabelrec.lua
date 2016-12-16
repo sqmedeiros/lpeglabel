@@ -31,7 +31,7 @@ local errinfo = {
   {"NoPatt", "no pattern found"},
   {"ExtraChars", "unexpected characters after the pattern"},
 
-  {"ExpPatt1", "expected a pattern after '/' or the label(s)"},
+  {"ExpPatt1", "expected a pattern after '/' or '//{...}'"},
 
   {"ExpPatt2", "expected a pattern after '&'"},
   {"ExpPatt3", "expected a pattern after '!'"},
@@ -305,6 +305,14 @@ local function lineno (s, i)
   return 1 + num, (r ~= 0 and r or 1) + adjustment
 end
 
+local function calcline (s, i)
+  if i == 1 then return 1, 1 end
+  local rest, line = s:sub(1,i):gsub("[^\n]*\n", "")
+  local col = #rest
+  return 1 + line, col ~= 0 and col or 1
+end
+
+
 local function splitlines(str)
   local t = {}
   local function helper(line) tinsert(t, line) return "" end
@@ -325,6 +333,7 @@ local function compile (p, defs)
   if not cp then
     local lines = splitlines(p)
     local line, col = lineno(p, #p - #suffix + 1)
+    --local line, col = calcline(p, #p - #suffix + 1)
     local err = {}
     tinsert(err, "L" .. line .. ":C" .. col .. ": " .. errmsgs[label])
     tinsert(err, lines[line])
@@ -370,13 +379,6 @@ end
 
 local function setlabels (t)
   tlabels = t
-end
-
-local function calcline (s, i)
-  if i == 1 then return 1, 1 end
-  local rest, line = s:sub(1,i):gsub("[^\n]*\n", "")
-  local col = #rest
-  return 1 + line, col ~= 0 and col or 1
 end
 
 
