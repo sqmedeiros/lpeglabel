@@ -9,14 +9,25 @@
 LPegLabel is a conservative extension of the
 [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg)
 library that provides an implementation of Parsing
-Expression Grammars (PEGs) with labeled failures. 
+Expression Grammars (PEGs) with labeled failures.
 Labels can be used to signal different kinds of errors
 and to specify which recovery pattern should handle a
 given label. Labels can also be combined with the standard
-patterns of LPeg.
+patterns of LPeg. 
+
+Besides that, LPegLabel also reports the farthest
+failure position in case of an ordinary failure
+(which is represented by label **0**).
 
 This document describes the new functions available
 in LpegLabel and presents some examples of usage.
+
+With labeled failures it is possible to distinguish
+between an ordinary failure and an error. Usually, an
+ordinary failure is produced when the matching of a
+character fails, and this failure is caught by ordered choice.
+An error (a non-ordinary failure), by its turn, is produced
+by the throw operator and may be caught by the recovery operator. 
 
 In LPegLabel, the result of an unsuccessful matching
 is a triple **nil, lab, sfail**, where **lab**
@@ -24,12 +35,12 @@ is the label associated with the failure, and
 **sfail** is the suffix input being matched when
 **lab** was thrown. 
 
-With labeled failures it is possible to distinguish
-between a regular failure and an error. Usually, a
-regular failure is produced when the matching of a
-character fails, and it is caught by an ordered choice.
-An error, by its turn, is produced by the throw operator
-and may be caught by the recovery operator. 
+When **lab** is an ordinary failure and no error was thrown before,
+**sfail** is formed according to the farthest position where an
+ordinary failure occurred. 
+In case **lab** is an ordinary failure and an error
+was thrown before, **sfail** is the farthest suffix
+where an ordinary failure occurred after the last error. 
  
 Below there is a brief summary of the new functions provided by LpegLabel: 
 
@@ -60,9 +71,12 @@ Below there is a brief summary of the new functions provided by LpegLabel:
 
 #### <a name="f-t"></a><code>lpeglabel.T(l)</code>
 
-
 Returns a pattern that throws the label `l`.
 A label must be an integer between 1 and 255.
+
+This pattern always causes a failure, whose associated
+position will be used to set **sfail**, no matter
+whether this is the farthest failure position or not. 
 
 
 #### <a name="f-rec"></a><code>lpeglabel.Rec(p1, p2, l1, ..., ln)</code>
@@ -71,7 +85,6 @@ Returns a *recovery pattern*.
 If the matching of `p1` gives one of the labels `l1, ..., ln`,
 then the matching of `p2` is tried from the failure position of `p1`.
 Otherwise, the result of the matching of `p1` is the pattern's result.
-
 
 
 #### <a name="re-t"></a><code>%{l}</code>
