@@ -6,20 +6,8 @@ function matchPrint(p, s)
 	print("Result:", r, l, sfail)
 end
 
-local p = m.P"a"^0 * m.P"b" + m.P"c"
 
+local p = (m.P"c" + m.P"a") * m.P("b" + m.P"d") + m.P"xxx"
 p:pcode()
+matchPrint(p, "ba")
 
-matchPrint(p, "aab")
-matchPrint(p, "ck")
-matchPrint(p, "dk")
-matchPrint(p, "aak")
-
-local p = m.P"a"^0 * m.P(1) * m.P(1) + m.P"a"^0 * m.P"c"
-
-p:pcode()
-
-matchPrint(p, "aabc")
-matchPrint(p, "aac")
-matchPrint(p, "aak")
-matchPrint(p, "x")

@@ -166,6 +166,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
 	Labelset lsfail;
 	setlabelfail(&lsfail);
   stack->p = &giveup; stack->s = s; stack->ls = &lsfail; stack->caplevel = 0; stack++;  /* labeled failure */
+	*sfail = s; /* labeled failure */
   lua_pushlightuserdata(L, stackbase);
   for (;;) {
 #if defined(DEBUG)
@@ -196,7 +197,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         else {
           *labelf = LFAIL; /* labeled failure */
           pk = p + 1;
-					*sfail = s;
+					updatefarthest(*sfail, s); /*labeled failure */
           goto fail;
         }
         continue;
@@ -211,7 +212,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         else {
           *labelf = LFAIL; /* labeled failure */
           pk = p + 1;
-					*sfail = s;
+					updatefarthest(*sfail, s); /*labeled failure */
           goto fail;
         }
         continue;
@@ -228,7 +229,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         else {
           *labelf = LFAIL; /* labeled failure */
           pk = p + CHARSETINSTSIZE;
-					*sfail = s;
+					updatefarthest(*sfail, s); /*labeled failure */
           goto fail;
         }
         continue;
@@ -245,7 +246,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         if (n > s - o) {
           *labelf = LFAIL; /* labeled failure */
 					pk = p + 1;
-					*sfail = s;
+					updatefarthest(*sfail, s); /*labeled failure */
           goto fail;
         }
         s -= n; p++;
@@ -329,7 +330,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
       case IFail:
       *labelf = LFAIL; /* labeled failure */
       pk = NULL;
-			*sfail = s;
+			updatefarthest(*sfail, s); /*labeled failure */
       fail: { /* pattern failed: try to backtrack */
         const Labelset *auxlab = NULL;
 				Stack *pstack = stack;
@@ -366,8 +367,8 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         res = resdyncaptures(L, fr, s - o, e - o);  /* get result */
         if (res == -1) { /* fail? */
       		*labelf = LFAIL;  /* labeled failure */
-					*sfail = (const char *) s; 
 					pk = NULL;
+					updatefarthest(*sfail, s); /*labeled failure */
           goto fail;
         }
         s = o + res;  /* else update current position */

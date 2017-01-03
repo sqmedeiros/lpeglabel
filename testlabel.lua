@@ -2,7 +2,7 @@ local m = require 'lpeglabel'
 
 local p, r, l, s, serror
 
-local function checkeqlab (x, ...)
+local function checklabeq (x, ...)
   y = { ... }
   assert(type(x) == "table")
   assert(#x == #y)
@@ -12,7 +12,7 @@ local function checkeqlab (x, ...)
 end
 
 local function checkeq (x, y, p)
-if p then print(x,y) end
+  if p then print(x,y) end
   if type(x) ~= "table" then assert(x == y)
   else
     for k,v in pairs(x) do checkeq(v, y[k], p) end
@@ -20,26 +20,91 @@ if p then print(x,y) end
   end
 end
 
+
+-- tests related to reporting the farthest failure position
+-- when a label is not thrown
+
+p = m.P"a"^0 * m.P"b" + m.P"c"
+checklabeq({4, nil, nil}, p:match("aabk"))
+checklabeq({2, nil, nil}, p:match("ck"))
+checklabeq({nil, 0, "dk"}, p:match("dk"))
+checklabeq({nil, 0, "k"}, p:match("aak"))
+
+p = (m.P"a" + m.P"c")^0 * m.P"b" + m.P"c"
+checklabeq({4, nil, nil}, p:match("aabk"))
+checklabeq({2, nil, nil}, p:match("ck"))
+checklabeq({nil, 0, "dk"}, p:match("dk"))
+checklabeq({nil, 0, "k"}, p:match("aak"))
+
+p = m.P"a"^0 * m.P"b" + m.P(1)^0 * m.P(1)
+checklabeq({4, nil, nil}, p:match("aabk"))
+checklabeq({nil, 0, ""}, p:match("ck"))
+checklabeq({nil, 0, ""}, p:match("aak"))
+
+p = m.P(1) * m.P"a" + m.P"c" 
+checklabeq({3, nil, nil}, p:match("bac"))
+checklabeq({2, nil, nil}, p:match("c"))
+checklabeq({nil, 0, ""}, p:match("x"))
+checklabeq({nil, 0, "x"}, p:match("kx"))
+
+p = m.P"a"^0 * m.P(1) * m.P(1) + m.P"a"^0 * m.P"c"
+checklabeq({5, nil, nil}, p:match("aabc"))
+checklabeq({4, nil, nil}, p:match("aac"))
+checklabeq({nil, 0, ""}, p:match("aak"))
+checklabeq({nil, 0, ""}, p:match("x"))
+
+p = m.P"a"^0 * m.P(1) * m.P(1) + m.P"a"^0 * m.P"c"
+checklabeq({5, nil, nil}, p:match("aabc"))
+checklabeq({4, nil, nil}, p:match("aac"))
+checklabeq({nil, 0, ""}, p:match("aak"))
+checklabeq({nil, 0, ""}, p:match("x"))
+
+p = m.Cmt(m.P"a"^0, function() return nil end) + m.P"x"
+checklabeq({2, nil, nil}, p:match("xabc"))
+checklabeq({nil, 0, "c"}, p:match("aac"))
+checklabeq({nil, 0, "kx"}, p:match("kx"))
+
+p = m.P"b" * -m.P"a" + m.P"c"
+checklabeq({nil, 0, "a"}, p:match("ba"))
+checklabeq({nil, 0, "kx"}, p:match("kx"))
+
+p = (m.P"c" + m.P"a") * m.P("b" + m.P"d") + m.P"xxx"
+checklabeq({nil, 0, "kk"}, p:match("kk"))
+checklabeq({nil, 0, "k"}, p:match("ak"))
+checklabeq({nil, 0, "y"}, p:match("xxy"))
+checklabeq({nil, 0, "yz"}, p:match("xyz"))
+
+print"+"
+
+
 -- throws a label 
 p = m.T(1)
 s = "abc"
 r, l, serror = p:match(s) 
 assert(r == nil and l == 1 and serror == "abc")
 
--- throws a label that is not caught by ordinary choice
+-- throws a label, choice does not catch labels
 p = m.T(1) + m.P"a"
 r, l, serror = p:match(s)
 assert(r == nil and l == 1 and serror == "abc")
 
--- again throws a label that is not caught by ordinary choice
+-- again throws a label that is not caught by choice
 local g = m.P{
-	"S",
-	S = m.V"A" + m.V"B",
-	A = m.T(1),
-	B = m.P"a"
+  "S",
+  S = m.V"A" + m.V"B",
+  A = m.T(1),
+  B = m.P"a"
 }
 r, l, serror = g:match(s)
 assert(r == nil and l == 1 and serror == "abc")
+
+-- throws a label in a position that is not the farthest one
+-- but it is the position that should be reported
+p = m.P(1) * m.P"a" + m.T(11) 
+checklabeq({3, nil, nil}, p:match("bac"))
+checklabeq({nil, 11, "c"}, p:match("c"))
+checklabeq({nil, 11, "x"}, p:match("x"))
+checklabeq({nil, 11, "kx"}, p:match("kx"))
 
 
 -- throws a label that is not caught by the recovery operator
@@ -209,10 +274,10 @@ A -> B
 B -> %1
 ]]
 g = m.P{
-	"S",
-	S = m.Rec(m.V"A", m.P"a", 1),
-	A = m.V"B",
-	B = m.T(1),
+  "S",
+  S = m.Rec(m.V"A", m.P"a", 1),
+  A = m.V"B",
+  B = m.T(1),
 }
 assert(g:match("ab") == 2)
 r, l, serror = g:match("bc")
@@ -225,10 +290,10 @@ A -> (B (';' / %{1}))*
 B -> 'a'
 ]]
 g = m.P{
-	"S",
-	S = m.V"A",
-	A = m.P(m.V"B" * (";" + m.T(1)))^0,
-	B = m.P'a',
+  "S",
+  S = m.V"A",
+  A = m.P(m.V"B" * (";" + m.T(1)))^0,
+  B = m.P'a',
 }
 assert(g:match("a;a;") == 5)
 
@@ -312,8 +377,8 @@ local sp = m.S" \t\n"^0
 local eq = sp * m.P"="
 
 g = m.P{
-	"S",
-	S = m.Rec(
+  "S",
+  S = m.Rec(
          m.Rec(
             m.Rec(
                m.Rec(m.V"S0", m.V"ID", 1),
@@ -323,13 +388,13 @@ g = m.P{
             ),
          m.V"U"^0 * m.V"ID" * m.V"ID", 4) 
        + m.T(5), -- error
-	S0 = m.V"S1"  +  m.V"S2"  +  #m.V"I" * m.T(3),
-	S1 = #(m.V"ID" * eq) * m.T(2) + sp * #(m.V"ID" * -m.P(1)) * m.T(1) + #m.V"ID" * m.T(4),
-	S2 = #(m.V"U"^1 * m.V"ID") * m.T(4)  +  #(m.V"U"^1 * m.V"I") * m.T(3),
-	ID = sp * m.P"a",
-	U = sp * m.P"unsigned",
-	I = sp * m.P"int",
-	Exp = sp * m.P"E",
+  S0 = m.V"S1"  +  m.V"S2"  +  #m.V"I" * m.T(3),
+  S1 = #(m.V"ID" * eq) * m.T(2) + sp * #(m.V"ID" * -m.P(1)) * m.T(1) + #m.V"ID" * m.T(4),
+  S2 = #(m.V"U"^1 * m.V"ID") * m.T(4)  +  #(m.V"U"^1 * m.V"I") * m.T(3),
+  ID = sp * m.P"a",
+  U = sp * m.P"unsigned",
+  I = sp * m.P"int",
+  Exp = sp * m.P"E",
 }
 
 local s = "a"
@@ -411,7 +476,7 @@ S2 -> &('unsigned'+ ID) %4  /  & ('unsigned'+ 'int') %3
 ]]
 
 g = re.compile([[
-	S <- S0 //{1} ID //{2} ID %s* '=' Exp //{3} U* Int ID //{4} U ID ID / %{5}
+  S <- S0 //{1} ID //{2} ID %s* '=' Exp //{3} U* Int ID //{4} U ID ID / %{5}
   S0 <- S1 / S2 / &Int %{3}
   S1 <- &(ID %s* '=') %{2} / &(ID !.) %{1} / &ID %{4}
   S2 <- &(U+ ID) %{4} / &(U+ Int) %{3}
@@ -504,8 +569,8 @@ g = re.compile([[
   THEN       <- Sp 'then'
   UNTIL      <- Sp 'until'
   WRITE      <- Sp 'write'
-	RESERVED   <- (IF / ELSE / END / READ / REPEAT / THEN / UNTIL / WRITE) ![a-z]+
-  Sp         <- (%s / %nl)*	
+  RESERVED   <- (IF / ELSE / END / READ / REPEAT / THEN / UNTIL / WRITE) ![a-z]+
+  Sp         <- (%s / %nl)*  
 ]], terror)
 
 s = [[
@@ -652,15 +717,15 @@ print("+")
 
 p = m.Rec("a", "b", 3) 
 assert(p:match("a") == 2)
-checkeqlab({nil, 0, "b"}, p:match("b"))
-checkeqlab({nil, 0, "c"}, p:match("c"))
+checklabeq({nil, 0, "b"}, p:match("b"))
+checklabeq({nil, 0, "c"}, p:match("c"))
 
 p = m.Rec(m.T(3), "b", 1) 
-checkeqlab({nil, 3, "a"}, p:match("a"))
-checkeqlab({nil, 3, "b"}, p:match("b"))
+checklabeq({nil, 3, "a"}, p:match("a"))
+checklabeq({nil, 3, "b"}, p:match("b"))
 
 p = m.Rec(m.T(3), "b", 3) 
-checkeqlab({nil, 0, "a"}, p:match("a"))
+checklabeq({nil, 0, "a"}, p:match("a"))
 assert(p:match("b") == 2)
 
 --[[
@@ -669,21 +734,21 @@ A -> a*b / %128
 C -> c+
 ]]
 g = m.P{
-	"S",
-	S = m.Rec(m.V"A", (-m.P"c" * m.P(1))^0, 128) * m.V"C",
-	A = m.P"a"^0 * "b" + m.T(128),
-	C = m.P"c"^1,
+  "S",
+  S = m.Rec(m.V"A", (-m.P"c" * m.P(1))^0, 128) * m.V"C",
+  A = m.P"a"^0 * "b" + m.T(128),
+  C = m.P"c"^1,
 }
 
 assert(g:match("abc") == 4)
 assert(g:match("aabc") == 5)
 assert(g:match("aadc") == 5)  
 assert(g:match("dc") == 3)
-checkeqlab({nil, 0, "bc"}, g:match("bbc"))
+checklabeq({nil, 0, "bc"}, g:match("bbc"))
 assert(g:match("xxc") == 4) 
 assert(g:match("c") == 2)
-checkeqlab({nil, 0, ""}, g:match("fail"))
-checkeqlab({nil, 0, ""}, g:match("aaxx"))
+checklabeq({nil, 0, ""}, g:match("fail"))
+checklabeq({nil, 0, ""}, g:match("aaxx"))
 
 
 --[[
@@ -692,23 +757,23 @@ A -> a+ (b / ^99)
 C -> c+
 ]]
 g = m.P{
-	"S",
-	S = m.Rec(m.V"A", (-m.P"c" * m.P(1))^0, 99) * m.V"C",
-	A = m.P"a"^1 * ("b" + m.T(99)),
-	C = m.P"c"^1,
+  "S",
+  S = m.Rec(m.V"A", (-m.P"c" * m.P(1))^0, 99) * m.V"C",
+  A = m.P"a"^1 * ("b" + m.T(99)),
+  C = m.P"c"^1,
 }
 
 assert(g:match("abc") == 4)
 assert(g:match("aabc") == 5)
 assert(g:match("aadc") == 5)
-checkeqlab({nil, 0, "bc"}, g:match("bc"))
-checkeqlab({nil, 0, "bbc"}, g:match("bbc"))
-checkeqlab({nil, 0, "b"}, g:match("abb"))
-checkeqlab({nil, 0, ""}, g:match("axx"))
+checklabeq({nil, 0, "bc"}, g:match("bc"))
+checklabeq({nil, 0, "bbc"}, g:match("bbc"))
+checklabeq({nil, 0, "b"}, g:match("abb"))
+checklabeq({nil, 0, ""}, g:match("axx"))
 assert(g:match("accc") == 5)
 assert(g:match("axxc") == 5)
-checkeqlab({nil, 0, "c"}, g:match("c"))
-checkeqlab({nil, 0, "fail"}, g:match("fail"))
+checklabeq({nil, 0, "c"}, g:match("c"))
+checklabeq({nil, 0, "fail"}, g:match("fail"))
 
 
 
@@ -824,25 +889,25 @@ print(eval "(1+1-1*(2/2+)-():")
 print("+")
 
 local g = m.P{
-	"S",
-	S = V"End" + V'A' * V'S',
-	A = P'a' + T(1),
-	End = P"." * (-P(1) + T(2)),
+  "S",
+  S = V"End" + V'A' * V'S',
+  A = P'a' + T(1),
+  End = P"." * (-P(1) + T(2)),
 }
 
 assert(g:match("a.") == 3)
 assert(g:match("aa.") == 4)
 assert(g:match(".") == 2)
-checkeqlab({nil, 1, "ba."}, g:match("ba."))
-checkeqlab({nil, 1, "ba."}, g:match("aba."))
-checkeqlab({nil, 1, "cba."}, g:match("cba."))
-checkeqlab({nil, 2, "a"}, g:match("a.a"))
+checklabeq({nil, 1, "ba."}, g:match("ba."))
+checklabeq({nil, 1, "ba."}, g:match("aba."))
+checklabeq({nil, 1, "cba."}, g:match("cba."))
+checklabeq({nil, 2, "a"}, g:match("a.a"))
 
 
 local g2 = m.P{
-	"S",
-	S = m.Rec(g, V"B", 1),
-	B = P'b'^1 + T(3)
+  "S",
+  S = m.Rec(g, V"B", 1),
+  B = P'b'^1 + T(3)
 }
 
 assert(g2:match("a.") == 3)
@@ -850,13 +915,13 @@ assert(g2:match("aa.") == 4)
 assert(g2:match(".") == 2)
 assert(g2:match("ba.") == 4)
 assert(g2:match("aba.") == 5)
-checkeqlab({nil, 3, "cba."}, g2:match("cba."))
-checkeqlab({nil, 2, "a"}, g2:match("a.a"))
+checklabeq({nil, 3, "cba."}, g2:match("cba."))
+checklabeq({nil, 2, "a"}, g2:match("a.a"))
 
 local g3 = m.P{
-	"S",
-	S = m.Rec(g2, V"C", 2, 3),
-	C = P'c'^1 + T(4)
+  "S",
+  S = m.Rec(g2, V"C", 2, 3),
+  C = P'c'^1 + T(4)
 }
 
 assert(g3:match("a.") == 3)
@@ -865,14 +930,14 @@ assert(g3:match(".") == 2)
 assert(g3:match("ba.") == 4)
 assert(g3:match("aba.") == 5)
 assert(g3:match("cba.") == 5)
-checkeqlab({nil, 4, "a"}, g3:match("a.a"))
-checkeqlab({nil, 4, "dc"}, g3:match("dc"))
-checkeqlab({nil, 4, "d"}, g3:match(".d"))
+checklabeq({nil, 4, "a"}, g3:match("a.a"))
+checklabeq({nil, 4, "dc"}, g3:match("dc"))
+checklabeq({nil, 4, "d"}, g3:match(".d"))
 
 
 -- testing more captures
 local g = re.compile[[
-	S <- ( %s* &. {A} )* 
+  S <- ( %s* &. {A} )* 
   A <- [0-9]+ / %{5}
 ]]
 
@@ -886,7 +951,7 @@ checkeq({"44", "a ", "58", "123"}, {g2:match("44 a 123")})
 
 
 local g = re.compile[[
-	S <- ( %s* &. A )* 
+  S <- ( %s* &. A )* 
   A <- {[0-9]+} / %{5}
 ]]
 
@@ -928,7 +993,7 @@ local function expect(patt, labname, recpatt)
     table.insert(errors, {i, pos})
     return true
   end
-	if not recpatt then recpatt = P"" end
+  if not recpatt then recpatt = P"" end
   --return Rec(patt, Cmt("", recorderror) * recpatt)
   return patt + T(i)
 end

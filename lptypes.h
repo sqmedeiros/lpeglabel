@@ -161,6 +161,10 @@ typedef Charset Labelset;
 #define IDXLFAIL 0
 
 #define LFAIL 0
+
+/* update the farthest failure */
+#define updatefarthest(s1,s2) { if ((s2) > (s1)) s1 = s2; }
+
 /* labeled failure end */
 
 #endif
