@@ -1,4 +1,10 @@
-HISTORY for LPegLabel 1.0.0-1
+HISTORY for LPegLabel 1.2.0-1
+
+* Changes from version 1.1.0-1 to 1.2.0-1
+  ---------------------------------
+  + fixes bug when reporting the error position of an ordinary failure 
+  + reports the farthest failure position for ordinary failures
+
 
 * Changes from version 1.0.0-1 to 1.1.0-1
   ---------------------------------
