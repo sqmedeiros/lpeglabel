@@ -26,7 +26,9 @@ CFLAGS = $(CWARNS) $(COPT) -std=c99 -I$(LUADIR) -fPIC
 CC = gcc
 
 FILES = lpvm.o lpcap.o lptree.o lpcode.o lpprint.o
-
+# For Windows
+windows:
+	make lpeglabel.dll "DLLFLAGS = -shared -fPIC"
 # For Linux
 linux:
 	make lpeglabel.so "DLLFLAGS = -shared -fPIC"
@@ -37,6 +39,8 @@ macosx:
 
 lpeglabel.so: $(FILES)
 	env $(CC) $(DLLFLAGS) $(FILES) -o lpeglabel.so
+lpeglabel.dll: $(FILES)
+	$(CC) $(DLLFLAGS) $(FILES) -o lpeglabel.dll $(LUADIR)/bin/lua53.dll
 
 $(FILES): makefile
 
