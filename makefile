@@ -26,9 +26,6 @@ CFLAGS = $(CWARNS) $(COPT) -std=c99 -I$(LUADIR) -fPIC
 CC = gcc
 
 FILES = lpvm.o lpcap.o lptree.o lpcode.o lpprint.o
-# For Windows
-windows:
-	make lpeglabel.dll "DLLFLAGS = -shared -fPIC"
 # For Linux
 linux:
 	make lpeglabel.so "DLLFLAGS = -shared -fPIC"
@@ -36,6 +33,10 @@ linux:
 # For Mac OS
 macosx:
 	make lpeglabel.so "DLLFLAGS = -bundle -undefined dynamic_lookup"
+
+# For Windows
+windows:
+	make lpeglabel.dll "DLLFLAGS = -shared -fPIC"
 
 lpeglabel.so: $(FILES)
 	env $(CC) $(DLLFLAGS) $(FILES) -o lpeglabel.so
