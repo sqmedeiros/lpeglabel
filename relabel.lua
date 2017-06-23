@@ -222,7 +222,7 @@ local function choicerec (...)
   local p = t[1]
   local i = 2
   while i + 1 <= n do
-    -- t[i] == nil when there are no labels
+    -- t[i] == false  when there are no labels
     p = t[i] and mm.Rec(p, t[i+1], unpack(t[i])) or mt.__add(p, t[i+1])
     i = i + 2
   end
@@ -232,7 +232,7 @@ end
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"Seq" * (S * (("//" * m.Ct(m.V"Labels")) + ("/" * m.Cc(nil)))
+            + (m.V"Seq" * (S * (("//" * m.Ct(m.V"Labels")) + ("/" * m.Cc(false)))
                                    * expect(S * m.V"Seq", "ExpPatt1")
                             )^0
               ) / choicerec);
