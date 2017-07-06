@@ -221,11 +221,6 @@ local function choicerec (...)
   local n = #t
   local p = t[1]
   local i = 2
-	--print("eu")
-	--for i, v in ipairs(t) do
-	--	print(i, v)
-	--end
-	--print"fim"
 
   while i + 2 <= n do
     -- t[i] is '/' or '//'
@@ -234,8 +229,6 @@ local function choicerec (...)
 		if t[i] == '/' then
 			if not t[i+1] then
 				p = mt.__add(p, t[i+2])
-				--print("foi aqui", t[i], t[i+1], t[i+2])
-				--p:pcode()
 			else
 				p = mm.Lc(p, t[i+2], unpack(t[i+1]))
 			end 
