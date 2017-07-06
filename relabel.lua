@@ -31,7 +31,7 @@ local errinfo = {
   {"NoPatt", "no pattern found"},
   {"ExtraChars", "unexpected characters after the pattern"},
 
-  {"ExpPatt1", "expected a pattern after '/' or '//{...}'"},
+  {"ExpPatt1", "expected a pattern after '/' and '//{...}', or the label(s) after '/{' and '//{'"},
 
   {"ExpPatt2", "expected a pattern after '&'"},
   {"ExpPatt3", "expected a pattern after '!'"},
@@ -221,10 +221,28 @@ local function choicerec (...)
   local n = #t
   local p = t[1]
   local i = 2
-  while i + 1 <= n do
-    -- t[i] == false  when there are no labels
-    p = t[i] and mm.Rec(p, t[i+1], unpack(t[i])) or mt.__add(p, t[i+1])
-    i = i + 2
+	--print("eu")
+	--for i, v in ipairs(t) do
+	--	print(i, v)
+	--end
+	--print"fim"
+
+  while i + 2 <= n do
+    -- t[i] is '/' or '//'
+    -- t[i+1] == false  when there are no labels
+		-- t[i+2] is a pattern
+		if t[i] == '/' then
+			if not t[i+1] then
+				p = mt.__add(p, t[i+2])
+				--print("foi aqui", t[i], t[i+1], t[i+2])
+				--p:pcode()
+			else
+				p = mm.Lc(p, t[i+2], unpack(t[i+1]))
+			end 
+		else -- t[i] is '//'
+				p = mm.Rec(p, t[i+2], unpack(t[i+1]))
+		end
+    i = i + 3
   end
 
   return p
@@ -232,7 +250,7 @@ end
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"Seq" * (S * (("//" * m.Ct(m.V"Labels")) + ("/" * m.Cc(false)))
+            + (m.V"Seq" * (S * ((m.C(m.P"//" + "/") * m.Ct(m.V"Labels")) + (m.C"/" * m.Cc(false)))
                                    * expect(S * m.V"Seq", "ExpPatt1")
                             )^0
               ) / choicerec);

@@ -28,7 +28,7 @@ const byte numsiblings[] = {
   0, 0, 2, 1,  /* call, opencall, rule, grammar */
   1,  /* behind */
   1, 1,  /* capture, runtime capture */
-  0, 2  /* labeled failure throw, recovery */
+  0, 2, 2  /* labeled failure throw, recovery, labeled choice */
 };
 
 
@@ -734,16 +734,28 @@ static int lp_throw (lua_State *L) {
 static int lp_recovery (lua_State *L) {
 	int n = lua_gettop(L);
 	TTree *tree = newrootlab2sib(L, TRecov);
+  int i;
   luaL_argcheck(L, n >= 3, 3, "non-nil value expected");
-  if (n == 2) {  /* catches fail as default */
-		/*setlabel(treelabelset(tree), LFAIL);  recovery does not catch regular fail */
-  } else {
-		int i;
-		for (i = 3; i <= n; i++) {
-			int d = luaL_checkinteger(L, i);
-			luaL_argcheck(L, d >= 1 && d < MAXLABELS, i, "the number of a label must be between 1 and 255");
-    	setlabel(treelabelset(tree), (byte)d);
-		}
+  for (i = 3; i <= n; i++) {
+    int d = luaL_checkinteger(L, i);
+    luaL_argcheck(L, d >= 1 && d < MAXLABELS, i, "the number of a label must be between 1 and 255");
+    setlabel(treelabelset(tree), (byte)d);
+	}
+  return 1;
+}
+
+
+/*
+** labeled choice function
+*/
+static int lp_labchoice (lua_State *L) {
+	int n = lua_gettop(L);
+	TTree *tree = newrootlab2sib(L, TLabChoice);
+	int i;
+	for (i = 3; i <= n; i++) {
+		int d = luaL_checkinteger(L, i);
+		luaL_argcheck(L, d >= 1 && d < MAXLABELS, i, "the number of a label must be between 1 and 255");
+    setlabel(treelabelset(tree), (byte)d);
 	}
   return 1;
 }
@@ -1083,7 +1095,7 @@ static int verifyrule (lua_State *L, TTree *tree, int *passed, int npassed,
         return nb;
       /* else return verifyrule(L, sib2(tree), passed, npassed, nb); */
       tree = sib2(tree); goto tailcall;
-    case TChoice:  case TRecov: /* must check both children */  /* labeled failure */
+    case TChoice: case TRecov: case TLabChoice: /* must check both children */  /* labeled failure */
       nb = verifyrule(L, sib1(tree), passed, npassed, nb);
       /* return verifyrule(L, sib2(tree), passed, npassed, nb); */
       tree = sib2(tree); goto tailcall;
@@ -1337,6 +1349,7 @@ static struct luaL_Reg pattreg[] = {
   {"type", lp_type},
   {"T", lp_throw}, /* labeled failure throw */
   {"Rec", lp_recovery}, /* labeled failure recovery */
+  {"Lc", lp_labchoice}, /* labeled failure choice */
   {NULL, NULL}
 };
 
