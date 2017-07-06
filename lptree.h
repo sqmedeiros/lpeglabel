@@ -1,5 +1,5 @@
 /*  
-** $Id: lptree.h,v 1.2 2013/03/24 13:51:12 roberto Exp $
+** $Id: lptree.h,v 1.3 2016/09/13 18:07:51 roberto Exp $
 */
 
 #if !defined(lptree_h)
@@ -13,32 +13,39 @@
 ** types of trees
 */
 typedef enum TTag {
-  TChar = 0, TSet, TAny,  /* standard PEG elements */
-  TTrue, TFalse,
-  TRep,
-  TSeq, TChoice,
-  TNot, TAnd,
-  TCall,
-  TOpenCall,
-  TRule,  /* sib1 is rule's pattern, sib2 is 'next' rule */
-  TGrammar,  /* sib1 is initial (and first) rule */
-  TBehind,  /* match behind */
-  TCapture,  /* regular capture */
-  TRunTime,  /* run-time capture */
-  TThrow, TRecov     /* labeled failure */
+  TChar = 0,  /* 'n' = char */
+  TSet,  /* the set is stored in next CHARSETSIZE bytes */
+  TAny,
+  TTrue,
+  TFalse,
+  TRep,  /* 'sib1'* */
+  TSeq,  /* 'sib1' 'sib2' */
+  TChoice,  /* 'sib1' / 'sib2' */
+  TNot,  /* !'sib1' */
+  TAnd,  /* &'sib1' */
+  TCall,  /* ktable[key] is rule's key; 'sib2' is rule being called */
+  TOpenCall,  /* ktable[key] is rule's key */
+  TRule,  /* ktable[key] is rule's key (but key == 0 for unused rules);
+             'sib1' is rule's pattern;
+             'sib2' is next rule; 'cap' is rule's sequential number */
+  TGrammar,  /* 'sib1' is initial (and first) rule */
+  TBehind,  /* 'sib1' is pattern, 'n' is how much to go back */
+  TCapture,  /* captures: 'cap' is kind of capture (enum 'CapKind');
+                ktable[key] is Lua value associated with capture;
+                'sib1' is capture body */
+  TRunTime,  /* run-time capture: 'key' is Lua function;
+               'sib1' is capture body */
+  TThrow,    /* labeled failure: 'label' = l */
+  TRecov     /* labed failure: 'sib1' // 'sib2' */
+             /* the set of labels is stored in next CHARSETSIZE bytes */
 } TTag;
-
-/* number of siblings for each tree */
-extern const byte numsiblings[];
 
 
 /*
 ** Tree trees
-** The first sibling of a tree (if there is one) is immediately after
-** the tree.  A reference to a second sibling (ps) is its position
-** relative to the position of the tree itself.  A key in ktable
-** uses the (unique) address of the original tree that created that
-** entry. NULL means no data.
+** The first child of a tree (if there is one) is immediately after
+** the tree.  A reference to a second child (ps) is its position
+** relative to the position of the tree itself.
 */
 typedef struct TTree {
   byte tag;
@@ -48,7 +55,7 @@ typedef struct TTree {
     int n;  /* occasional counter */
 		int label; /* labeled failure */
 		struct {   /* labeled failure */
-    	int ps;  /* occasional second sibling */
+    	int ps;  /* occasional second child */
 			int plab; /* occasional label set */
 		} s; /* labeled failure */
   } u;
@@ -66,10 +73,10 @@ typedef struct Pattern {
 } Pattern;
 
 
-/* number of siblings for each tree */
+/* number of children for each tree */
 extern const byte numsiblings[];
 
-/* access to siblings */
+/* access to children */
 #define sib1(t)         ((t) + 1)
 #define sib2(t)         ((t) + (t)->u.s.ps)
 

@@ -45,10 +45,10 @@ lpeglabel.dll: $(FILES)
 
 $(FILES): makefile
 
-test: test.lua testlabel.lua testerrors.lua relabel.lua lpeglabel.so
+test: test.lua testlabel.lua testrelabelparser.lua relabel.lua lpeglabel.so
 	lua test.lua
 	lua testlabel.lua
-	lua testerrors.lua
+	lua testrelabelparser.lua
 
 clean:
 	rm -f $(FILES) lpeglabel.so
