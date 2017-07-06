@@ -54,25 +54,25 @@ L1:C5: unexpected characters after the pattern
 -- testing ExpPatt1
 
 testerror([['p' //{1}]], [[
-L1:C10: expected a pattern after '/' or '//{...}'
+L1:C10: expected a pattern after '/' and '//{...}', or the label(s) after '/{' and '//{'
 'p' //{1}
          ^
 ]])
 
 testerror([['p' //{1} //{2} 'q']], [[
-L1:C10: expected a pattern after '/' or '//{...}'
+L1:C10: expected a pattern after '/' and '//{...}', or the label(s) after '/{' and '//{'
 'p' //{1} //{2} 'q'
          ^
 ]])
 
 testerror([['p' /]], [[
-L1:C6: expected a pattern after '/' or '//{...}'
+L1:C6: expected a pattern after '/' and '//{...}', or the label(s) after '/{' and '//{'
 'p' /
      ^
 ]])
 
 testerror([['p' / / 'q']], [[
-L1:C6: expected a pattern after '/' or '//{...}'
+L1:C6: expected a pattern after '/' and '//{...}', or the label(s) after '/{' and '//{'
 'p' / / 'q'
      ^
 ]])
