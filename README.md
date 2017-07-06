@@ -108,8 +108,8 @@ Returns line and column information regarding position <i>i</i> of the subject.
 #### <a name="re-setl"></a><code>relabel.setlabels (tlabel)</code>
 
 Allows to specicify a table with labels. They keys of
-`tlabel` must be integers between 1 and 255,
-and the associated values should be strings.
+`tlabel` must be strings and the associated values must
+be integers between 1 and 255.
 
 
 ### Examples
@@ -279,7 +279,7 @@ local g = m.P{
   "S",
   S = m.V"Id" * m.V"List",
   List = -m.P(1) + m.V"Comma" * m.V"Id" * m.V"List",
-  Id = m.V"Sp" * id + m.T(errId),
+  Id = m.V"Sp" * m.C(id) + m.T(errId),
   Comma = m.V"Sp" * "," + m.T(errComma),
   Sp = m.S" \n\t"^0,
 }
@@ -287,64 +287,57 @@ local g = m.P{
 local subject, errors
 
 function recorderror(pos, lab)
-  local line, col = re.calcline(subject, pos)
-  table.insert(errors, { line = line, col = col, msg = terror[lab] })
+	local line, col = re.calcline(subject, pos)
+	table.insert(errors, { line = line, col = col, msg = terror[lab] })
 end
 
 function record (lab)
-  return (m.Cp() * m.Cc(lab)) / recorderror
+	return (m.Cp() * m.Cc(lab)) / recorderror
 end
 
 function sync (p)
-  return (-p * m.P(1))^0
+	return (-p * m.P(1))^0
+end
+
+function defaultValue ()
+	return m.Cc"NONE" 
 end
 
 local grec = m.P{
   "S",
   S = m.Rec(m.Rec(g, m.V"ErrComma", errComma), m.V"ErrId", errId),
   ErrComma = record(errComma) * sync(id),
-  ErrId = record(errId) * sync(m.P",")
+	ErrId = record(errId) * sync(m.P",") * defaultValue(), 
 }
 
 
 function mymatch (g, s)
-  errors = {}
-  subject = s  
-  local r, e, sfail = g:match(s)
-  if #errors > 0 then
-    local out = {}
+	errors = {}
+	subject = s	
+	io.write("Input: ", s, "\n")
+	local r = { g:match(s) }
+	io.write("Captures (separated by ';'): ")
+	for k, v in pairs(r) do
+		io.write(v .. "; ")
+	end
+	io.write("\nSyntactic errors found: " .. #errors)
+	if #errors > 0 then
+		io.write("\n")
+		local out = {}
     for i, err in ipairs(errors) do
-      local msg = "Error at line " .. err.line .. " (col " .. err.col .. "): " .. err.msg
+    	local msg = "Error at line " .. err.line .. " (col " .. err.col .. "): " .. err.msg
       table.insert(out,  msg)
     end
-    return nil, table.concat(out, "\n") .. "\n"
+    io.write(table.concat(out, "\n"))
   end
-  return r
+	print("\n")
+	return r
 end
   
-print(mymatch(grec, "one,two"))
--- Captures (separated by ';'): one; two; 
--- Syntactic errors found: 0
-
-print(mymatch(grec, "one two three"))
--- Captures (separated by ';'): one; two; three; 
--- Syntactic errors found: 2
--- Error at line 1 (col 4): expecting ','
--- Error at line 1 (col 8): expecting ','
-
-print(mymatch(grec, "1,\n two, \n3,"))
--- Captures (separated by ';'): NONE; two; NONE; NONE; 
--- Syntactic errors found: 3
--- Error at line 1 (col 1): expecting an identifier
--- Error at line 2 (col 6): expecting an identifier
--- Error at line 3 (col 2): expecting an identifier
-
-print(mymatch(grec, "one\n two123, \nthree,"))
--- Captures (separated by ';'): one; two; three; NONE; 
--- Syntactic errors found: 3
--- Error at line 2 (col 1): expecting ','
--- Error at line 2 (col 5): expecting ','
--- Error at line 3 (col 6): expecting an identifier
+mymatch(grec, "one,two")
+mymatch(grec, "one two three")
+mymatch(grec, "1,\n two, \n3,")
+mymatch(grec, "one\n two123, \nthree,")
 ```
 
 ##### *relabel* syntax
