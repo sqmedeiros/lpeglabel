@@ -246,6 +246,27 @@ p = m.Rec(#(m.P("a") * m.T(22)), m.T(15), 22)
 r, l, serror = p:match("abc")
 assert(r == nil and l == 15 and serror == "bc")
 
+p = m.Lc(#m.T(22), m.P"a", 22)
+assert(p:match("abc") == 2)
+
+p = #m.Lc(m.T(22), m.P"a", 22)
+assert(p:match("abc") == 1)
+
+p = m.Lc(m.T(22), #m.P"a", 22)
+assert(p:match("abc") == 1)
+
+p = m.Lc(#m.T(22), m.P"a", 22)
+r, l, serror = p:match("bbc")
+assert(r == nil and l == 0 and serror == "bbc")
+
+p = m.Lc(#m.P("a") * m.T(22), m.T(15), 22)
+r, l, serror = p:match("abc")
+assert(r == nil and l == 15 and serror == "abc")
+
+p = m.Lc(#(m.P("a") * m.T(22)), m.T(15), 22)
+r, l, serror = p:match("abc")
+assert(r == nil and l == 15 and serror == "abc")
+
 
 
 -- tests related to repetition
@@ -260,11 +281,21 @@ assert(r == nil and l == 1 and serror == "")
 
 -- Bug reported by Matthew Allen
 -- some optmizations performed by LPeg should not be
--- applied in case of labeled choices
+-- applied in case of labels
+
+-- recovery operator
 p = m.Rec(m.P"A", m.P(true), 1) + m.P("B")
 assert(p:match("B") == 2)
 
 p = m.Rec(m.P"A", m.P(false), 1) + m.P("B")
+assert(p:match("B") == 2)
+
+
+-- labeled choices
+p = m.Lc(m.P"A", m.P(true), 1) + m.P("B")
+assert(p:match("B") == 2)
+
+p = m.Lc(m.P"A", m.P(false), 1) + m.P("B")
 assert(p:match("B") == 2)
 
 
@@ -314,6 +345,53 @@ assert(p:match("abc") == 2)
 r, l, serror = p:match("")
 assert(r == nil and l == 0 and serror == "")
 
+-- labeled choice
+--[[
+S -> A /{1} 'a'
+A -> B
+B -> %1
+]]
+g = m.P{
+	"S",
+	S = m.Lc(m.V"A", m.P"a", 1),
+	A = m.V"B",
+	B = m.T(1),
+}
+assert(g:match("ab") == 2)
+r, l, serror = g:match("bc")
+assert(r == nil and l == 0 and serror == "bc")
+
+
+--[[
+S -> A 
+A -> (B (';' / %{1}))*
+B -> 'a'
+]]
+g = m.P{
+	"S",
+	S = m.V"A",
+	A = m.P(m.V"B" * (";" + m.T(1)))^0,
+	B = m.P'a',
+}
+assert(g:match("a;a;") == 5)
+
+r, l, serror = g:match("a;a")
+assert(r == nil and l == 1 and serror == "")
+
+
+-- %1 /{1,3} %2 /{2} 'a'
+p = m.Lc(m.Lc(m.T(1), m.T(2), 1, 3), m.P"a", 2)
+assert(p:match("abc") == 2)
+
+r, l, serror = p:match("")
+assert(r == nil and l == 0 and serror == "")
+
+p = m.Lc(m.T(1), m.Lc(m.T(2), m.P"a", 2), 1, 3)
+assert(p:match("abc") == 2)
+
+r, l, serror = p:match("")
+assert(r == nil and l == 0 and serror == "")
+
 
 -- Infinte Loop TODO: check the semantics
 -- %1 //{1} %1 
@@ -343,6 +421,15 @@ local r = pcall(m.Rec, m.P"b", m.P"a", 256)
 assert(r == false)
 
 local r = pcall(m.Rec, m.P"b", m.P"a", -1)
+assert(r == false)
+
+local r = pcall(m.Lc, m.P"b", m.P"a", 0)
+assert(r == false)
+
+local r = pcall(m.Lc, m.P"b", m.P"a", 256)
+assert(r == false)
+
+local r = pcall(m.Lc, m.P"b", m.P"a", -1)
 assert(r == false)
 
 local r = pcall(m.T, 0)
@@ -468,7 +555,7 @@ r, l, serror = g:match("g")
 assert(r == nil and l == 0 and serror == "g")
 
 
---[[ grammar based on Figure 8 of paper submitted to SCP
+--[[ grammar based on Figure 8 of paper submitted to SCP (using the recovery operator)
 S  -> S0 //{1} ID //{2} ID '=' Exp //{3} 'unsigned'* 'int' ID //{4} 'unsigned'* ID ID / %error
 S0 -> S1 / S2 / &'int' %3
 S1 -> &(ID '=') %2  /  &(ID !.) %1  /  &ID %4
@@ -480,6 +567,135 @@ g = re.compile([[
   S0 <- S1 / S2 / &Int %{3}
   S1 <- &(ID %s* '=') %{2} / &(ID !.) %{1} / &ID %{4}
   S2 <- &(U+ ID) %{4} / &(U+ Int) %{3}
+  ID <- %s* 'a' 
+  U <- %s* 'unsigned'
+  Int <- %s* 'int'
+  Exp <- %s* 'E'
+]])
+
+local s = "a"
+assert(g:match(s) == #s + 1) --1
+s = "a = E"
+assert(g:match(s) == #s + 1) --2
+s = "int a"
+assert(g:match(s) == #s + 1) --3
+s = "unsigned int a"
+assert(g:match(s) == #s + 1) --3
+s = "unsigned a a"
+assert(g:match(s) == #s + 1) --4
+s = "b" 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
+s = "unsigned" 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
+s = "unsigned a" 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
+s = "unsigned int" 
+r, l, serror = g:match(s)
+assert(r == nil and l == 5 and serror == s)
+
+
+------------------------------------------
+-- Tests related to labeled ordered choice
+------------------------------------------
+
+-- throws a label that is not caught by labeled choice
+s = "abc"
+p = m.Lc(m.T(2), m.P"a", 1, 3)
+r, l, serror = p:match(s)
+assert(r == nil and l == 2 and serror == "abc")
+
+-- modifies previous pattern
+-- adds another labeled choice to catch label "2"
+p = m.Lc(p, m.P"a", 2)
+assert(p:match(s) == 2)
+
+-- throws a label that is caught by labeled choice
+p = m.Lc(m.T(25), m.P"a", 25)
+assert(p:match(s) == 2)
+
+-- "fail" is label "0"
+-- throws the "fail" label that is not caught by the labeled choice
+s = "bola"
+r, l, serror = p:match("bola")
+assert(r == nil and l == 0 and serror == "bola")
+
+-- labeled choice does not catch "fail"
+p = m.Lc(m.P"b", m.P"a", 1)
+
+r, l, serror = p:match("abc") 
+assert(r == nil and l == 0 and serror == "abc")
+assert(p:match("bola") == 2)
+
+-- labeled choice catches "1" or "3"
+p = m.Lc(-m.P"a" * m.T(1) + m.P"a" * m.T(3), m.P"a" + m.P"b", 1, 3)
+assert(p:match("abc") == 2)
+assert(p:match("bac") == 2)
+
+-- associativity
+-- (p1 / %1) /{1} (p2 / %2) /{2} p3
+-- left-associativity
+-- ("a" /{1}  "b") /{2} "c"
+p = m.Lc(m.Lc(m.P"a" + m.T(1), m.P"b" + m.T(2), 1), m.P"c", 2)
+assert(p:match("abc") == 2)
+assert(p:match("bac") == 2)
+assert(p:match("cab") == 2)
+r, l, serror = p:match("dab")
+assert(r == nil and l == 0 and serror == "dab")
+
+
+-- righ-associativity
+-- "a" /{1}  ("b" /{2} "c")
+p = m.Lc(m.P"a" + m.T(1), m.Lc(m.P"b" + m.T(2), m.P"c", 2), 1)
+assert(p:match("abc") == 2)
+assert(p:match("bac") == 2)
+assert(p:match("cab") == 2)
+r, l, serror = p:match("dab")
+assert(r == nil and l == 0 and serror == "dab")
+
+
+-- associativity -> in this case the error thrown by p1 is only
+--                  recovered when we have a left-associative operator
+-- (p1 / %2) /{1} (p2 / %2) /{2} p3
+-- left-associativity
+-- ("a" /{1}  "b") /{2} "c"
+p = m.Lc(m.Lc(m.P"a" + m.T(2), m.P"b" + m.T(2), 1), m.P"c", 2)
+assert(p:match("abc") == 2)
+r, l, serror = p:match("bac")
+assert(r == nil and l == 0 and serror == "bac")
+assert(p:match("cab") == 2)
+r, l, serror = p:match("dab")
+assert(r == nil and l == 0 and serror == "dab")
+
+
+-- righ-associativity
+-- "a" /{1}  ("b" /{2} "c")
+p = m.Lc(m.P"a" + m.T(2), m.Lc(m.P"b" + m.T(2), m.P"c", 2), 1)
+assert(p:match("abc") == 2)
+r, l, serror = p:match("bac")
+assert(r == nil and l == 2 and serror == "bac")
+r, l, serror = p:match("cab")
+assert(r == nil and l == 2 and serror == "cab")
+r, l, serror = p:match("dab")
+assert(r == nil and l == 2 and serror == "dab")
+
+
+
+--[[ grammar based on Figure 8 of paper submitted to SCP (using labeled choice)
+S  -> S0 /{1} ID /{2} ID '=' Exp /{3} 'unsigned'* 'int' ID /{4} 'unsigned'* ID ID / %error
+S0 -> ID S1 / 'unsigned' S2 / 'int' %3
+S1 -> '=' %2  /  !. %1  /  ID %4
+S2 -> 'unsigned' S2  /  ID %4  /  'int' %3 
+]]
+
+
+g = re.compile([[
+	S <- S0 /{1} ID /{2} ID %s* '=' Exp /{3} U* Int ID /{4} U ID ID / %{5}
+  S0 <- ID S1 / U S2 / Int %{3}
+  S1 <- %s* '=' %{2} / !. %{1} / ID %{4}
+  S2 <- U S2 / ID %{4} / Int %{3}
   ID <- %s* 'a' 
   U <- %s* 'unsigned'
   Int <- %s* 'int'
@@ -861,29 +1077,29 @@ local function eval(input)
   end
 end
 
-print(eval "98-76*(54/32)")
+assert(eval "98-76*(54/32)" == 37.125)
 --> 37.125
 
-print(eval "(1+1-1*2/2")
---> syntax error: missing a closing ')' after the expression (at index 11)
+local e, msg = eval "(1+1-1*2/2"
+assert(e == nil and msg == "syntax error: missing a closing ')' after the expression (at index 11)")
 
-print(eval "(1+)-1*(2/2)")
---> syntax error: expected a term after the operator (at index 4)
+e, msg = eval "(1+)-1*(2/2)"
+assert(e == nil and msg == "syntax error: expected a term after the operator (at index 4)")
 
-print(eval "(1+1)-1*(/2)")
---> syntax error: expected an expression after the parenthesis (at index 10)
+e, msg = eval "(1+1)-1*(/2)"
+assert(e == nil and msg == "syntax error: expected an expression after the parenthesis (at index 10)")
 
-print(eval "1+(1-(1*2))/2x")
---> syntax error: extra chracters found after the expression (at index 14)
+e, msg = eval "1+(1-(1*2))/2x"
+assert(e == nil and msg == "syntax error: extra characters found after the expression (at index 14)")
 
-print(eval "-1+(1-(1*2))/2")
---> syntax error: no expression found (at index 1)
+e, msg = eval "-1+(1-(1*2))/2"
+assert(e == nil and msg == "syntax error: no expression found (at index 1)")
 
-print(eval "(1+1-1*(2/2+)-():")
---> syntax error: expected a term after the operator (at index 13)
---> syntax error: expected an expression after the parenthesis (at index 16)
---> syntax error: missing a closing ')' after the expression (at index 17)
---> syntax error: extra characters found after the expression (at index 
+e, msg = eval "(1+1-1*(2/2+)-():"
+assert(e == nil and msg == "syntax error: expected a term after the operator (at index 13)\n" ..
+                           "syntax error: expected an expression after the parenthesis (at index 16)\n" ..
+                           "syntax error: missing a closing ')' after the expression (at index 17)\n" ..
+                           "syntax error: extra characters found after the expression (at index 17)")
 
 
 print("+")
