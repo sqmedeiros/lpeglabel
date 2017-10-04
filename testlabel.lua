@@ -1,6 +1,6 @@
 local m = require 'lpeglabel'
 
-local p, r, l, s, serror
+local p, r, l, s, poserr
 
 local function checklabeq (x, ...)
   y = { ... }
@@ -27,52 +27,52 @@ end
 p = m.P"a"^0 * m.P"b" + m.P"c"
 checklabeq({4, nil, nil}, p:match("aabk"))
 checklabeq({2, nil, nil}, p:match("ck"))
-checklabeq({nil, 0, "dk"}, p:match("dk"))
-checklabeq({nil, 0, "k"}, p:match("aak"))
+checklabeq({nil, 0, 1}, p:match("dk"))
+checklabeq({nil, 0, 3}, p:match("aak"))
 
 p = (m.P"a" + m.P"c")^0 * m.P"b" + m.P"c"
 checklabeq({4, nil, nil}, p:match("aabk"))
 checklabeq({2, nil, nil}, p:match("ck"))
-checklabeq({nil, 0, "dk"}, p:match("dk"))
-checklabeq({nil, 0, "k"}, p:match("aak"))
+checklabeq({nil, 0, 1}, p:match("dk"))
+checklabeq({nil, 0, 3}, p:match("aak"))
 
 p = m.P"a"^0 * m.P"b" + m.P(1)^0 * m.P(1)
 checklabeq({4, nil, nil}, p:match("aabk"))
-checklabeq({nil, 0, ""}, p:match("ck"))
-checklabeq({nil, 0, ""}, p:match("aak"))
+checklabeq({nil, 0, 3}, p:match("ck"))
+checklabeq({nil, 0, 4}, p:match("aak"))
 
 p = m.P(1) * m.P"a" + m.P"c" 
 checklabeq({3, nil, nil}, p:match("bac"))
 checklabeq({2, nil, nil}, p:match("c"))
-checklabeq({nil, 0, ""}, p:match("x"))
-checklabeq({nil, 0, "x"}, p:match("kx"))
+checklabeq({nil, 0, 2}, p:match("x"))
+checklabeq({nil, 0, 2}, p:match("kx"))
 
 p = m.P"a"^0 * m.P(1) * m.P(1) + m.P"a"^0 * m.P"c"
 checklabeq({5, nil, nil}, p:match("aabc"))
 checklabeq({4, nil, nil}, p:match("aac"))
-checklabeq({nil, 0, ""}, p:match("aak"))
-checklabeq({nil, 0, ""}, p:match("x"))
+checklabeq({nil, 0, 4}, p:match("aak"))
+checklabeq({nil, 0, 2}, p:match("x"))
 
 p = m.P"a"^0 * m.P(1) * m.P(1) + m.P"a"^0 * m.P"c"
 checklabeq({5, nil, nil}, p:match("aabc"))
 checklabeq({4, nil, nil}, p:match("aac"))
-checklabeq({nil, 0, ""}, p:match("aak"))
-checklabeq({nil, 0, ""}, p:match("x"))
+checklabeq({nil, 0, 4}, p:match("aak"))
+checklabeq({nil, 0, 2}, p:match("x"))
 
 p = m.Cmt(m.P"a"^0, function() return nil end) + m.P"x"
 checklabeq({2, nil, nil}, p:match("xabc"))
-checklabeq({nil, 0, "c"}, p:match("aac"))
-checklabeq({nil, 0, "kx"}, p:match("kx"))
+checklabeq({nil, 0, 3}, p:match("aac"))
+checklabeq({nil, 0, 1}, p:match("kx"))
 
 p = m.P"b" * -m.P"a" + m.P"c"
-checklabeq({nil, 0, "a"}, p:match("ba"))
-checklabeq({nil, 0, "kx"}, p:match("kx"))
+checklabeq({nil, 0, 2}, p:match("ba"))
+checklabeq({nil, 0, 1}, p:match("kx"))
 
 p = (m.P"c" + m.P"a") * m.P("b" + m.P"d") + m.P"xxx"
-checklabeq({nil, 0, "kk"}, p:match("kk"))
-checklabeq({nil, 0, "k"}, p:match("ak"))
-checklabeq({nil, 0, "y"}, p:match("xxy"))
-checklabeq({nil, 0, "yz"}, p:match("xyz"))
+checklabeq({nil, 0, 1}, p:match("kk"))
+checklabeq({nil, 0, 2}, p:match("ak"))
+checklabeq({nil, 0, 3}, p:match("xxy"))
+checklabeq({nil, 0, 2}, p:match("xyz"))
 
 print"+"
 
@@ -80,13 +80,13 @@ print"+"
 -- throws a label 
 p = m.T(1)
 s = "abc"
-r, l, serror = p:match(s) 
-assert(r == nil and l == 1 and serror == "abc")
+r, l, poserr = p:match(s) 
+assert(r == nil and l == 1 and poserr == 1)
 
 -- throws a label, choice does not catch labels
 p = m.T(1) + m.P"a"
-r, l, serror = p:match(s)
-assert(r == nil and l == 1 and serror == "abc")
+r, l, poserr = p:match(s)
+assert(r == nil and l == 1 and poserr == 1)
 
 -- again throws a label that is not caught by choice
 local g = m.P{
@@ -95,22 +95,22 @@ local g = m.P{
   A = m.T(1),
   B = m.P"a"
 }
-r, l, serror = g:match(s)
-assert(r == nil and l == 1 and serror == "abc")
+r, l, poserr = g:match(s)
+assert(r == nil and l == 1 and poserr == 1)
 
 -- throws a label in a position that is not the farthest one
 -- but it is the position that should be reported
 p = m.P(1) * m.P"a" + m.T(11) 
 checklabeq({3, nil, nil}, p:match("bac"))
-checklabeq({nil, 11, "c"}, p:match("c"))
-checklabeq({nil, 11, "x"}, p:match("x"))
-checklabeq({nil, 11, "kx"}, p:match("kx"))
+checklabeq({nil, 11, 1}, p:match("c"))
+checklabeq({nil, 11, 1}, p:match("x"))
+checklabeq({nil, 11, 1}, p:match("kx"))
 
 
 -- throws a label that is not caught by the recovery operator
 p = m.Rec(m.T(2), m.P"a", 1, 3)
-r, l, serror = p:match(s)
-assert(r == nil and l == 2 and serror == "abc")
+r, l, poserr = p:match(s)
+assert(r == nil and l == 2 and poserr == 1)
 
 -- wraps the previous pattern with a recovery that catches label "2"
 p = m.Rec(p, m.P"a", 2)
@@ -123,14 +123,14 @@ assert(p:match(s) == 2)
 -- "fail" is label "0"
 -- throws the "fail" label after the recovery
 s = "bola"
-r, l, serror = p:match("bola")
-assert(r == nil and l == 0 and serror == "bola")
+r, l, poserr = p:match("bola")
+assert(r == nil and l == 0 and poserr == 1)
 
 -- Recovery does not catch "fail" by default
 p = m.Rec(m.P"b", m.P"a", 1)
 
-r, l, serror = p:match("abc") 
-assert(r == nil and l == 0 and serror == "abc")
+r, l, poserr = p:match("abc") 
+assert(r == nil and l == 0 and poserr == 1)
 
 assert(p:match("bola") == 2)
 
@@ -139,14 +139,14 @@ assert(p:match("bola") == 2)
 p = m.Rec((m.P"a" + m.T(1)) * m.T(3), (m.P"a" + m.P"b"), 1, 3)
 assert(p:match("aac") == 3)
 assert(p:match("abc") == 3)
-r, l, serror = p:match("acc")
-assert(r == nil and l == 0 and serror == "cc")
+r, l, poserr = p:match("acc")
+assert(r == nil and l == 0 and poserr == 2)
 
 --throws 1, recovery pattern matches 'b', throw 3, and rec pat mathces 'a'
 assert(p:match("bac") == 3)
 
-r, l, serror = p:match("cab")
-assert(r == nil and l == 0 and serror == "cab")
+r, l, poserr = p:match("cab")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 -- associativity
@@ -157,8 +157,8 @@ p = m.Rec(m.Rec(m.P"a" + m.T(1), m.P"b" + m.T(2), 1), m.P"c", 2)
 assert(p:match("abc") == 2)
 assert(p:match("bac") == 2)
 assert(p:match("cab") == 2)
-r, l, serror = p:match("dab")
-assert(r == nil and l == 0 and serror == "dab")
+r, l, poserr = p:match("dab")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 -- righ-associativity
@@ -167,8 +167,8 @@ p = m.Rec(m.P"a" + m.T(1), m.Rec(m.P"b" + m.T(2), m.P"c", 2), 1)
 assert(p:match("abc") == 2)
 assert(p:match("bac") == 2)
 assert(p:match("cab") == 2)
-r, l, serror = p:match("dab")
-assert(r == nil and l == 0 and serror == "dab")
+r, l, poserr = p:match("dab")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 -- associativity -> in this case the error thrown by p1 is only
@@ -178,50 +178,50 @@ assert(r == nil and l == 0 and serror == "dab")
 -- ("a" //{1}  "b") //{2} "c"
 p = m.Rec(m.Rec(m.P"a" + m.T(2), m.P"b" + m.T(2), 1), m.P"c", 2)
 assert(p:match("abc") == 2)
-r, l, serror = p:match("bac")
-assert(r == nil and l == 0 and serror == "bac")
+r, l, poserr = p:match("bac")
+assert(r == nil and l == 0 and poserr == 1)
 assert(p:match("cab") == 2)
-r, l, serror = p:match("dab")
-assert(r == nil and l == 0 and serror == "dab")
+r, l, poserr = p:match("dab")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 -- righ-associativity
 -- "a" //{1}  ("b" //{2} "c")
 p = m.Rec(m.P"a" + m.T(2), m.Rec(m.P"b" + m.T(2), m.P"c", 2), 1)
 assert(p:match("abc") == 2)
-r, l, serror = p:match("bac")
-assert(r == nil and l == 2 and serror == "bac")
-r, l, serror = p:match("cab")
-assert(r == nil and l == 2 and serror == "cab")
-r, l, serror = p:match("dab")
-assert(r == nil and l == 2 and serror == "dab")
+r, l, poserr = p:match("bac")
+assert(r == nil and l == 2 and poserr == 1)
+r, l, poserr = p:match("cab")
+assert(r == nil and l == 2 and poserr == 1)
+r, l, poserr = p:match("dab")
+assert(r == nil and l == 2 and poserr == 1)
 
 
 
 -- tests related to predicates
 p = #m.T(1) + m.P"a"
-r, l, serror = p:match("abc")
-assert(r == nil and l == 1 and serror == "abc")
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 1 and poserr == 1)
 
 p = ##m.T(1) + m.P"a"
-r, l, serror = p:match("abc")
-assert(r == nil and l == 1 and serror == "abc")
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 1 and poserr == 1)
 
 p = -m.T(1) * m.P"a"
-r, l, serror = p:match("abc")
-assert(r == nil and l == 1 and serror == "abc")
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 1 and poserr == 1)
 
 p = -m.T(1) * m.P"a"
-r, l, serror = p:match("bbc")
-assert(r == nil and l == 1 and serror == "bbc")
+r, l, poserr = p:match("bbc")
+assert(r == nil and l == 1 and poserr == 1)
 
 p = -(-m.T(1)) * m.P"a"
-r, l, serror = p:match("abc")
-assert(r == nil and l == 1 and serror == "abc")
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 1 and poserr == 1)
 
 p = m.Rec(-m.T(22), m.P"a", 22)
-r, l, serror = p:match("abc")
-assert(r == nil and l == 0 and serror == "bc")
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 0 and poserr == 2)
 
 assert(p:match("bbc") == 1)
 
@@ -235,16 +235,16 @@ p = m.Rec(m.T(22), #m.P"a", 22)
 assert(p:match("abc") == 1)
 
 p = m.Rec(#m.T(22), m.P"a", 22)
-r, l, serror = p:match("bbc")
-assert(r == nil and l == 0 and serror == "bbc")
+r, l, poserr = p:match("bbc")
+assert(r == nil and l == 0 and poserr == 1)
 
 p = m.Rec(#m.P("a") * m.T(22), m.T(15), 22)
-r, l, serror = p:match("abc")
-assert(r == nil and l == 15 and serror == "abc")
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 15 and poserr == 1)
 
 p = m.Rec(#(m.P("a") * m.T(22)), m.T(15), 22)
-r, l, serror = p:match("abc")
-assert(r == nil and l == 15 and serror == "bc")
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 15 and poserr == 2)
 
 p = m.Lc(#m.T(22), m.P"a", 22)
 assert(p:match("abc") == 2)
@@ -256,27 +256,27 @@ p = m.Lc(m.T(22), #m.P"a", 22)
 assert(p:match("abc") == 1)
 
 p = m.Lc(#m.T(22), m.P"a", 22)
-r, l, serror = p:match("bbc")
-assert(r == nil and l == 0 and serror == "bbc")
+r, l, poserr = p:match("bbc")
+assert(r == nil and l == 0 and poserr == 1)
 
 p = m.Lc(#m.P("a") * m.T(22), m.T(15), 22)
-r, l, serror = p:match("abc")
-assert(r == nil and l == 15 and serror == "abc")
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 15 and poserr == 1)
 
 p = m.Lc(#(m.P("a") * m.T(22)), m.T(15), 22)
-r, l, serror = p:match("abc")
-assert(r == nil and l == 15 and serror == "abc")
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 15 and poserr == 1)
 
 
 
 -- tests related to repetition
 p = m.T(1)^0
-r, l, serror = p:match("ab")
-assert(r == nil and l == 1 and serror == "ab")
+r, l, poserr = p:match("ab")
+assert(r == nil and l == 1 and poserr == 1)
 
 p = (m.P"a" + m.T(1))^0
-r, l, serror = p:match("aa")
-assert(r == nil and l == 1 and serror == "")
+r, l, poserr = p:match("aa")
+assert(r == nil and l == 1 and poserr == 3)
 
 
 -- Bug reported by Matthew Allen
@@ -311,8 +311,8 @@ g = m.P{
   B = m.T(1),
 }
 assert(g:match("ab") == 2)
-r, l, serror = g:match("bc")
-assert(r == nil and l == 0 and serror == "bc")
+r, l, poserr = g:match("bc")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 --[[
@@ -328,22 +328,22 @@ g = m.P{
 }
 assert(g:match("a;a;") == 5)
 
-r, l, serror = g:match("a;a")
-assert(r == nil and l == 1 and serror == "")
+r, l, poserr = g:match("a;a")
+assert(r == nil and l == 1 and poserr == 4)
 
 
 -- %1 //{1,3} %2 //{2} 'a'
 p = m.Rec(m.Rec(m.T(1), m.T(2), 1, 3), m.P"a", 2)
 assert(p:match("abc") == 2)
 
-r, l, serror = p:match("")
-assert(r == nil and l == 0 and serror == "")
+r, l, poserr = p:match("")
+assert(r == nil and l == 0 and poserr == 1)
 
 p = m.Rec(m.T(1), m.Rec(m.T(2), m.P"a", 2), 1, 3)
 assert(p:match("abc") == 2)
 
-r, l, serror = p:match("")
-assert(r == nil and l == 0 and serror == "")
+r, l, poserr = p:match("")
+assert(r == nil and l == 0 and poserr == 1)
 
 -- labeled choice
 --[[
@@ -358,8 +358,8 @@ g = m.P{
 	B = m.T(1),
 }
 assert(g:match("ab") == 2)
-r, l, serror = g:match("bc")
-assert(r == nil and l == 0 and serror == "bc")
+r, l, poserr = g:match("bc")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 --[[
@@ -375,37 +375,37 @@ g = m.P{
 }
 assert(g:match("a;a;") == 5)
 
-r, l, serror = g:match("a;a")
-assert(r == nil and l == 1 and serror == "")
+r, l, poserr = g:match("a;a")
+assert(r == nil and l == 1 and poserr == 4)
 
 
 -- %1 /{1,3} %2 /{2} 'a'
 p = m.Lc(m.Lc(m.T(1), m.T(2), 1, 3), m.P"a", 2)
 assert(p:match("abc") == 2)
 
-r, l, serror = p:match("")
-assert(r == nil and l == 0 and serror == "")
+r, l, poserr = p:match("")
+assert(r == nil and l == 0 and poserr == 1)
 
 p = m.Lc(m.T(1), m.Lc(m.T(2), m.P"a", 2), 1, 3)
 assert(p:match("abc") == 2)
 
-r, l, serror = p:match("")
-assert(r == nil and l == 0 and serror == "")
+r, l, poserr = p:match("")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 -- Infinte Loop TODO: check the semantics
 -- %1 //{1} %1 
 p = m.Rec(m.T(1), m.T(1), 1)
---r, l, serror = p:match("ab")
---assert(r == nil and l == 1 and serror == "ab")
+--r, l, poserr = p:match("ab")
+--assert(r == nil and l == 1 and poserr == "ab")
 
 -- %1 //{1} 'a' (!. / %1) 
 p = m.Rec(m.T(1), m.P"a" * (-m.P(1) + m.T(1)), 1)
-r, l, serror = p:match("ab")
-assert(r == nil and l == 0 and serror == "b")
+r, l, poserr = p:match("ab")
+assert(r == nil and l == 0 and poserr == 2)
 
-r, l, serror = p:match("cd")
-assert(r == nil and l == 0 and serror == "cd")
+r, l, poserr = p:match("cd")
+assert(r == nil and l == 0 and poserr == 1)
 
 -- %1 //{1} . (!. / %1) 
 p = m.Rec(m.T(1), m.P(1) * (-m.P(1) + m.T(1)), 1)
@@ -447,8 +447,8 @@ assert(p:match("a") == 2)
 
 p = m.T(255)
 s = "abc"
-r, l, serror = p:match(s) 
-assert(r == nil and l == 255 and serror == "abc")
+r, l, poserr = p:match(s) 
+assert(r == nil and l == 255 and poserr == 1)
 
 
 
@@ -496,20 +496,20 @@ s = "unsigned a a"
 assert(g:match(s) == #s + 1) --4
 
 s = "b" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == "b")
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 
 s = "unsigned" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 
 s = "unsigned a" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 
 s = "unsigned int" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 
 
 print("+")
@@ -520,39 +520,39 @@ local re = require 'relabel'
 g = re.compile[['a' //{4,9} [a-z]
 ]]
 assert(g:match("a") == 2)
-r, l, serror = g:match("b")
-assert(r == nil and l == 0 and serror == "b")
+r, l, poserr = g:match("b")
+assert(r == nil and l == 0 and poserr == 1)
 
 g = re.compile[['a' //{4,9} [a-f] //{5, 7} [a-z]
 ]]
 assert(g:match("a") == 2)
-r, l, serror = g:match("b")
-assert(r == nil and l == 0 and serror == "b")
+r, l, poserr = g:match("b")
+assert(r == nil and l == 0 and poserr == 1)
 
 g = re.compile[[%{1} //{4,9} [a-z]
 ]]
-r, l, serror = g:match("a")
-assert(r == nil and l == 1 and serror == "a")
+r, l, poserr = g:match("a")
+assert(r == nil and l == 1 and poserr == 1)
 
 
 g = re.compile[[%{1} //{4,1} [a-f]
 ]]
 assert(g:match("a") == 2)
-r, l, serror = g:match("h")
-assert(r == nil and l == 0 and serror == "h")
+r, l, poserr = g:match("h")
+assert(r == nil and l == 0 and poserr == 1)
 
 g = re.compile[[[a-f]%{9} //{4,9} [a-c]%{7} //{5, 7} [a-z] ]]
-r, l, serror = g:match("a")
-assert(r == nil and l == 0 and serror == "")
-r, l, serror = g:match("aa")
-assert(r == nil and l == 0 and serror == "")
+r, l, poserr = g:match("a")
+assert(r == nil and l == 0 and poserr == 2)
+r, l, poserr = g:match("aa")
+assert(r == nil and l == 0 and poserr == 3)
 assert(g:match("aaa") == 4)
 
-r, l, serror = g:match("ad")
-assert(r == nil and l == 0 and serror == "d")
+r, l, poserr = g:match("ad")
+assert(r == nil and l == 0 and poserr == 2)
 
-r, l, serror = g:match("g")
-assert(r == nil and l == 0 and serror == "g")
+r, l, poserr = g:match("g")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 --[[ grammar based on Figure 8 of paper submitted to SCP (using the recovery operator)
@@ -584,17 +584,17 @@ assert(g:match(s) == #s + 1) --3
 s = "unsigned a a"
 assert(g:match(s) == #s + 1) --4
 s = "b" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 s = "unsigned" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 s = "unsigned a" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 s = "unsigned int" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 
 
 ------------------------------------------
@@ -604,8 +604,8 @@ assert(r == nil and l == 5 and serror == s)
 -- throws a label that is not caught by labeled choice
 s = "abc"
 p = m.Lc(m.T(2), m.P"a", 1, 3)
-r, l, serror = p:match(s)
-assert(r == nil and l == 2 and serror == "abc")
+r, l, poserr = p:match(s)
+assert(r == nil and l == 2 and poserr == 1)
 
 -- modifies previous pattern
 -- adds another labeled choice to catch label "2"
@@ -619,14 +619,14 @@ assert(p:match(s) == 2)
 -- "fail" is label "0"
 -- throws the "fail" label that is not caught by the labeled choice
 s = "bola"
-r, l, serror = p:match("bola")
-assert(r == nil and l == 0 and serror == "bola")
+r, l, poserr = p:match("bola")
+assert(r == nil and l == 0 and poserr == 1)
 
 -- labeled choice does not catch "fail"
 p = m.Lc(m.P"b", m.P"a", 1)
 
-r, l, serror = p:match("abc") 
-assert(r == nil and l == 0 and serror == "abc")
+r, l, poserr = p:match("abc") 
+assert(r == nil and l == 0 and poserr == 1)
 assert(p:match("bola") == 2)
 
 -- labeled choice catches "1" or "3"
@@ -642,8 +642,8 @@ p = m.Lc(m.Lc(m.P"a" + m.T(1), m.P"b" + m.T(2), 1), m.P"c", 2)
 assert(p:match("abc") == 2)
 assert(p:match("bac") == 2)
 assert(p:match("cab") == 2)
-r, l, serror = p:match("dab")
-assert(r == nil and l == 0 and serror == "dab")
+r, l, poserr = p:match("dab")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 -- righ-associativity
@@ -652,8 +652,8 @@ p = m.Lc(m.P"a" + m.T(1), m.Lc(m.P"b" + m.T(2), m.P"c", 2), 1)
 assert(p:match("abc") == 2)
 assert(p:match("bac") == 2)
 assert(p:match("cab") == 2)
-r, l, serror = p:match("dab")
-assert(r == nil and l == 0 and serror == "dab")
+r, l, poserr = p:match("dab")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 -- associativity -> in this case the error thrown by p1 is only
@@ -663,23 +663,23 @@ assert(r == nil and l == 0 and serror == "dab")
 -- ("a" /{1}  "b") /{2} "c"
 p = m.Lc(m.Lc(m.P"a" + m.T(2), m.P"b" + m.T(2), 1), m.P"c", 2)
 assert(p:match("abc") == 2)
-r, l, serror = p:match("bac")
-assert(r == nil and l == 0 and serror == "bac")
+r, l, poserr = p:match("bac")
+assert(r == nil and l == 0 and poserr == 1)
 assert(p:match("cab") == 2)
-r, l, serror = p:match("dab")
-assert(r == nil and l == 0 and serror == "dab")
+r, l, poserr = p:match("dab")
+assert(r == nil and l == 0 and poserr == 1)
 
 
 -- righ-associativity
 -- "a" /{1}  ("b" /{2} "c")
 p = m.Lc(m.P"a" + m.T(2), m.Lc(m.P"b" + m.T(2), m.P"c", 2), 1)
 assert(p:match("abc") == 2)
-r, l, serror = p:match("bac")
-assert(r == nil and l == 2 and serror == "bac")
-r, l, serror = p:match("cab")
-assert(r == nil and l == 2 and serror == "cab")
-r, l, serror = p:match("dab")
-assert(r == nil and l == 2 and serror == "dab")
+r, l, poserr = p:match("bac")
+assert(r == nil and l == 2 and poserr == 1)
+r, l, poserr = p:match("cab")
+assert(r == nil and l == 2 and poserr == 1)
+r, l, poserr = p:match("dab")
+assert(r == nil and l == 2 and poserr == 1)
 
 
 
@@ -713,17 +713,17 @@ assert(g:match(s) == #s + 1) --3
 s = "unsigned a a"
 assert(g:match(s) == #s + 1) --4
 s = "b" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 s = "unsigned" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 s = "unsigned a" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 s = "unsigned int" 
-r, l, serror = g:match(s)
-assert(r == nil and l == 5 and serror == s)
+r, l, poserr = g:match(s)
+assert(r == nil and l == 5 and poserr == 1)
 
 
 
@@ -933,15 +933,15 @@ print("+")
 
 p = m.Rec("a", "b", 3) 
 assert(p:match("a") == 2)
-checklabeq({nil, 0, "b"}, p:match("b"))
-checklabeq({nil, 0, "c"}, p:match("c"))
+checklabeq({nil, 0, 1}, p:match("b"))
+checklabeq({nil, 0, 1}, p:match("c"))
 
 p = m.Rec(m.T(3), "b", 1) 
-checklabeq({nil, 3, "a"}, p:match("a"))
-checklabeq({nil, 3, "b"}, p:match("b"))
+checklabeq({nil, 3, 1}, p:match("a"))
+checklabeq({nil, 3, 1}, p:match("b"))
 
 p = m.Rec(m.T(3), "b", 3) 
-checklabeq({nil, 0, "a"}, p:match("a"))
+checklabeq({nil, 0, 1}, p:match("a"))
 assert(p:match("b") == 2)
 
 --[[
@@ -960,11 +960,11 @@ assert(g:match("abc") == 4)
 assert(g:match("aabc") == 5)
 assert(g:match("aadc") == 5)  
 assert(g:match("dc") == 3)
-checklabeq({nil, 0, "bc"}, g:match("bbc"))
+checklabeq({nil, 0, 2}, g:match("bbc"))
 assert(g:match("xxc") == 4) 
 assert(g:match("c") == 2)
-checklabeq({nil, 0, ""}, g:match("fail"))
-checklabeq({nil, 0, ""}, g:match("aaxx"))
+checklabeq({nil, 0, 5}, g:match("fail"))
+checklabeq({nil, 0, 5}, g:match("aaxx"))
 
 
 --[[
@@ -982,14 +982,14 @@ g = m.P{
 assert(g:match("abc") == 4)
 assert(g:match("aabc") == 5)
 assert(g:match("aadc") == 5)
-checklabeq({nil, 0, "bc"}, g:match("bc"))
-checklabeq({nil, 0, "bbc"}, g:match("bbc"))
-checklabeq({nil, 0, "b"}, g:match("abb"))
-checklabeq({nil, 0, ""}, g:match("axx"))
+checklabeq({nil, 0, 1}, g:match("bc"))
+checklabeq({nil, 0, 1}, g:match("bbc"))
+checklabeq({nil, 0, 3}, g:match("abb"))
+checklabeq({nil, 0, 4}, g:match("axx"))
 assert(g:match("accc") == 5)
 assert(g:match("axxc") == 5)
-checklabeq({nil, 0, "c"}, g:match("c"))
-checklabeq({nil, 0, "fail"}, g:match("fail"))
+checklabeq({nil, 0, 1}, g:match("c"))
+checklabeq({nil, 0, 1}, g:match("fail"))
 
 
 
@@ -1114,10 +1114,10 @@ local g = m.P{
 assert(g:match("a.") == 3)
 assert(g:match("aa.") == 4)
 assert(g:match(".") == 2)
-checklabeq({nil, 1, "ba."}, g:match("ba."))
-checklabeq({nil, 1, "ba."}, g:match("aba."))
-checklabeq({nil, 1, "cba."}, g:match("cba."))
-checklabeq({nil, 2, "a"}, g:match("a.a"))
+checklabeq({nil, 1, 1}, g:match("ba."))
+checklabeq({nil, 1, 2}, g:match("aba."))
+checklabeq({nil, 1, 1}, g:match("cba."))
+checklabeq({nil, 2, 3}, g:match("a.a"))
 
 
 local g2 = m.P{
@@ -1131,8 +1131,8 @@ assert(g2:match("aa.") == 4)
 assert(g2:match(".") == 2)
 assert(g2:match("ba.") == 4)
 assert(g2:match("aba.") == 5)
-checklabeq({nil, 3, "cba."}, g2:match("cba."))
-checklabeq({nil, 2, "a"}, g2:match("a.a"))
+checklabeq({nil, 3, 1}, g2:match("cba."))
+checklabeq({nil, 2, 3}, g2:match("a.a"))
 
 local g3 = m.P{
   "S",
@@ -1146,9 +1146,9 @@ assert(g3:match(".") == 2)
 assert(g3:match("ba.") == 4)
 assert(g3:match("aba.") == 5)
 assert(g3:match("cba.") == 5)
-checklabeq({nil, 4, "a"}, g3:match("a.a"))
-checklabeq({nil, 4, "dc"}, g3:match("dc"))
-checklabeq({nil, 4, "d"}, g3:match(".d"))
+checklabeq({nil, 4, 3}, g3:match("a.a"))
+checklabeq({nil, 4, 1}, g3:match("dc"))
+checklabeq({nil, 4, 2}, g3:match(".d"))
 
 
 -- testing more captures
@@ -1158,7 +1158,7 @@ local g = re.compile[[
 ]]
 
 checkeq({"523", "624", "346", "888"} , {g:match("523 624  346\n888")}) 
-checkeq({nil, 5, "a 123"}, {g:match("44 a 123")})
+checkeq({nil, 5, 4}, {g:match("44 a 123")})
 
 local g2 = m.Rec(g, ((-m.R("09") * m.P(1))^0) / "58", 5)
 
@@ -1172,7 +1172,7 @@ local g = re.compile[[
 ]]
 
 checkeq({"523", "624", "346", "888"} , {g:match("523 624  346\n888")}) 
-checkeq({nil, 5, "a 123"}, {g:match("44 a 123")})
+checkeq({nil, 5, 4}, {g:match("44 a 123")})
 
 local g2 = m.Rec(g, ((-m.R("09") * m.P(1))^0) / "58", 5)
 

@@ -1243,7 +1243,7 @@ static int lp_match (lua_State *L) {
   if (r == NULL) { /* labeled failure begin */
     lua_pushnil(L);
 		lua_pushinteger(L, labelf);	
-		lua_pushstring(L, sfail); /* Pushing the subject where the failure occurred */
+		lua_pushinteger(L, sfail - (s + i) + 1); /* subject position related to the error */
     return 3;
   }  /* labeled failure end */
   return getcaptures(L, s, r, ptop);
