@@ -241,6 +241,13 @@ local function choicerec (...)
   return p
 end
 
+local function getlab (f)
+	if not tlabels[f] then
+    error("undefined label: " .. f)
+	end
+	return mm.T(tlabels[f])
+end
+
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
             + (m.V"Seq" * (S * ((m.C(m.P"//" + "/") * m.Ct(m.V"Labels")) + (m.C"/" * m.Cc(false)))
@@ -260,6 +267,7 @@ local exp = m.P{ "Exp",
                 + m.P"?" * m.Cc(-1, mt.__pow)
                 + "^" * expect( m.Cg(num * m.Cc(mult))
                               + m.Cg(m.C(m.S"+-" * m.R"09"^1) * m.Cc(mt.__pow)
+                              + name * m.Cc"lab"
                               ),
                           "ExpNum")
                 + "->" * expect(S * ( m.Cg((String + num) * m.Cc(mt.__div))
@@ -270,7 +278,7 @@ local exp = m.P{ "Exp",
                 + "=>" * expect(S * m.Cg(Def / getdef * m.Cc(m.Cmt)),
                            "ExpName1")
                 )
-          )^0, function (a,b,f) return f(a,b) end );
+          )^0, function (a,b,f) if f == "lab" then return a + getlab(b) else return f(a,b) end end );
   Primary = "(" * expect(m.V"Exp", "ExpPatt4") * expect(S * ")", "MisClose1")
           + String / mm.P
           + Class
@@ -293,7 +301,7 @@ local exp = m.P{ "Exp",
           + m.P"." * m.Cc(any)
           + (name * -arrow + "<" * expect(name, "ExpName3")
              * expect(">", "MisClose6")) * m.Cb("G") / NT;
-  Label = num + name / function (f) return tlabels[f] end;
+  Label = num + name / function (f) return getlab(f) end;
   Definition = name * arrow * expect(m.V"Exp", "ExpPatt8");
   Grammar = m.Cg(m.Cc(true), "G")
             * m.Cf(m.V"Definition" / firstdef * (S * m.Cg(m.V"Definition"))^0,

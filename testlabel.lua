@@ -1267,4 +1267,217 @@ assert(eval("1+") == 4)
 --> syntax error: expected a term after the operator (at index 3)
 
 
+-- tests related to the use of '^' in relabel to throw labels
+local errinfo = {
+  { 'cmdSeq',       "Missing ';' in CmdSeq"},
+  { 'ifExp',        "Error in expresion of 'if'"},
+  { 'ifThen',       "Error matching 'then' keyword"},
+  { 'ifThenCmdSeq', "Error matching CmdSeq of 'then' branch"},
+  { 'ifElseCmdSeq', "Error matching CmdSeq of 'else' branch"},
+  { 'ifEnd',        "Error matching 'end' keyword of 'if'"},
+  { 'repeatCmdSeq', "Error matching CmdSeq of 'repeat'"},
+  { 'repeatUntil',  "Error matching 'until' keyword"},
+  { 'repeatExp',    "Error matching expression of 'until'"},
+  { 'assignOp',     "Error matching ':='"},
+  { 'assignExp',    "Error matching expression of assignment"},
+  { 'readName',     "Error matching 'NAME' after 'read'"},
+  { 'writeExp',     "Error matching expression after 'write'"},
+  { 'simpleExp',    "Error matching 'SimpleExp'"},
+  { 'term',         "Error matching 'Term'"},
+  { 'factor',       "Error matching 'Factor'"},
+  { 'openParExp',   "Error matching expression after '('"},
+  { 'closePar',     "Error matching ')'"},
+  { 'undefined',    "Undefined Error" }
+}
+
+
+local errmsgs = {}
+local labels = {}
+
+for i, err in ipairs(errinfo) do
+  errmsgs[i] = err[2]
+  labels[err[1]] = i
+end
+
+re.setlabels(labels)
+
+g = re.compile([[
+  Tiny       <- CmdSeq  
+  CmdSeq     <- (Cmd SEMICOLON^cmdSeq) (Cmd SEMICOLON^cmdSeq)*
+  Cmd        <- IfCmd / RepeatCmd / ReadCmd / WriteCmd  / AssignCmd 
+  IfCmd      <- IF  Exp^ifExp  THEN^ifThen  CmdSeq^ifThenCmdSeq  (ELSE  CmdSeq^ifElseCmdSeq / '')  END^ifEnd
+  RepeatCmd  <- REPEAT  CmdSeq^repeatCmdSeq  UNTIL^repeatUntil  Exp^repeatExp
+  AssignCmd  <- NAME  ASSIGNMENT^assignOp  Exp^assignExp
+  ReadCmd    <- READ  NAME^readName
+  WriteCmd   <- WRITE  Exp^writeExp
+  Exp        <- SimpleExp  ((LESS / EQUAL) SimpleExp^simpleExp / '')
+  SimpleExp  <- Term  ((ADD / SUB)  Term^term)*
+  Term       <- Factor ((MUL / DIV) Factor^factor)*
+  Factor     <- OPENPAR  Exp^openParExp  CLOSEPAR^closePar  / NUMBER  / NAME
+  ADD        <- Sp '+'
+  ASSIGNMENT <- Sp ':='
+  CLOSEPAR   <- Sp ')'
+  DIV        <- Sp '/'
+  IF         <- Sp 'if'
+  ELSE       <- Sp 'else'
+  END        <- Sp 'end'
+  EQUAL      <- Sp '='
+  LESS       <- Sp '<'
+  MUL        <- Sp '*'
+  NAME       <- !RESERVED Sp [a-z]+
+  NUMBER     <- Sp [0-9]+
+  OPENPAR    <- Sp '('
+  READ       <- Sp 'read'
+  REPEAT     <- Sp 'repeat'
+  SEMICOLON  <- Sp ';'
+  SUB        <- Sp '-'
+  THEN       <- Sp 'then'
+  UNTIL      <- Sp 'until'
+  WRITE      <- Sp 'write'
+  RESERVED   <- (IF / ELSE / END / READ / REPEAT / THEN / UNTIL / WRITE) ![a-z]+
+  Sp         <- (%s / %nl)*  
+]], terror)
+
+s = [[
+n := 5;]]
+assert(g:match(s) == #s + 1) 
+
+s = [[
+n := 5;
+f := 1;
+repeat
+  f := f * n;
+  n := n - 1;
+until (n < 1);
+write f;]]
+assert(g:match(s) == #s + 1) 
+
+-- a ';' is missing in 'read a' 
+s = [[
+read a]]
+assert(table.pack(g:match(s))[2] == labels['cmdSeq']) 
+
+
+-- a ';' is missing in 'n := n - 1' 
+s = [[
+n := 5;
+f := 1;
+repeat
+  f := f * n;
+  n := n - 1
+until (n < 1);
+write f;]]
+assert(table.pack(g:match(s))[2] == labels['cmdSeq']) 
+
+
+-- IF expression 
+s = [[
+if a then a := a + 1; end;]]
+assert(g:match(s) == #s + 1) 
+
+-- IF expression 
+s = [[
+if a then a := a + 1; else write 2; end;]]
+assert(g:match(s) == #s + 1) 
+
+-- Error in expression of 'if'. 'A' is not a valida name
+s = [[
+if A then a := a + 1; else write 2; end;]]
+assert(table.pack(g:match(s))[2] == labels['ifExp']) 
+
+-- Error matching the 'then' keyword
+s = [[
+if a a := a + 1; else write 2; end;]]
+assert(table.pack(g:match(s))[2] == labels['ifThen']) 
+
+-- Error matching the CmdSeq inside of 'then' branch 
+s = [[
+if a then 3 := 2; else write 2; end;]]
+assert(table.pack(g:match(s))[2] == labels['ifThenCmdSeq']) 
+
+-- Error matching the CmdSeq inside of 'else' branch 
+s = [[
+if a then b := 2; else A := 2; end;]]
+assert(table.pack(g:match(s))[2] == labels['ifElseCmdSeq']) 
+
+-- Error matching 'end' of 'if' 
+s = [[
+if a then b := 2; else a := 2; 77;]]
+assert(table.pack(g:match(s))[2] == labels['ifEnd']) 
+
+-- Error matching the CmdSeq of 'repeat'
+s = [[repeat
+  F := f * n;
+  n := n - 1;
+until (n < 1);]]
+assert(table.pack(g:match(s))[2] == labels['repeatCmdSeq']) 
+
+-- Error matching 'until'
+s = [[repeat
+  f := f * n;
+  n := n - 1;
+88 (n < 1);]]
+assert(table.pack(g:match(s))[2] == labels['repeatUntil']) 
+
+-- Error matching expression of 'until'
+s = [[repeat
+  f := f * n;
+  n := n - 1;
+until ; (n < 1);]]
+assert(table.pack(g:match(s))[2] == labels['repeatExp']) 
+
+-- Error matching ':='
+s = [[
+f = f * n;]]
+assert(table.pack(g:match(s))[2] == labels['assignOp']) 
+
+-- Error matching expression of assignment
+s = [[
+f := A * n;]]
+assert(table.pack(g:match(s))[2] == labels['assignExp']) 
+
+-- Error matching 'name'
+s = [[
+read 2;]]
+assert(table.pack(g:match(s))[2] == labels['readName']) 
+
+-- Error matching expression after 'write'
+s = [[
+write [a] := 2;]]
+assert(table.pack(g:match(s))[2] == labels['writeExp']) 
+
+-- Error matching 'SimpleExp'
+s = [[
+a := a < A;]]
+assert(table.pack(g:match(s))[2] == labels['simpleExp']) 
+
+-- Error matching 'Term'
+s = [[
+a := a + A;]]
+assert(table.pack(g:match(s))[2] == labels['term']) 
+
+-- Error matching 'Factor'
+s = [[
+a := a * A;]]
+assert(table.pack(g:match(s))[2] == labels['factor']) 
+
+-- Error matching expression after '('
+s = [[
+a := (A);]]
+assert(table.pack(g:match(s))[2] == labels['openParExp']) 
+
+-- Error matching ')'
+s = [[
+a := (a];]]
+assert(table.pack(g:match(s))[2] == labels['closePar']) 
+
+-- Error undefined
+s = [[
+A := a;]]
+assert(table.pack(g:match(s))[2] == 0) 
+
+
+
+
+
 print("OK")
