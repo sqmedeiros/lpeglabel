@@ -1336,7 +1336,7 @@ g = re.compile([[
   WRITE      <- Sp 'write'
   RESERVED   <- (IF / ELSE / END / READ / REPEAT / THEN / UNTIL / WRITE) ![a-z]+
   Sp         <- (%s / %nl)*  
-]], terror)
+]])
 
 s = [[
 n := 5;]]

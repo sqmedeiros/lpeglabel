@@ -45,7 +45,7 @@ local errinfo = {
 
   {"ExpPattOrClose", "expected a pattern or closing '}' after '{'"},
 
-  {"ExpNum", "expected a number after '^', '+' or '-' (no space)"},
+  {"ExpNumName", "expected a number, '+', '-' or a name (no space) after '^'"},
   {"ExpCap", "expected a string, number, '{}' or name after '->'"},
 
   {"ExpName1", "expected the name of a rule after '=>'"},
@@ -245,7 +245,7 @@ local function getlab (f)
 	if not tlabels[f] then
     error("undefined label: " .. f)
 	end
-	return mm.T(tlabels[f])
+	return tlabels[f]
 end
 
 local exp = m.P{ "Exp",
@@ -269,7 +269,7 @@ local exp = m.P{ "Exp",
                               + m.Cg(m.C(m.S"+-" * m.R"09"^1) * m.Cc(mt.__pow)
                               + name * m.Cc"lab"
                               ),
-                          "ExpNum")
+                          "ExpNumName")
                 + "->" * expect(S * ( m.Cg((String + num) * m.Cc(mt.__div))
                                     + m.P"{}" * m.Cc(nil, m.Ct)
                                     + m.Cg(Def / getdef * m.Cc(mt.__div))
@@ -278,7 +278,7 @@ local exp = m.P{ "Exp",
                 + "=>" * expect(S * m.Cg(Def / getdef * m.Cc(m.Cmt)),
                            "ExpName1")
                 )
-          )^0, function (a,b,f) if f == "lab" then return a + getlab(b) else return f(a,b) end end );
+          )^0, function (a,b,f) if f == "lab" then return a + mm.T(getlab(b)) else return f(a,b) end end );
   Primary = "(" * expect(m.V"Exp", "ExpPatt4") * expect(S * ")", "MisClose1")
           + String / mm.P
           + Class

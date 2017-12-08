@@ -13,14 +13,14 @@ local g = m.P{
 }
 
 function mymatch (g, s)
-  local r, e, sfail = g:match(s)
+  local r, e, pos = g:match(s)
   if not r then
-    local line, col = re.calcline(s, #s - #sfail)
+    local line, col = re.calcline(s, pos)
     local msg = "Error at line " .. line .. " (col " .. col .. ")"
     if e == 1 then
-      return r, msg .. ": expecting an identifier before '" .. sfail .. "'"
+      return r, msg .. ": expecting an identifier before '" .. s:sub(pos) .. "'"
     elseif e == 2 then
-      return r, msg .. ": expecting ',' before '" .. sfail .. "'"
+      return r, msg .. ": expecting ',' before '" .. s:sub(pos) .. "'"
     else
       return r, msg
     end

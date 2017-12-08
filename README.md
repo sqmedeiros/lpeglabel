@@ -30,16 +30,15 @@ An error (a non-ordinary failure), by its turn, is produced
 by the throw operator and may be caught by the recovery operator. 
 
 In LPegLabel, the result of an unsuccessful matching
-is a triple **nil, lab, sfail**, where **lab**
+is a triple **nil, lab, errpos**, where **lab**
 is the label associated with the failure, and
-**sfail** is the suffix input being matched when
+**errpos** is the input position being matched when
 **lab** was thrown. 
 
 When **lab** is an ordinary failure and no error was thrown before,
-**sfail** is formed according to the farthest position where an
-ordinary failure occurred. 
+**errpos** is the farthest position where an ordinary failure occurred. 
 In case **lab** is an ordinary failure and an error
-was thrown before, **sfail** is the farthest suffix
+was thrown before, **errpos** is the farthest input position
 where an ordinary failure occurred after the last error. 
  
 Below there is a brief summary of the new functions provided by LpegLabel: 
@@ -51,11 +50,21 @@ Below there is a brief summary of the new functions provided by LpegLabel:
 <tr><td><a href="#f-rec"><code>lpeglabel.Rec (p1, p2, l1 [, l2, ..., ln])</code></a></td>
   <td>Specifies a recovery pattern <code>p2</code> for <code>p1</code>,
  when the matching of <code>p1</code> gives one of the labels l1, ..., ln.</td></tr>
+<tr><td><a href="#f-lc"><code>lpeglabel.Lc (p1, p2, l1, ..., ln)</code></a></td>
+  <td>Matches <code>p1</code> and tries to match <code>p2</code>
+      if the matching of <code>p1</code> gives one of l<sub>1</sub>, ..., l<sub>n</sub> 
+      </td></tr>
 <tr><td><a href="#re-t"><code>%{l}</code></a></td>
   <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeglabel.T(l)</code>
       </td></tr>
+<tr><td><a href="#re-pow"><code>p^l</code></a></td>
+  <td>Syntax sugar available at <em>relabel</em> for <code>p / %{l}</code>
+      </td></tr>
 <tr><td><a href="#re-rec"><code>p1 //{l1 [, l2, ..., ln} p2</code></a></td>
   <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeglabel.Rec(p1, p2, l1, ..., ln)</code>
+      </td></tr>
+<tr><td><a href="#re-lc"><code>p1 /{l1, ..., ln} p2</code></a></td>
+  <td>Syntax of <em>relabel</em> module. Equivalent to <code>lpeg.Lc(p1, p2, l1, ..., ln)</code>
       </td></tr>
 <tr><td><a href="#re-line"><code>relabel.calcline(subject, i)</code></a></td>
   <td>Calculates line and column information regarding position <i>i</i> of the subject</code>
@@ -75,7 +84,7 @@ Returns a pattern that throws the label `l`.
 A label must be an integer between 1 and 255.
 
 This pattern always causes a failure, whose associated
-position will be used to set **sfail**, no matter
+position will be used to set **errpos**, no matter
 whether this is the farthest failure position or not. 
 
 
@@ -87,17 +96,44 @@ then the matching of `p2` is tried from the failure position of `p1`.
 Otherwise, the result of the matching of `p1` is the pattern's result.
 
 
+#### <a name="f-lc"></a><code>lpeglabel.Lc(p1, p2, l1, ..., ln)</code>
+
+Returns a pattern equivalent to a *labeled ordered choice*.
+If the matching of `p1` gives one of the labels `l1, ..., ln`,
+then the matching of `p2` is tried from the same position. Otherwise,
+the result of the matching of `p1` is the pattern's result.
+
+<!---
+The labeled ordered choice `lpeg.Lc(p1, p2, 0)` is equivalent to the
+regular ordered choice `p1 / p2`.
+-->
+
+Although PEG's ordered choice is associative, the labeled ordered choice is not.
+When using this function, the user should take care to build a left-associative
+labeled ordered choice pattern.
+
+
 #### <a name="re-t"></a><code>%{l}</code>
 
 Syntax of *relabel* module. Equivalent to `lpeg.T(l)`.
 
 
-#### <a name="re-lc"></a><code>p1 //{l1, ..., ln} p2</code>
+#### <a name="re-rec"></a><code>p1 //{l1, ..., ln} p2</code>
 
 Syntax of *relabel* module. Equivalent to `lpeglabel.Rec(p1, p2, l1, ..., ln)`.
 
 The `//{}` operator is left-associative. 
 
+
+#### <a name="re-lc"></a><code>p1 /{l1, ..., ln} p2</code>
+
+Syntax of *relabel* module. Equivalent to `lpeg.Lc(p1, p2, l1, ..., ln)`.
+
+The `/{}` operator is left-associative. 
+
+A grammar can use both choice operators (`/` and `/{}`),
+but a single choice can not mix them. That is, the parser of `relabel`
+module will not recognize a pattern as `p1 / p2 /{l1} p3`.
 
 
 #### <a name="re-line"></a><code>relabel.calcline (subject, i)</code>
@@ -124,23 +160,24 @@ in the *examples* directory.
 This example illustrates the new values returned
 by the *match* function in case of an unsuccessful
 matching. As no error is thrown, when the matching
-fails *sfail* represents the farthest suffix where
+fails *errpos* represents the farthest suffix where
 an ordinary failure occurred.
 
 ```lua
 local m = require'lpeglabel'
 
 function matchPrint(p, s)
-  local r, lab, sfail = p:match(s)
-  print("r: ", r, "lab: ", lab, "sfail: ", sfail)
+  local r, lab, errpos = p:match(s)
+  print("r: ", r, "lab: ", lab, "errpos: ", errpos)
 end
 
 local p = m.P"a"^0 * m.P"b" + m.P"c"
-matchPrint(p, "abc")  --> r: 	3	lab: 	nil	sfail: 	nil
-matchPrint(p, "c")    --> r: 	2	lab: 	nil	sfail: 	nil
-matchPrint(p, "aac")  --> r: 	nil	lab: 	0	sfail: 	c
-matchPrint(p, "xxc")  --> r: 	nil	lab: 	0	sfail: 	xxc
+matchPrint(p, "abc")  --> r: 3	  lab: nil  errpos: nil
+matchPrint(p, "c")    --> r: 2	  lab: nil  errpos: nil
+matchPrint(p, "aac")  --> r: nil	lab: 0    errpos: 3
+matchPrint(p, "xxc")  --> r: nil	lab: 0    errpos: 1
 ```
+
 
 #### Matching a list of identifiers separated by commas
 

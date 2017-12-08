@@ -90,9 +90,9 @@ local g = re.compile[[
 
 
 local function mymatch(g, s)
-	local r, e, sfail = g:match(s)
+	local r, e, pos = g:match(s)
   if not r then
-    local line, col = re.calcline(s, #s - #sfail)
+    local line, col = re.calcline(s, pos)
     local msg = "Error at line " .. line .. " (col " .. col .. "): "
 		return r, msg .. terror[e].msg
 	end 
