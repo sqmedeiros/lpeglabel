@@ -6,6 +6,9 @@ local function checklabeq (x, ...)
   y = { ... }
   assert(type(x) == "table")
   assert(#x == #y)
+  if x[2] == 0 then -- 0 -> 'fail'
+    x[2] = 'fail'  
+	end
   for i = 1, 3 do
     assert(x[i] == y[i])
   end
@@ -81,12 +84,12 @@ print"+"
 p = m.T(1)
 s = "abc"
 r, l, poserr = p:match(s) 
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == nil and l == '1' and poserr == 1)
 
 -- throws a label, choice does not catch labels
 p = m.T(1) + m.P"a"
 r, l, poserr = p:match(s)
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == nil and l == '1' and poserr == 1)
 
 -- again throws a label that is not caught by choice
 local g = m.P{
@@ -96,21 +99,22 @@ local g = m.P{
   B = m.P"a"
 }
 r, l, poserr = g:match(s)
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == nil and l == '1' and poserr == 1)
 
 -- throws a label in a position that is not the farthest one
 -- but it is the position that should be reported
 p = m.P(1) * m.P"a" + m.T(11) 
 checklabeq({3, nil, nil}, p:match("bac"))
-checklabeq({nil, 11, 1}, p:match("c"))
-checklabeq({nil, 11, 1}, p:match("x"))
-checklabeq({nil, 11, 1}, p:match("kx"))
+checklabeq({nil, '11', 1}, p:match("c"))
+checklabeq({nil, '11', 1}, p:match("x"))
+checklabeq({nil, '11', 1}, p:match("kx"))
 
 
 -- throws a label that is not caught by the recovery operator
 p = m.Rec(m.T(2), m.P"a", 1, 3)
 r, l, poserr = p:match(s)
-assert(r == nil and l == 2 and poserr == 1)
+print(r, l, poserr)
+assert(r == nil and l == '2' and poserr == 1)
 
 -- wraps the previous pattern with a recovery that catches label "2"
 p = m.Rec(p, m.P"a", 2)

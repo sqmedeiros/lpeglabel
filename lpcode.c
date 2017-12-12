@@ -519,6 +519,15 @@ static int addinstruction (CompileState *compst, Opcode op, int aux) {
   return i;
 }
 
+/* labeled failure */
+static int addthrowinstruction (CompileState *compst, int aux, int key) {
+  int i = addinstruction(compst, IThrow, aux);
+  getinstr(compst, i).i.key = key;
+  return i;
+}
+
+/* labeled failure */
+
 
 /*
 ** Add an instruction followed by space for an offset (to be set later)
@@ -996,7 +1005,10 @@ static void codegen (CompileState *compst, TTree *tree, int opt, int tt,
       tree = sib2(tree); goto tailcall;
     }
     case TThrow: { /* labeled failure */
-      addinstruction(compst, IThrow, (byte) tree->u.label);
+      /*printf("TThrow %s top %d\n", lua_typename(compst->L, -1), lua_gettop(compst->L));*/
+      /*lua_rawgeti(compst->L, -1, tree->key);*/
+      /*printf("Throw2 lab = %s\n", lua_tostring(compst->L, -1));*/
+      addthrowinstruction(compst, (byte) tree->u.label, tree->key); 
 			break;
 		}
 		case TRecov: { /* labeled failure */

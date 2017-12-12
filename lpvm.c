@@ -331,7 +331,11 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         continue;
       }
       case IThrow: { /* labeled failure */
-        *labelf = p->i.aux;
+        printf("IThrow here: key=%d aux = %d top = %d\n", p->i.key, p->i.aux, lua_gettop(L));
+        lua_rawgeti(L, ktableidx(ptop), p->i.key); 
+        printf("IThrow there %s top = %d\n", lua_tostring(L, -1), lua_gettop(L));
+        lua_pop(L, 1);
+        *labelf = p->i.key;
         pk = p + 1;
 				*sfail = s;
         goto fail;

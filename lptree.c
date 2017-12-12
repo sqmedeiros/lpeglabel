@@ -216,7 +216,7 @@ static void correctkeys (TTree *tree, int n) {
   if (n == 0) return;  /* no correction? */
  tailcall:
   switch (tree->tag) {
-    case TOpenCall: case TCall: case TRunTime: case TRule: {
+    case TOpenCall: case TCall: case TRunTime: case TRule: case TThrow: { /* labeled failure */
       if (tree->key > 0)
         tree->key += n;
       break;
@@ -721,9 +721,14 @@ static int lp_behind (lua_State *L) {
 ** Throws a label 
 */
 static int lp_throw (lua_State *L) {
-	int label = luaL_checkinteger(L, -1);
-	luaL_argcheck(L, label >= 1 && label < MAXLABELS, -1, "the number of a label must be between 1 and 255");
-	newthrowleaf(L, label);
+	/*int label = luaL_checkinteger(L, -1);*/
+	/*luaL_argcheck(L, label >= 1 && label < MAXLABELS, -1, "the number of a label must be between 1 and 255");*/
+	TTree * tree;
+  luaL_checkstring(L, -1); 
+  tree = newthrowleaf(L, 0);
+  tree->u.label = addtonewktable(L, 0, 1);
+  tree->key = tree->u.label; 
+  /*printf("lp_throw %d %s\n", tree->key, lua_tostring(L, 1));*/
 	return 1;
 }
 
@@ -1242,7 +1247,10 @@ static int lp_match (lua_State *L) {
   r = match(L, s, s + i, s + l, code, capture, ptop, &labelf, &sfail); /* labeled failure */
   if (r == NULL) { /* labeled failure begin */
     lua_pushnil(L);
-		lua_pushinteger(L, labelf);	
+    if (labelf)
+      lua_rawgeti(L, ktableidx(ptop), labelf);
+    else 
+		  lua_pushstring(L, "fail");
 		lua_pushinteger(L, sfail - (s + i) + 1); /* subject position related to the error */
     return 3;
   }  /* labeled failure end */
