@@ -220,7 +220,7 @@ int checkaux (TTree *tree, int pred) {
       if (checkaux(sib2(tree), pred)) return 1;
       /* else return checkaux(sib1(tree), pred); */
       tree = sib1(tree); goto tailcall;
-		case TRecov: case TLabChoice:  /* labeled failure */
+		case TLabChoice:  /* labeled failure */
      /* we do not know whether sib2 will be evaluated */
      tree = sib1(tree); goto tailcall;
     case TCapture: case TGrammar: case TRule:
@@ -257,7 +257,7 @@ int fixedlen (TTree *tree) {
       else
         return len + n1;
     }
-    case TSeq: case TRecov: { /* labeled failure */
+    case TSeq: { 
       int n1 = fixedlen(sib1(tree));
       if (n1 < 0)
         return -1;
@@ -320,12 +320,6 @@ static int getfirst (TTree *tree, const Charset *follow, Charset *firstset) {
       int e2 = getfirst(sib2(tree), follow, &csaux);
       loopset(i, firstset->cs[i] |= csaux.cs[i]);
       return e1 | e2;
-    }
-    case TRecov: { /* labeled failure */
-        /* when p1 is not nullable, p2 has nothing to contribute;
-           and when p1 is nullable, then p2 will not match 
-           return getfirst(sib1(tree), fullset, firstset); */
-      tree = sib1(tree); follow = fullset; goto tailcall;
     }
     case TSeq: {
       if (!nullable(sib1(tree))) {
@@ -405,7 +399,7 @@ static int headfail (TTree *tree) {
       if (!nofail(sib2(tree))) return 0;
       /* else return headfail(sib1(tree)); */
       tree = sib1(tree); goto tailcall;
-    case TChoice: case TRecov: case TLabChoice: /* labeled failure */
+    case TChoice: case TLabChoice: /* labeled failure */
       if (!headfail(sib1(tree))) return 0;
       /* else return headfail(sib2(tree)); */
       tree = sib2(tree); goto tailcall;
@@ -425,7 +419,7 @@ static int needfollow (TTree *tree) {
     case TChar: case TSet: case TAny:
     case TFalse: case TTrue: case TAnd: case TNot:
     case TRunTime: case TGrammar: case TCall: case TBehind:
-    case TThrow: case TRecov: case TLabChoice: /* (?)labeled failure */
+    case TThrow: case TLabChoice: /* (?)labeled failure */
       return 0;
     case TChoice: case TRep:
       return 1;
@@ -462,7 +456,7 @@ int sizei (const Instruction *i) {
 			return 2;
     case IThrowRec:  /* labeled failure */ 
 			return 3;
-    case IRecov: case ILabChoice:
+    case ILabChoice:
       return (CHARSETINSTSIZE - 1) + 2; /* labeled failure */
 
     default: return 1;
@@ -529,7 +523,7 @@ static int addoffsetinst (CompileState *compst, Opcode op) {
   int i = addinstruction(compst, op, 0);  /* instruction */
   addinstruction(compst, (Opcode)0, 0);  /* open space for offset */
   assert(op == ITestSet || sizei(&getinstr(compst, i)) == 2 || 
-        op == IRecov || op == ILabChoice); /* labeled failure */
+         op == ILabChoice); /* labeled failure */
   return i;
 }
 
@@ -753,22 +747,6 @@ static void codechoice (CompileState *compst, TTree *p1, TTree *p2, int opt,
 
 
 /* labeled failure begin */
-static void coderecovery (CompileState *compst, TTree *p1, TTree *p2, int opt,
-                        const Charset *fl, const byte *cs) {
-  	int emptyp2 = (p2->tag == TTrue);
-		int pcommit;
-    int test = NOINST;
-		int precovery = addoffsetinst(compst, IRecov);
-		addcharset(compst, cs);
-    codegen(compst, p1, emptyp2, test, fullset);
-    pcommit = addoffsetinst(compst, ICommit);
-    jumptohere(compst, precovery);
-    jumptohere(compst, test);
-    codegen(compst, p2, opt, NOINST, fl);
-    addinstruction(compst, IRet, 0);
-    jumptohere(compst, pcommit);
-}
-
 static void codelabchoice (CompileState *compst, TTree *p1, TTree *p2, int opt,
                         const Charset *fl, const byte *cs) {
   	int emptyp2 = (p2->tag == TTrue);
@@ -1020,14 +998,7 @@ static void codegen (CompileState *compst, TTree *tree, int opt, int tt,
       tree = sib2(tree); goto tailcall;
     }
     case TThrow: { /* labeled failure */
-      /*printf("TThrow %s top %d\n", lua_typename(compst->L, -1), lua_gettop(compst->L));*/
-      /*lua_rawgeti(compst->L, -1, tree->key);*/
-      /*printf("Throw2 lab = %s\n", lua_tostring(compst->L, -1));*/
       codethrow(compst, tree); 
-			break;
-		}
-		case TRecov: { /* labeled failure */
-			coderecovery(compst, sib1(tree), sib2(tree), opt, fl, treelabelset(tree)); 
 			break;
 		}
 		case TLabChoice: { /* labeled failure */
@@ -1056,7 +1027,7 @@ static void peephole (CompileState *compst) {
     switch (code[i].i.code) {
       case IChoice: case ICall: case ICommit: case IPartialCommit:
       case IBackCommit: case ITestChar: case ITestSet:
-      case IRecov: case ILabChoice: /* labeled failure */
+      case ILabChoice: /* labeled failure */
       case ITestAny: {  /* instructions with labels */
         jumptothere(compst, i, finallabel(code, i));  /* optimize label */
         break;

@@ -527,10 +527,10 @@ static TTree *newroot2sib (lua_State *L, int tag) {
 
 
 /* labeled failure begin */
-static TTree *newthrowleaf (lua_State *L, int lab) {
+static TTree *newthrowleaf (lua_State *L) {
   TTree *tree = newtree(L, 1);
   tree->tag = TThrow;
-	tree->u.s.ps = 0;
+	tree->u.s.ps = 0; /* there is no recovery rule associated */
   return tree;
 }
 
@@ -730,31 +730,11 @@ static int lp_behind (lua_State *L) {
 ** Throws a label 
 */
 static int lp_throw (lua_State *L) {
-	/*int label = luaL_checkinteger(L, -1);*/
-	/*luaL_argcheck(L, label >= 1 && label < MAXLABELS, -1, "the number of a label must be between 1 and 255");*/
 	TTree * tree;
   luaL_checkstring(L, -1); 
-  tree = newthrowleaf(L, 0);
+  tree = newthrowleaf(L);
   tree->key = addtonewktable(L, 0, 1);
-  /*printf("lp_throw %d %s\n", tree->key, lua_tostring(L, 1));*/
 	return 1;
-}
-
-
-/*
-** labeled recovery function
-*/
-static int lp_recovery (lua_State *L) {
-	int n = lua_gettop(L);
-	TTree *tree = newrootlab2sib(L, TRecov);
-  int i;
-  luaL_argcheck(L, n >= 3, 3, "non-nil value expected");
-  for (i = 3; i <= n; i++) {
-    int d = luaL_checkinteger(L, i);
-    luaL_argcheck(L, d >= 1 && d < MAXLABELS, i, "the number of a label must be between 1 and 255");
-    setlabel(treelabelset(tree), (byte)d);
-	}
-  return 1;
 }
 
 
@@ -1108,7 +1088,7 @@ static int verifyrule (lua_State *L, TTree *tree, int *passed, int npassed,
         return nb;
       /* else return verifyrule(L, sib2(tree), passed, npassed, nb); */
       tree = sib2(tree); goto tailcall;
-    case TChoice: case TRecov: case TLabChoice: /* must check both children */  /* labeled failure */
+    case TChoice: case TLabChoice: /* must check both children */  /* labeled failure */
       nb = verifyrule(L, sib1(tree), passed, npassed, nb);
       /* return verifyrule(L, sib2(tree), passed, npassed, nb); */
       tree = sib2(tree); goto tailcall;
@@ -1364,7 +1344,6 @@ static struct luaL_Reg pattreg[] = {
   {"setmaxstack", lp_setmax},
   {"type", lp_type},
   {"T", lp_throw}, /* labeled failure throw */
-  {"Rec", lp_recovery}, /* labeled failure recovery */
   {"Lc", lp_labchoice}, /* labeled failure choice */
   {NULL, NULL}
 };

@@ -288,17 +288,6 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         p += (CHARSETINSTSIZE - 1) + 2;
         continue;
       }
-      case IRecov: { /* labeled failure */
-        if (stack == stacklimit)
-          stack = doublestack(L, &stacklimit, ptop);
-        stack->p = p + getoffset(p);
-        stack->s = NULL;
-        stack->ls = (const Labelset *) ((p + 2)->buff);
-        stack->caplevel = captop;
-        stack++;
-        p += (CHARSETINSTSIZE - 1) + 2;
-        continue;
-      }
       case ICall: {
         if (stack == stacklimit)
           stack = doublestack(L, &stacklimit, ptop);
@@ -311,7 +300,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
       }
       case ICommit: {
         assert(stack > getstackbase(L, ptop) && (stack - 1)->ls != NULL); /* labeled failure */
-        /*assert((stack - 1)->s != NULL); labeled failure: IRecov does not push s onto the stack */
+        assert((stack - 1)->s != NULL);
         stack--;
         p += getoffset(p);
         continue;
