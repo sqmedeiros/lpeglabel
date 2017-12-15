@@ -202,78 +202,77 @@ assert(r == nil and l == '1' and poserr == 1)
 
 p = ##m.T(1) + m.P"a"
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == nil and l == '1' and poserr == 1)
 
 p = -m.T(1) * m.P"a"
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == nil and l == '1' and poserr == 1)
 
 p = -m.T(1) * m.P"a"
 r, l, poserr = p:match("bbc")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == nil and l == '1' and poserr == 1)
 
 p = -(-m.T(1)) * m.P"a"
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == nil and l == '1' and poserr == 1)
 
-p = m.Rec(-m.T(22), m.P"a", 22)
+p = m.P{
+  "S",
+  S = -m.T(22),
+  ["22"] = m.P"a" 
+} 
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 0 and poserr == 2)
+assert(r == nil and l == 'fail' and poserr == 2)
 
 assert(p:match("bbc") == 1)
 
-p = m.Rec(#m.T(22), m.P"a", 22)
+p = m.P{
+  "S",
+  S = #m.T(22),
+  ["22"] = m.P"a" 
+}
 assert(p:match("abc") == 1)
 
-p = #m.Rec(m.T(22), m.P"a", 22)
+p = m.P{
+  "S",
+  S = m.T(22),
+  ["22"] = #m.P"a" 
+}
 assert(p:match("abc") == 1)
 
-p = m.Rec(m.T(22), #m.P"a", 22)
-assert(p:match("abc") == 1)
-
-p = m.Rec(#m.T(22), m.P"a", 22)
+p = m.P{
+  "S",
+  S = #m.T(22),
+  ["22"] = m.P"a" 
+}
 r, l, poserr = p:match("bbc")
-assert(r == nil and l == 0 and poserr == 1)
+assert(r == nil and l == 'fail' and poserr == 1)
 
-p = m.Rec(#m.P("a") * m.T(22), m.T(15), 22)
+p = m.P{
+  "S",
+  S = #m.P"a" * m.T(22),
+  ["22"] = m.T(15) 
+}
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 15 and poserr == 1)
+assert(r == nil and l == '15' and poserr == 1)
 
-p = m.Rec(#(m.P("a") * m.T(22)), m.T(15), 22)
+p = m.P{
+  "S",
+  S = #(m.P"a" * m.T(22)),
+  ["22"] = m.T(15) 
+}
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 15 and poserr == 2)
-
-p = m.Lc(#m.T(22), m.P"a", 22)
-assert(p:match("abc") == 2)
-
-p = #m.Lc(m.T(22), m.P"a", 22)
-assert(p:match("abc") == 1)
-
-p = m.Lc(m.T(22), #m.P"a", 22)
-assert(p:match("abc") == 1)
-
-p = m.Lc(#m.T(22), m.P"a", 22)
-r, l, poserr = p:match("bbc")
-assert(r == nil and l == 0 and poserr == 1)
-
-p = m.Lc(#m.P("a") * m.T(22), m.T(15), 22)
-r, l, poserr = p:match("abc")
-assert(r == nil and l == 15 and poserr == 1)
-
-p = m.Lc(#(m.P("a") * m.T(22)), m.T(15), 22)
-r, l, poserr = p:match("abc")
-assert(r == nil and l == 15 and poserr == 1)
-
+assert(r == nil and l == '15' and poserr == 2)
 
 
 -- tests related to repetition
 p = m.T(1)^0
 r, l, poserr = p:match("ab")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == nil and l == '1' and poserr == 1)
 
 p = (m.P"a" + m.T(1))^0
 r, l, poserr = p:match("aa")
-assert(r == nil and l == 1 and poserr == 3)
+assert(r == nil and l == '1' and poserr == 3)
 
 
 -- Bug reported by Matthew Allen
@@ -281,18 +280,19 @@ assert(r == nil and l == 1 and poserr == 3)
 -- applied in case of labels
 
 -- recovery operator
-p = m.Rec(m.P"A", m.P(true), 1) + m.P("B")
+p = m.P{
+  "S",
+  S = m.P"A" + m.P"B",
+  ["2"] = m.P(true) 
+} 
+
 assert(p:match("B") == 2)
 
-p = m.Rec(m.P"A", m.P(false), 1) + m.P("B")
-assert(p:match("B") == 2)
-
-
--- labeled choices
-p = m.Lc(m.P"A", m.P(true), 1) + m.P("B")
-assert(p:match("B") == 2)
-
-p = m.Lc(m.P"A", m.P(false), 1) + m.P("B")
+p = m.P{
+  "S",
+  S = m.P"A" + m.P"B",
+  ["2"] = m.P(false) 
+} 
 assert(p:match("B") == 2)
 
 
@@ -303,150 +303,71 @@ B -> %1
 ]]
 g = m.P{
   "S",
-  S = m.Rec(m.V"A", m.P"a", 1),
+  S = m.V"A",
   A = m.V"B",
-  B = m.T(1),
+  B = m.T(2),
+  ["2"] = m.P'a'
 }
 assert(g:match("ab") == 2)
 r, l, poserr = g:match("bc")
-assert(r == nil and l == 0 and poserr == 1)
+assert(r == nil and l == 'fail' and poserr == 1)
 
 
 --[[
 S -> A 
-A -> (B (';' / %{1}))*
+A -> (B (';' / %{2}))*
 B -> 'a'
 ]]
 g = m.P{
   "S",
   S = m.V"A",
-  A = m.P(m.V"B" * (";" + m.T(1)))^0,
+  A = m.P(m.V"B" * (";" + m.T(2)))^0,
   B = m.P'a',
 }
 assert(g:match("a;a;") == 5)
 
 r, l, poserr = g:match("a;a")
-assert(r == nil and l == 1 and poserr == 4)
+assert(r == nil and l == '2' and poserr == 4)
 
 
--- %1 //{1,3} %2 //{2} 'a'
-p = m.Rec(m.Rec(m.T(1), m.T(2), 1, 3), m.P"a", 2)
-assert(p:match("abc") == 2)
-
-r, l, poserr = p:match("")
-assert(r == nil and l == 0 and poserr == 1)
-
-p = m.Rec(m.T(1), m.Rec(m.T(2), m.P"a", 2), 1, 3)
-assert(p:match("abc") == 2)
-
-r, l, poserr = p:match("")
-assert(r == nil and l == 0 and poserr == 1)
-
--- labeled choice
---[[
-S -> A /{1} 'a'
-A -> B
-B -> %1
-]]
-g = m.P{
-	"S",
-	S = m.Lc(m.V"A", m.P"a", 1),
-	A = m.V"B",
-	B = m.T(1),
+p = m.P{
+  "S",
+  S = m.T'A',
+  A = m.T'B',
+  B = m.P'a'
 }
-assert(g:match("ab") == 2)
-r, l, poserr = g:match("bc")
-assert(r == nil and l == 0 and poserr == 1)
-
-
---[[
-S -> A 
-A -> (B (';' / %{1}))*
-B -> 'a'
-]]
-g = m.P{
-	"S",
-	S = m.V"A",
-	A = m.P(m.V"B" * (";" + m.T(1)))^0,
-	B = m.P'a',
-}
-assert(g:match("a;a;") == 5)
-
-r, l, poserr = g:match("a;a")
-assert(r == nil and l == 1 and poserr == 4)
-
-
--- %1 /{1,3} %2 /{2} 'a'
-p = m.Lc(m.Lc(m.T(1), m.T(2), 1, 3), m.P"a", 2)
 assert(p:match("abc") == 2)
 
 r, l, poserr = p:match("")
-assert(r == nil and l == 0 and poserr == 1)
-
-p = m.Lc(m.T(1), m.Lc(m.T(2), m.P"a", 2), 1, 3)
-assert(p:match("abc") == 2)
-
-r, l, poserr = p:match("")
-assert(r == nil and l == 0 and poserr == 1)
+assert(r == nil and l == 'fail' and poserr == 1)
 
 
 -- Infinte Loop TODO: check the semantics
--- %1 //{1} %1 
-p = m.Rec(m.T(1), m.T(1), 1)
+p = m.P{
+  "S",
+  S = m.T"A",
+  A = m.T"S",
+}
 --r, l, poserr = p:match("ab")
 --assert(r == nil and l == 1 and poserr == "ab")
 
--- %1 //{1} 'a' (!. / %1) 
-p = m.Rec(m.T(1), m.P"a" * (-m.P(1) + m.T(1)), 1)
+p = m.P{
+  "S",
+  S = m.T"A",
+  A = m.P'a' * (-m.P(1) + m.T"A"),
+}
 r, l, poserr = p:match("ab")
-assert(r == nil and l == 0 and poserr == 2)
+assert(r == nil and l == 'fail' and poserr == 2)
 
 r, l, poserr = p:match("cd")
-assert(r == nil and l == 0 and poserr == 1)
+assert(r == nil and l == 'fail' and poserr == 1)
 
--- %1 //{1} . (!. / %1) 
-p = m.Rec(m.T(1), m.P(1) * (-m.P(1) + m.T(1)), 1)
+p = m.P{
+  "S",
+  S = m.T"A",
+  A = m.P(1) * (-m.P(1) + m.T"A"),
+}
 assert(p:match("abc") == 4)
-
-
--- testing the limit of labels
--- can only throw labels between 1 and 255
-local r = pcall(m.Rec, m.P"b", m.P"a", 0)
-assert(r == false)
-
-local r = pcall(m.Rec, m.P"b", m.P"a", 256)
-assert(r == false)
-
-local r = pcall(m.Rec, m.P"b", m.P"a", -1)
-assert(r == false)
-
-local r = pcall(m.Lc, m.P"b", m.P"a", 0)
-assert(r == false)
-
-local r = pcall(m.Lc, m.P"b", m.P"a", 256)
-assert(r == false)
-
-local r = pcall(m.Lc, m.P"b", m.P"a", -1)
-assert(r == false)
-
-local r = pcall(m.T, 0)
-assert(r == false)
-
-local r = pcall(m.T, 256)
-assert(r == false)
-
-local r = pcall(m.T, -1)
-assert(r == false)
-
-
-local r = m.Rec(m.P"b", m.P"a", 255)
-assert(p:match("a") == 2)
-
-p = m.T(255)
-s = "abc"
-r, l, poserr = p:match(s) 
-assert(r == nil and l == 255 and poserr == 1)
-
 
 
 print("+")

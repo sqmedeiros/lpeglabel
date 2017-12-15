@@ -145,21 +145,6 @@ typedef struct Charset {
 #define testchar(st,c)	(((int)(st)[((c) >> 3)] & (1 << ((c) & 7))))
 
 /* labeled failure begin */
-#define MAXLABELS (UCHAR_MAX + 1)
-
-#define LABELSETSIZE CHARSETSIZE
-
-typedef Charset Labelset;
-
-#define setlabel setchar
-
-#define testlabel testchar
-
-/* access to labelset */
-#define treelabelset(t)      ((byte *)((t) + (t)->u.s.plab))
-
-#define IDXLFAIL 0
-
 #define LFAIL 0
 
 /* update the farthest failure */

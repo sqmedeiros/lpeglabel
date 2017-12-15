@@ -28,7 +28,7 @@ const byte numsiblings[] = {
   0, 0, 2, 1,  /* call, opencall, rule, grammar */
   1,  /* behind */
   1, 1,  /* capture, runtime capture */
-  0, 2, 2  /* labeled failure throw, recovery, labeled choice */
+  0  /* labeled failure throw */
 };
 
 
@@ -533,21 +533,6 @@ static TTree *newthrowleaf (lua_State *L) {
 	tree->u.s.ps = 0; /* there is no recovery rule associated */
   return tree;
 }
-
-static TTree *newrootlab2sib (lua_State *L, int tag) {
-  int s1, s2;
-  TTree *tree1 = getpatt(L, 1, &s1);
-  TTree *tree2 = getpatt(L, 2, &s2);
-  TTree *tree = newtree(L, bytes2slots(LABELSETSIZE) + 1 + s1 + s2);  /* create new tree */
-  tree->tag = tag;
-  tree->u.s.ps =  1 + s1;
-	tree->u.s.plab = 1 + s1 + s2;
-	memcpy(sib1(tree), tree1, s1 * sizeof(TTree));
-  memcpy(sib2(tree), tree2, s2 * sizeof(TTree));
-  loopset(i, treelabelset(tree)[i] = 0);
-	joinktables(L, 1, sib2(tree), 2);
-  return tree;
-}
 /* labeled failure end */
 
 
@@ -735,22 +720,6 @@ static int lp_throw (lua_State *L) {
   tree = newthrowleaf(L);
   tree->key = addtonewktable(L, 0, 1);
 	return 1;
-}
-
-
-/*
-** labeled choice function
-*/
-static int lp_labchoice (lua_State *L) {
-	int n = lua_gettop(L);
-	TTree *tree = newrootlab2sib(L, TLabChoice);
-	int i;
-	for (i = 3; i <= n; i++) {
-		int d = luaL_checkinteger(L, i);
-		luaL_argcheck(L, d >= 1 && d < MAXLABELS, i, "the number of a label must be between 1 and 255");
-    setlabel(treelabelset(tree), (byte)d);
-	}
-  return 1;
 }
 /* labeled failure end */
 
@@ -1088,7 +1057,7 @@ static int verifyrule (lua_State *L, TTree *tree, int *passed, int npassed,
         return nb;
       /* else return verifyrule(L, sib2(tree), passed, npassed, nb); */
       tree = sib2(tree); goto tailcall;
-    case TChoice: case TLabChoice: /* must check both children */  /* labeled failure */
+    case TChoice: /* must check both children */
       nb = verifyrule(L, sib1(tree), passed, npassed, nb);
       /* return verifyrule(L, sib2(tree), passed, npassed, nb); */
       tree = sib2(tree); goto tailcall;
@@ -1344,7 +1313,6 @@ static struct luaL_Reg pattreg[] = {
   {"setmaxstack", lp_setmax},
   {"type", lp_type},
   {"T", lp_throw}, /* labeled failure throw */
-  {"Lc", lp_labchoice}, /* labeled failure choice */
   {NULL, NULL}
 };
 
