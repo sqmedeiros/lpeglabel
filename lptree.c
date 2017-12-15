@@ -52,20 +52,24 @@ static const char *val2str (lua_State *L, int idx) {
 ** translate a key to its rule address in the tree. Raises an
 ** error if key does not exist.
 */
-static void fixonecall (lua_State *L, int postable, TTree *g, TTree *t) {
+static void fixonecall (lua_State *L, int postable, TTree *g, TTree *t, byte tag) { /* labeled failure */
   int n;
   lua_rawgeti(L, -1, t->key);  /* get rule's name */
   lua_gettable(L, postable);  /* query name in position table */
   n = lua_tonumber(L, -1);  /* get (absolute) position */
   lua_pop(L, 1);  /* remove position */
-  if (n == 0) {  /* no position? */
-    lua_rawgeti(L, -1, t->key);  /* get rule's name again */
-    luaL_error(L, "rule '%s' undefined in given grammar", val2str(L, -1));
+  if (tag == TOpenCall) {
+    if (n == 0) {  /* no position? */
+      lua_rawgeti(L, -1, t->key);  /* get rule's name again */
+      luaL_error(L, "rule '%s' undefined in given grammar", val2str(L, -1));
+    }
+    t->tag = TCall;
+    t->u.s.ps = n - (t - g);  /* position relative to node */
+    assert(sib2(t)->tag == TRule);
+    sib2(t)->key = t->key;  /* fix rule's key */
+  } else if (n != 0) { /* labeled failure */
+  	t->u.s.ps = n - (t - g);  /* position relative to node */
   }
-  t->tag = TCall;
-  t->u.s.ps = n - (t - g);  /* position relative to node */
-  assert(sib2(t)->tag == TRule);
-  sib2(t)->key = t->key;  /* fix rule's key */
 }
 
 
@@ -105,11 +109,16 @@ static void finalfix (lua_State *L, int postable, TTree *g, TTree *t) {
       return;
     case TOpenCall: {
       if (g != NULL)  /* inside a grammar? */
-        fixonecall(L, postable, g, t);
+        fixonecall(L, postable, g, t, TOpenCall);
       else {  /* open call outside grammar */
         lua_rawgeti(L, -1, t->key);
         luaL_error(L, "rule '%s' used outside a grammar", val2str(L, -1));
       }
+      break;
+    }
+    case TThrow: { /* labeled failure */
+      if (g != NULL)  /* inside a grammar? */
+        fixonecall(L, postable, g, t, TThrow);
       break;
     }
     case TSeq: case TChoice:
@@ -521,7 +530,7 @@ static TTree *newroot2sib (lua_State *L, int tag) {
 static TTree *newthrowleaf (lua_State *L, int lab) {
   TTree *tree = newtree(L, 1);
   tree->tag = TThrow;
-	tree->u.label = lab;
+	tree->u.s.ps = 0;
   return tree;
 }
 
@@ -726,8 +735,7 @@ static int lp_throw (lua_State *L) {
 	TTree * tree;
   luaL_checkstring(L, -1); 
   tree = newthrowleaf(L, 0);
-  tree->u.label = addtonewktable(L, 0, 1);
-  tree->key = tree->u.label; 
+  tree->key = addtonewktable(L, 0, 1);
   /*printf("lp_throw %d %s\n", tree->key, lua_tostring(L, 1));*/
 	return 1;
 }

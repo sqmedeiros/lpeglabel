@@ -36,6 +36,7 @@ typedef enum TTag {
   TRunTime,  /* run-time capture: 'key' is Lua function;
                'sib1' is capture body */
   TThrow,    /* labeled failure: 'label' = l */
+  TThrowRec,    /* labeled failure: 'label' = l */
   TRecov,    /* labed failure: 'sib1' //{labels} 'sib2' */
              /* the set of labels is stored in next CHARSETSIZE bytes */
   TLabChoice /* labed failure: 'sib1' /{labels} 'sib2' */

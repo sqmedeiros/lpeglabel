@@ -459,7 +459,9 @@ int sizei (const Instruction *i) {
     case IOpenCall: case ICommit: case IPartialCommit: case IBackCommit:
       return 2;
     case IThrow:  /* labeled failure */ 
-			return 1;
+			return 2;
+    case IThrowRec:  /* labeled failure */ 
+			return 3;
     case IRecov: case ILabChoice:
       return (CHARSETINSTSIZE - 1) + 2; /* labeled failure */
 
@@ -519,15 +521,6 @@ static int addinstruction (CompileState *compst, Opcode op, int aux) {
   return i;
 }
 
-/* labeled failure */
-static int addthrowinstruction (CompileState *compst, int aux, int key) {
-  int i = addinstruction(compst, IThrow, aux);
-  getinstr(compst, i).i.key = key;
-  return i;
-}
-
-/* labeled failure */
-
 
 /*
 ** Add an instruction followed by space for an offset (to be set later)
@@ -539,6 +532,22 @@ static int addoffsetinst (CompileState *compst, Opcode op) {
         op == IRecov || op == ILabChoice); /* labeled failure */
   return i;
 }
+
+
+/* labeled failure */
+static void codethrow (CompileState *compst, TTree *throw) {
+  int recov, aux;
+  if (throw->u.s.ps != 0) {
+    recov = addoffsetinst(compst, IThrowRec);
+  } else {
+    recov = addinstruction(compst, IThrow, 0);
+  }
+  aux = nextinstruction(compst);
+  getinstr(compst, aux).i.key = throw->key; /* next instruction keeps only rule name */
+  getinstr(compst, recov).i.key = sib2(throw)->cap;  /* rule number */
+  assert(sib2(throw)->tag == TRule);
+}
+/* labeled failure */
 
 
 /*
@@ -920,7 +929,13 @@ static void correctcalls (CompileState *compst, int *positions,
       else
         code[i].i.code = ICall;
       jumptothere(compst, i, rule);  /* call jumps to respective rule */
+    } else if (code[i].i.code == IThrowRec) {
+      int n = code[i].i.key;  /* rule number */
+      int rule = positions[n];  /* rule position */
+      assert(rule == from || code[rule - 1].i.code == IRet);
+      jumptothere(compst, i, rule);  /* call jumps to respective rule */
     }
+
   }
   assert(i == to);
 }
@@ -1008,7 +1023,7 @@ static void codegen (CompileState *compst, TTree *tree, int opt, int tt,
       /*printf("TThrow %s top %d\n", lua_typename(compst->L, -1), lua_gettop(compst->L));*/
       /*lua_rawgeti(compst->L, -1, tree->key);*/
       /*printf("Throw2 lab = %s\n", lua_tostring(compst->L, -1));*/
-      addthrowinstruction(compst, (byte) tree->u.label, tree->key); 
+      codethrow(compst, tree); 
 			break;
 		}
 		case TRecov: { /* labeled failure */

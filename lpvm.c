@@ -331,14 +331,31 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         continue;
       }
       case IThrow: { /* labeled failure */
-        printf("IThrow here: key=%d aux = %d top = %d\n", p->i.key, p->i.aux, lua_gettop(L));
-        lua_rawgeti(L, ktableidx(ptop), p->i.key); 
+        /*printf("IThrow here: key=%d, key+1=%d aux = %d top = %d\n", p->i.key, (p+1)->i.key, p->i.aux, lua_gettop(L));
+        lua_rawgeti(L, ktableidx(ptop), (p+1)->i.key); 
         printf("IThrow there %s top = %d\n", lua_tostring(L, -1), lua_gettop(L));
-        lua_pop(L, 1);
-        *labelf = p->i.key;
+        lua_pop(L, 1);*/
+        *labelf = (p+1)->i.key;
         pk = p + 1;
 				*sfail = s;
         goto fail;
+      }
+      case IThrowRec: { /* labeled failure */
+        /*printf("IThrowRec here: key=%d, key+2=%d aux = %d top = %d\n", p->i.key, (p+2)->i.key, p->i.aux, lua_gettop(L));
+        lua_rawgeti(L, ktableidx(ptop), (p+2)->i.key); 
+        printf("IThrowRec there %s top = %d\n", lua_tostring(L, -1), lua_gettop(L));
+        lua_pop(L, 1);*/
+        *labelf = (p+2)->i.key;
+				*sfail = s;
+        if (stack == stacklimit)
+          stack = doublestack(L, &stacklimit, ptop);
+        stack->s = NULL;
+        stack->p = p + 3;
+        stack->ls = NULL;
+        stack->caplevel = captop;
+        stack++;
+        p += getoffset(p);
+        continue;
       }
       case IFailTwice:
         assert(stack > getstackbase(L, ptop));

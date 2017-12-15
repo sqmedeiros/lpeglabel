@@ -110,102 +110,95 @@ checklabeq({nil, '11', 1}, p:match("x"))
 checklabeq({nil, '11', 1}, p:match("kx"))
 
 
--- throws a label that is not caught by the recovery operator
-p = m.Rec(m.T(2), m.P"a", 1, 3)
-r, l, poserr = p:match(s)
-print(r, l, poserr)
+-- throws a label without a corresponding recovery rule
+p = m.P{
+  "S",
+  S = m.T("bola"),
+  bolada = m.P"a"
+} 
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'bola' and poserr == 1)
+
+-- throws a label without a corresponding recovery rule
+-- T(2) indexes key ["2"]
+p = m.P{
+  "S",
+  S = m.T(2),
+  [2] = m.P"a"
+} 
+r, l, poserr = p:match("abc")
 assert(r == nil and l == '2' and poserr == 1)
 
--- wraps the previous pattern with a recovery that catches label "2"
-p = m.Rec(p, m.P"a", 2)
-assert(p:match(s) == 2)
+-- throws a label with a corresponding recovery rule
+p = m.P{
+  "S",
+  S = m.T("bola"),
+  bola = m.P"a"
+} 
+r, l, poserr = p:match("abc")
+assert(r == 2)
 
--- throws a label that is caught by recovery 
-p = m.Rec(m.T(25), m.P"a", 25)
-assert(p:match(s) == 2)
+-- throws a label with a corresponding recovery rule
+-- T(2) indexes key ["2"]
+p = m.P{
+  "S",
+  S = m.T(2),
+  ["2"] = m.P"a"^0
+} 
+r, l, poserr = p:match("aaabc")
+assert(r == 4)
 
--- "fail" is label "0"
--- throws the "fail" label after the recovery
+-- regular failure after the recovery
+p = m.P{
+  "S",
+  S = m.T(2),
+  ["2"] = m.P"a"^0 * m.P"c"
+} 
+r, l, poserr = p:match("aaabc")
+assert(r == nil and l == 'fail' and poserr == 4)
+
 s = "bola"
 r, l, poserr = p:match("bola")
-assert(r == nil and l == 0 and poserr == 1)
+assert(r == nil and l == 'fail' and poserr == 1)
 
--- Recovery does not catch "fail" by default
-p = m.Rec(m.P"b", m.P"a", 1)
+-- Recovery rules do not catch "fail" by default
+p = m.P{
+  "S",
+  S = m.P"b" * m.T(2),
+  ["2"] = m.P"a"^0
+} 
+r, l, poserr = p:match("c")
+assert(r == nil and l == 'fail' and poserr == 1)
 
-r, l, poserr = p:match("abc") 
-assert(r == nil and l == 0 and poserr == 1)
-
-assert(p:match("bola") == 2)
+assert(p:match("baa") == 4)
 
 
--- recovery operator catches "1" or "3"
-p = m.Rec((m.P"a" + m.T(1)) * m.T(3), (m.P"a" + m.P"b"), 1, 3)
+-- recovery rules for "2" or "3"
+-- when we use V instead of T, a recovery
+-- rule becomes a regular grammar rule
+p = m.P{
+  "S",
+  S = (m.P"a" + m.T(2)) * m.T(3),
+  ["3"] = m.V"2",
+  ["2"] = m.P"a" + m.P"b",
+} 
+
 assert(p:match("aac") == 3)
 assert(p:match("abc") == 3)
 r, l, poserr = p:match("acc")
-assert(r == nil and l == 0 and poserr == 2)
+assert(r == nil and l == 'fail' and poserr == 2)
 
---throws 1, recovery pattern matches 'b', throw 3, and rec pat mathces 'a'
+--throws 2, recovery rule matches 'b', throw 3, and rec rule matches 'a'
 assert(p:match("bac") == 3)
 
 r, l, poserr = p:match("cab")
-assert(r == nil and l == 0 and poserr == 1)
-
-
--- associativity
--- (p1 / %1) //{1} (p2 / %2) //{2} p3
--- left-associativity
--- ("a" //{1}  "b") //{2} "c"
-p = m.Rec(m.Rec(m.P"a" + m.T(1), m.P"b" + m.T(2), 1), m.P"c", 2)
-assert(p:match("abc") == 2)
-assert(p:match("bac") == 2)
-assert(p:match("cab") == 2)
-r, l, poserr = p:match("dab")
-assert(r == nil and l == 0 and poserr == 1)
-
-
--- righ-associativity
--- "a" //{1}  ("b" //{2} "c")
-p = m.Rec(m.P"a" + m.T(1), m.Rec(m.P"b" + m.T(2), m.P"c", 2), 1)
-assert(p:match("abc") == 2)
-assert(p:match("bac") == 2)
-assert(p:match("cab") == 2)
-r, l, poserr = p:match("dab")
-assert(r == nil and l == 0 and poserr == 1)
-
-
--- associativity -> in this case the error thrown by p1 is only
---                  recovered when we have a left-associative operator
--- (p1 / %2) //{1} (p2 / %2) //{2} p3
--- left-associativity
--- ("a" //{1}  "b") //{2} "c"
-p = m.Rec(m.Rec(m.P"a" + m.T(2), m.P"b" + m.T(2), 1), m.P"c", 2)
-assert(p:match("abc") == 2)
-r, l, poserr = p:match("bac")
-assert(r == nil and l == 0 and poserr == 1)
-assert(p:match("cab") == 2)
-r, l, poserr = p:match("dab")
-assert(r == nil and l == 0 and poserr == 1)
-
-
--- righ-associativity
--- "a" //{1}  ("b" //{2} "c")
-p = m.Rec(m.P"a" + m.T(2), m.Rec(m.P"b" + m.T(2), m.P"c", 2), 1)
-assert(p:match("abc") == 2)
-r, l, poserr = p:match("bac")
-assert(r == nil and l == 2 and poserr == 1)
-r, l, poserr = p:match("cab")
-assert(r == nil and l == 2 and poserr == 1)
-r, l, poserr = p:match("dab")
-assert(r == nil and l == 2 and poserr == 1)
-
+assert(r == nil and l == 'fail' and poserr == 1)
 
 
 -- tests related to predicates
 p = #m.T(1) + m.P"a"
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == nil and l == '1' and poserr == 1)
 
 p = ##m.T(1) + m.P"a"
 r, l, poserr = p:match("abc")
