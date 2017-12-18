@@ -517,7 +517,8 @@ static int addinstruction (CompileState *compst, Opcode op, int aux) {
 static int addoffsetinst (CompileState *compst, Opcode op) {
   int i = addinstruction(compst, op, 0);  /* instruction */
   addinstruction(compst, (Opcode)0, 0);  /* open space for offset */
-  assert(op == ITestSet || sizei(&getinstr(compst, i)) == 2);
+	assert(op == ITestSet || sizei(&getinstr(compst, i)) == 2 || 
+         op == IThrowRec); /* labeled failure */
   return i;
 }
 
@@ -527,13 +528,13 @@ static void codethrow (CompileState *compst, TTree *throw) {
   int recov, aux;
   if (throw->u.s.ps != 0) {
     recov = addoffsetinst(compst, IThrowRec);
+    assert(sib2(throw)->tag == TRule);
   } else {
     recov = addinstruction(compst, IThrow, 0);
   }
   aux = nextinstruction(compst);
   getinstr(compst, aux).i.key = throw->key; /* next instruction keeps only rule name */
   getinstr(compst, recov).i.key = sib2(throw)->cap;  /* rule number */
-  assert(sib2(throw)->tag == TRule);
 }
 /* labeled failure */
 

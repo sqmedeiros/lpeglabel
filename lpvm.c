@@ -301,6 +301,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
             luaL_error(L, "labelf is %d", *labelf);
 				*sfail = s;
         stack = getstackbase(L, ptop);
+        stack++;
         goto fail;
       }
       case IThrowRec: { /* labeled failure */

@@ -111,11 +111,6 @@ void printinst (const Instruction *op, const Instruction *p) {
       printf("%d", p->i.aux);
       break;
     }
-	  case IRecov: case ILabChoice: { /* labeled failure */
-      printjmp(op, p);
-      printcharset((p+2)->buff);
-      break;
-    }
     default: break;
   }
   printf("\n");
@@ -217,16 +212,15 @@ void printtree (TTree *tree, int ident) {
       break;
     }
     case TThrow: { /* labeled failure */
+      if (tree->u.s.ps != 0)
+        assert(sib2(tree)->tag == TRule);
+      printf(" key: %d  (rule: %d)\n", tree->key, sib2(tree)->cap);
       printf(" labels: %d\n", tree->u.label);
       break;
     }
     default: {
       int sibs = numsiblings[tree->tag];
       printf("\n");
-      if (tree->tag == TRecov || tree->tag == TLabChoice) { /* labeled failure */
-      	printcharset(treelabelset(tree));
-      	printf("\n");
-			}
       if (sibs >= 1) {
         printtree(sib1(tree), ident + 2);
         if (sibs >= 2)

@@ -241,12 +241,6 @@ local function choicerec (...)
   return p
 end
 
-local function getlab (f)
-	if not tlabels[f] then
-    error("undefined label: " .. f)
-	end
-	return tlabels[f]
-end
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
@@ -278,7 +272,7 @@ local exp = m.P{ "Exp",
                 + "=>" * expect(S * m.Cg(Def / getdef * m.Cc(m.Cmt)),
                            "ExpName1")
                 )
-          )^0, function (a,b,f) if f == "lab" then return a + mm.T(getlab(b)) else return f(a,b) end end );
+          )^0, function (a,b,f) if f == "lab" then return a + mm.T(b) else return f(a,b) end end );
   Primary = "(" * expect(m.V"Exp", "ExpPatt4") * expect(S * ")", "MisClose1")
           + String / mm.P
           + Class
@@ -301,7 +295,7 @@ local exp = m.P{ "Exp",
           + m.P"." * m.Cc(any)
           + (name * -arrow + "<" * expect(name, "ExpName3")
              * expect(">", "MisClose6")) * m.Cb("G") / NT;
-  Label = num + name / function (f) return getlab(f) end;
+  Label = num + name;
   Definition = name * arrow * expect(m.V"Exp", "ExpPatt8");
   Grammar = m.Cg(m.Cc(true), "G")
             * m.Cf(m.V"Definition" / firstdef * (S * m.Cg(m.V"Definition"))^0,
@@ -342,7 +336,7 @@ end
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled
   p = p .. " " -- for better reporting of column numbers in errors when at EOF
-  local ok, cp, label, suffix = pcall(function() return pattern:match(p, 1, defs) end)
+  local ok, cp, label, poserr = pcall(function() return pattern:match(p, 1, defs) end)
   if not ok and cp then
     if type(cp) == "string" then
       cp = cp:gsub("^[^:]+:[^:]+: ", "")
@@ -351,8 +345,7 @@ local function compile (p, defs)
   end
   if not cp then
     local lines = splitlines(p)
-    local line, col = lineno(p, #p - #suffix + 1)
-    --local line, col = calcline(p, #p - #suffix + 1)
+    local line, col = lineno(p, poserr)
     local err = {}
     tinsert(err, "L" .. line .. ":C" .. col .. ": " .. errmsgs[label])
     tinsert(err, lines[line])

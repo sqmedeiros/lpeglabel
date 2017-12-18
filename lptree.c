@@ -1204,8 +1204,16 @@ static int lp_match (lua_State *L) {
   r = match(L, s, s + i, s + l, code, capture, ptop, &labelf, &sfail); /* labeled failure */
   if (r == NULL) { /* labeled failure begin */
     lua_pushnil(L);
-    if (labelf)
+    if (labelf) {
+      int isnum;
+      lua_Integer lInt;
       lua_rawgeti(L, ktableidx(ptop), labelf);
+      lInt = lua_tointegerx(L, -1, &isnum);
+      if (isnum) {
+        lua_pop(L, 1);
+        lua_pushinteger(L, lInt);
+      }
+    }
     else 
 		  lua_pushstring(L, "fail");
 		lua_pushinteger(L, sfail - (s + i) + 1); /* subject position related to the error */
