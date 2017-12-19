@@ -1,10 +1,10 @@
 -- $Id: re.lua,v 1.44 2013/03/26 20:11:40 roberto Exp $
 
 -- imported functions and modules
-local tonumber, type, print, error, ipairs = tonumber, type, print, error, ipairs
+local tonumber, type, print, error = tonumber, type, print, error
 local pcall = pcall
 local setmetatable = setmetatable
-local unpack, tinsert, concat = table.unpack or unpack, table.insert, table.concat
+local tinsert, concat = table.insert, table.concat
 local rep = string.rep
 local m = require"lpeglabel"
 
@@ -28,68 +28,58 @@ local dummy = mm.P(false)
 
 
 local errinfo = {
-  {"NoPatt", "no pattern found"},
-  {"ExtraChars", "unexpected characters after the pattern"},
+  NoPatt = "no pattern found",
+  ExtraChars = "unexpected characters after the pattern",
 
-  {"ExpPatt1", "expected a pattern after '/'"},
+  ExpPatt1 = "expected a pattern after '/'",
 
-  {"ExpPatt2", "expected a pattern after '&'"},
-  {"ExpPatt3", "expected a pattern after '!'"},
+  ExpPatt2 = "expected a pattern after '&'",
+  ExpPatt3 = "expected a pattern after '!'",
 
-  {"ExpPatt4", "expected a pattern after '('"},
-  {"ExpPatt5", "expected a pattern after ':'"},
-  {"ExpPatt6", "expected a pattern after '{~'"},
-  {"ExpPatt7", "expected a pattern after '{|'"},
+  ExpPatt4 = "expected a pattern after '('",
+  ExpPatt5 = "expected a pattern after ':'",
+  ExpPatt6 = "expected a pattern after '{~'",
+  ExpPatt7 = "expected a pattern after '{|'",
 
-  {"ExpPatt8", "expected a pattern after '<-'"},
+  ExpPatt8 = "expected a pattern after '<-'",
 
-  {"ExpPattOrClose", "expected a pattern or closing '}' after '{'"},
+  ExpPattOrClose = "expected a pattern or closing '}' after '{'",
 
-  {"ExpNumName", "expected a number, '+', '-' or a name (no space) after '^'"},
-  {"ExpCap", "expected a string, number, '{}' or name after '->'"},
+  ExpNumName = "expected a number, '+', '-' or a name (no space) after '^'",
+  ExpCap = "expected a string, number, '{}' or name after '->'",
 
-  {"ExpName1", "expected the name of a rule after '=>'"},
-  {"ExpName2", "expected the name of a rule after '=' (no space)"},
-  {"ExpName3", "expected the name of a rule after '<' (no space)"},
+  ExpName1 = "expected the name of a rule after '=>'",
+  ExpName2 = "expected the name of a rule after '=' (no space)",
+  ExpName3 = "expected the name of a rule after '<' (no space)",
 
-  {"ExpLab1", "expected a label after '{'"},
+  ExpLab1 = "expected a label after '{'",
 
-  {"ExpNameOrLab", "expected a name or label after '%' (no space)"},
+  ExpNameOrLab = "expected a name or label after '%' (no space)",
 
-  {"ExpItem", "expected at least one item after '[' or '^'"},
+  ExpItem = "expected at least one item after '[' or '^'",
 
-  {"MisClose1", "missing closing ')'"},
-  {"MisClose2", "missing closing ':}'"},
-  {"MisClose3", "missing closing '~}'"},
-  {"MisClose4", "missing closing '|}'"},
-  {"MisClose5", "missing closing '}'"},  -- for the captures
+  MisClose1 = "missing closing ')'",
+  MisClose2 = "missing closing ':}'",
+  MisClose3 = "missing closing '~}'",
+  MisClose4 = "missing closing '|}'",
+  MisClose5 = "missing closing '}'",  -- for the captures
 
-  {"MisClose6", "missing closing '>'"},
-  {"MisClose7", "missing closing '}'"},  -- for the labels
+  MisClose6 = "missing closing '>'",
+  MisClose7 = "missing closing '}'",  -- for the labels
 
-  {"MisClose8", "missing closing ']'"},
+  MisClose8 = "missing closing ']'",
 
-  {"MisTerm1", "missing terminating single quote"},
-  {"MisTerm2", "missing terminating double quote"},
+  MisTerm1 = "missing terminating single quote",
+  MisTerm2 = "missing terminating double quote",
 }
 
-local errmsgs = {}
-local labels = {}
-
-for i, err in ipairs(errinfo) do
-  errmsgs[i] = err[2]
-  labels[err[1]] = i
-end
-
-local function expect (pattern, labelname)
-  local label = labels[labelname]
+local function expect (pattern, label)
   return pattern + m.T(label)
 end
 
 
 -- Pre-defined names
 local Predef = { nl = m.P"\n" }
-local tlabels = {}
 
 
 local mem
@@ -315,7 +305,7 @@ local function compile (p, defs)
     local lines = splitlines(p)
     local line, col = lineno(p, poserr)
     local err = {}
-    tinsert(err, "L" .. line .. ":C" .. col .. ": " .. errmsgs[label])
+    tinsert(err, "L" .. line .. ":C" .. col .. ": " .. errinfo[label])
     tinsert(err, lines[line])
     tinsert(err, rep(" ", col-1) .. "^")
     error("syntax error(s) in pattern\n" .. concat(err, "\n"), 3)
