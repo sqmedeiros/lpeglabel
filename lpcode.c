@@ -526,7 +526,7 @@ static int addoffsetinst (CompileState *compst, Opcode op) {
 /* labeled failure */
 static void codethrow (CompileState *compst, TTree *throw) {
   int recov, aux;
-  if (throw->u.s.ps != 0) {
+  if (throw->u.ps != 0) {
     recov = addoffsetinst(compst, IThrowRec);
     assert(sib2(throw)->tag == TRule);
   } else {

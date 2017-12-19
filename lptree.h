@@ -51,11 +51,7 @@ typedef struct TTree {
   unsigned short key;  /* key in ktable for Lua data (0 if no key) */
   union {
     int n;  /* occasional counter */
-		int label; /* labeled failure */
-		struct {   /* labeled failure */
-    	int ps;  /* occasional second child */
-			int plab; /* occasional label set */
-		} s; /* labeled failure */
+    int ps;  /* occasional second child */
   } u;
 } TTree;
 
@@ -76,7 +72,7 @@ extern const byte numsiblings[];
 
 /* access to children */
 #define sib1(t)         ((t) + 1)
-#define sib2(t)         ((t) + (t)->u.s.ps)
+#define sib2(t)         ((t) + (t)->u.ps)
 
 
 

@@ -61,7 +61,7 @@ void printinst (const Instruction *op, const Instruction *p) {
     "choice", "jmp", "call", "open_call",
     "commit", "partial_commit", "back_commit", "failtwice", "fail", "giveup",
      "fullcapture", "opencapture", "closecapture", "closeruntime",
-    "throw", "recovery", "labeled_choice"  /* labeled failure */
+    "throw", "throw_rec",  /* labeled failure */
   };
   printf("%02ld: %s ", (long)(p - op), names[p->i.code]);
   switch ((Opcode)p->i.code) {
@@ -108,7 +108,11 @@ void printinst (const Instruction *op, const Instruction *p) {
       break;
     }
     case IThrow: { /* labeled failure */
-      printf("%d", p->i.aux);
+      printf("(idx = %d)", (p + 1)->i.key);
+      break;
+    }
+    case IThrowRec: { /* labeled failure */
+      printjmp(op, p); printf(" (idx = %d)", (p + 2)->i.key);
       break;
     }
     default: break;
@@ -159,7 +163,7 @@ static const char *tagnames[] = {
   "call", "opencall", "rule", "grammar",
   "behind",
   "capture", "run-time",
-  "throw", "recov", "labeled-choice"  /* labeled failure */
+  "throw"  /* labeled failure */
 };
 
 
@@ -212,10 +216,9 @@ void printtree (TTree *tree, int ident) {
       break;
     }
     case TThrow: { /* labeled failure */
-      if (tree->u.s.ps != 0)
+      if (tree->u.ps != 0) 
         assert(sib2(tree)->tag == TRule);
       printf(" key: %d  (rule: %d)\n", tree->key, sib2(tree)->cap);
-      printf(" labels: %d\n", tree->u.label);
       break;
     }
     default: {

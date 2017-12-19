@@ -64,11 +64,11 @@ static void fixonecall (lua_State *L, int postable, TTree *g, TTree *t, byte tag
       luaL_error(L, "rule '%s' undefined in given grammar", val2str(L, -1));
     }
     t->tag = TCall;
-    t->u.s.ps = n - (t - g);  /* position relative to node */
+    t->u.ps = n - (t - g);  /* position relative to node */
     assert(sib2(t)->tag == TRule);
     sib2(t)->key = t->key;  /* fix rule's key */
   } else if (n != 0) { /* labeled failure */
-  	t->u.s.ps = n - (t - g);  /* position relative to node */
+  	t->u.ps = n - (t - g);  /* position relative to node */
   }
 }
 
@@ -84,13 +84,13 @@ static void correctassociativity (TTree *tree) {
   TTree *t1 = sib1(tree);
   assert(tree->tag == TChoice || tree->tag == TSeq);
   while (t1->tag == tree->tag) {
-    int n1size = tree->u.s.ps - 1;  /* t1 == Op t11 t12 */
-    int n11size = t1->u.s.ps - 1;
+    int n1size = tree->u.ps - 1;  /* t1 == Op t11 t12 */
+    int n11size = t1->u.ps - 1;
     int n12size = n1size - n11size - 1;
     memmove(sib1(tree), sib1(t1), n11size * sizeof(TTree)); /* move t11 */
-    tree->u.s.ps = n11size + 1;
+    tree->u.ps = n11size + 1;
     sib2(tree)->tag = tree->tag;
-    sib2(tree)->u.s.ps = n12size + 1;
+    sib2(tree)->u.ps = n12size + 1;
   }
 }
 
@@ -397,7 +397,7 @@ static TTree *newcharset (lua_State *L) {
 ** 'sibsize'); returns position for second sibling
 */
 static TTree *seqaux (TTree *tree, TTree *sib, int sibsize) {
-  tree->tag = TSeq; tree->u.s.ps = sibsize + 1;
+  tree->tag = TSeq; tree->u.ps = sibsize + 1;
   memcpy(sib1(tree), sib, sibsize * sizeof(TTree));
   return sib2(tree);
 }
@@ -411,7 +411,7 @@ static TTree *seqaux (TTree *tree, TTree *sib, int sibsize) {
 static void fillseq (TTree *tree, int tag, int n, const char *s) {
   int i;
   for (i = 0; i < n - 1; i++) {  /* initial n-1 copies of Seq tag; Seq ... */
-    tree->tag = TSeq; tree->u.s.ps = 2;
+    tree->tag = TSeq; tree->u.ps = 2;
     sib1(tree)->tag = tag;
     sib1(tree)->u.n = s ? (byte)s[i] : 0;
     tree = sib2(tree);
@@ -518,7 +518,7 @@ static TTree *newroot2sib (lua_State *L, int tag) {
   TTree *tree2 = getpatt(L, 2, &s2);
   TTree *tree = newtree(L, 1 + s1 + s2);  /* create new tree */
   tree->tag = tag;
-  tree->u.s.ps =  1 + s1;
+  tree->u.ps =  1 + s1;
   memcpy(sib1(tree), tree1, s1 * sizeof(TTree));
   memcpy(sib2(tree), tree2, s2 * sizeof(TTree));
   joinktables(L, 1, sib2(tree), 2);
@@ -530,7 +530,7 @@ static TTree *newroot2sib (lua_State *L, int tag) {
 static TTree *newthrowleaf (lua_State *L) {
   TTree *tree = newtree(L, 1);
   tree->tag = TThrow;
-	tree->u.s.ps = 0; /* there is no recovery rule associated */
+	tree->u.ps = 0; /* there is no recovery rule associated */
   return tree;
 }
 /* labeled failure end */
@@ -608,12 +608,12 @@ static int lp_star (lua_State *L) {
     /* size = (choice + seq + tree1 + true) * n, but the last has no seq */
     tree = newtree(L, n * (size1 + 3) - 1);
     for (; n > 1; n--) {  /* repeat (n - 1) times */
-      tree->tag = TChoice; tree->u.s.ps = n * (size1 + 3) - 2;
+      tree->tag = TChoice; tree->u.ps = n * (size1 + 3) - 2;
       sib2(tree)->tag = TTrue;
       tree = sib1(tree);
       tree = seqaux(tree, tree1, size1);
     }
-    tree->tag = TChoice; tree->u.s.ps = size1 + 1;
+    tree->tag = TChoice; tree->u.ps = size1 + 1;
     sib2(tree)->tag = TTrue;
     memcpy(sib1(tree), tree1, size1 * sizeof(TTree));
   }
@@ -656,7 +656,7 @@ static int lp_sub (lua_State *L) {
   else {
     TTree *tree = newtree(L, 2 + s1 + s2);
     tree->tag = TSeq;  /* sequence of... */
-    tree->u.s.ps =  2 + s2;
+    tree->u.ps =  2 + s2;
     sib1(tree)->tag = TNot;  /* ...not... */
     memcpy(sib1(sib1(tree)), t2, s2 * sizeof(TTree));  /* ...t2 */
     memcpy(sib2(tree), t1, s1 * sizeof(TTree));  /* ... and t1 */
@@ -869,7 +869,7 @@ static int lp_constcapture (lua_State *L) {
     tree = sib1(tree);
     for (i = 1; i <= n - 1; i++) {
       tree->tag = TSeq;
-      tree->u.s.ps = 3;  /* skip TCapture and its sibling */
+      tree->u.ps = 3;  /* skip TCapture and its sibling */
       auxemptycap(sib1(tree), Cconst);
       sib1(tree)->key = addtoktable(L, i);
       tree = sib2(tree);
@@ -971,7 +971,7 @@ static void buildgrammar (lua_State *L, TTree *grammar, int frule, int n) {
     nd->tag = TRule;
     nd->key = 0;  /* will be fixed when rule is used */
     nd->cap = i;  /* rule number */
-    nd->u.s.ps = rulesize + 1;  /* point to next rule */
+    nd->u.ps = rulesize + 1;  /* point to next rule */
     memcpy(sib1(nd), rn, rulesize * sizeof(TTree));  /* copy rule */
     mergektable(L, ridx, sib1(nd));  /* merge its ktable into new one */
     nd = sib2(nd);  /* move to next rule */
