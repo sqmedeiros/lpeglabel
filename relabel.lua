@@ -357,10 +357,6 @@ local function gsub (s, p, rep)
   return cp:match(s)
 end
 
-local function setlabels (t)
-  tlabels = t
-end
-
 
 -- exported names
 local re = {
@@ -369,7 +365,6 @@ local re = {
   find = find,
   gsub = gsub,
   updatelocale = updatelocale,
-  setlabels = setlabels,
 	calcline = calcline
 }
 
