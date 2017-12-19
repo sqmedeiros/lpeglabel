@@ -31,7 +31,7 @@ local errinfo = {
   {"NoPatt", "no pattern found"},
   {"ExtraChars", "unexpected characters after the pattern"},
 
-  {"ExpPatt1", "expected a pattern after '/' and '//{...}', or the label(s) after '/{' and '//{'"},
+  {"ExpPatt1", "expected a pattern after '/'"},
 
   {"ExpPatt2", "expected a pattern after '&'"},
   {"ExpPatt3", "expected a pattern after '!'"},
@@ -52,8 +52,7 @@ local errinfo = {
   {"ExpName2", "expected the name of a rule after '=' (no space)"},
   {"ExpName3", "expected the name of a rule after '<' (no space)"},
 
-  {"ExpLab1", "expected at least one label after '{'"},
-  {"ExpLab2", "expected a label after the comma"},
+  {"ExpLab1", "expected a label after '{'"},
 
   {"ExpNameOrLab", "expected a name or label after '%' (no space)"},
 
@@ -216,41 +215,10 @@ local function NT (n, b)
   end
 end
 
-local function choicerec (...)
-  local t = { ... }
-  local n = #t
-  local p = t[1]
-  local i = 2
-
-  while i + 2 <= n do
-    -- t[i] is '/' or '//'
-    -- t[i+1] == false  when there are no labels
-		-- t[i+2] is a pattern
-		if t[i] == '/' then
-			if not t[i+1] then
-				p = mt.__add(p, t[i+2])
-			else
-				p = mm.Lc(p, t[i+2], unpack(t[i+1]))
-			end 
-		else -- t[i] is '//'
-				p = mm.Rec(p, t[i+2], unpack(t[i+1]))
-		end
-    i = i + 3
-  end
-
-  return p
-end
-
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
-            + (m.V"Seq" * (S * ((m.C(m.P"//" + "/") * m.Ct(m.V"Labels")) + (m.C"/" * m.Cc(false)))
-                                   * expect(S * m.V"Seq", "ExpPatt1")
-                            )^0
-              ) / choicerec);
-  Labels = m.P"{" * expect(S * m.V"Label", "ExpLab1")
-           * (S * "," * expect(S * m.V"Label", "ExpLab2"))^0
-           * expect(S * "}", "MisClose7");
+              + m.Cf(m.V"Seq" * (S * "/" * expect(S * m.V"Seq", "ExpPatt1"))^0, mt.__add) );
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix" * (S * m.V"Prefix")^0, mt.__mul);
   Prefix = "&" * expect(S * m.V"Prefix", "ExpPatt2") / mt.__len
          + "!" * expect(S * m.V"Prefix", "ExpPatt3") / mt.__unm

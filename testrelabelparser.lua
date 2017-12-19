@@ -53,26 +53,14 @@ L1:C5: unexpected characters after the pattern
 
 -- testing ExpPatt1
 
-testerror([['p' //{1}]], [[
-L1:C10: expected a pattern after '/' and '//{...}', or the label(s) after '/{' and '//{'
-'p' //{1}
-         ^
-]])
-
-testerror([['p' //{1} //{2} 'q']], [[
-L1:C10: expected a pattern after '/' and '//{...}', or the label(s) after '/{' and '//{'
-'p' //{1} //{2} 'q'
-         ^
-]])
-
 testerror([['p' /]], [[
-L1:C6: expected a pattern after '/' and '//{...}', or the label(s) after '/{' and '//{'
+L1:C6: expected a pattern after '/'
 'p' /
      ^
 ]])
 
 testerror([['p' / / 'q']], [[
-L1:C6: expected a pattern after '/' and '//{...}', or the label(s) after '/{' and '//{'
+L1:C6: expected a pattern after '/'
 'p' / / 'q'
      ^
 ]])
@@ -249,22 +237,22 @@ L1:C2: expected a pattern or closing '}' after '{'
  ^
 ]])
 
--- testing ExpNum
+-- testing ExpNumName
 
 testerror([['p' ^ n]], [[
-L1:C6: expected a number after '^', '+' or '-' (no space)
+L1:C6: expected a number, '+', '-' or a name (no space) after '^'
 'p' ^ n
      ^
 ]])
 
 testerror([['p'^+(+1)]], [[
-L1:C5: expected a number after '^', '+' or '-' (no space)
+L1:C5: expected a number, '+', '-' or a name (no space) after '^'
 'p'^+(+1)
     ^
 ]])
 
 testerror([['p'^-/'q']], [[
-L1:C5: expected a number after '^', '+' or '-' (no space)
+L1:C5: expected a number, '+', '-' or a name (no space) after '^'
 'p'^-/'q'
     ^
 ]])
@@ -351,25 +339,18 @@ L1:C2: expected the name of a rule after '<' (no space)
 
 -- testing ExpLab1
 
-testerror([['p' //{} 'q']], [[
-L1:C8: expected at least one label after '{'
-'p' //{} 'q'
-       ^
+testerror([['p' %{} 'q']], [[
+L1:C7: expected a label after '{'
+'p' %{} 'q'
+      ^
 ]])
 
 testerror([[%{ 'label' }]], [[
-L1:C3: expected at least one label after '{'
+L1:C3: expected a label after '{'
 %{ 'label' }
   ^
 ]])
 
--- testing ExpLab2
-
-testerror([['p' //{1,2,3,} 'q']], [[
-L1:C14: expected a label after the comma
-'p' //{1,2,3,} 'q'
-             ^
-]])
 
 -- testing ExpNameOrLab
 
