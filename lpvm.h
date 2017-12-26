@@ -21,6 +21,7 @@ typedef enum Opcode {
   IRet,  /* return from a rule */
   IEnd,  /* end of pattern */
   IChoice,  /* stack a choice; next fail will jump to 'offset' */
+  /*IPredChoice,*/  /* labeld failure: stack a choice; changes label env next fail will jump to 'offset' */
   IJmp,  /* jump to 'offset' */
   ICall,  /* call rule at 'offset' */
   IOpenCall,  /* call rule number 'key' (must be closed to a ICall) */

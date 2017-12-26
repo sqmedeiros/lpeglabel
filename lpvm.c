@@ -38,6 +38,7 @@ typedef struct Stack {
   const char *s;  /* saved position (or NULL for calls) */
   const Instruction *p;  /* next instruction */
   int caplevel;
+  byte labenv; /* labeled failure */
 } Stack;
 
 
@@ -155,7 +156,8 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
   int captop = 0;  /* point to first empty slot in captures */
   int ndyncap = 0;  /* number of dynamic captures (in Lua stack) */
   const Instruction *p = op;  /* current instruction */
-  stack->p = &giveup; stack->s = s; stack->caplevel = 0; stack++;  /* labeled failure */
+  byte labenv = 1; /* labeled failure: label environment is on */
+  stack->p = &giveup; stack->s = s; stack->caplevel = 0; stack->labenv = 1; stack++;  /* labeled failure */
 	*sfail = s; /* labeled failure */
   lua_pushlightuserdata(L, stackbase);
   for (;;) {
@@ -166,7 +168,9 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
              s, (int)(stack - getstackbase(L, ptop)), ndyncap, captop);
       printinst(op, p);
 #endif
+    printinst(op, p);
     assert(stackidx(ptop) + ndyncap == lua_gettop(L) && ndyncap <= captop);
+    assert(labenv == 1);
     switch ((Opcode)p->i.code) {
       case IEnd: {
         assert(stack == getstackbase(L, ptop) + 1);
@@ -257,6 +261,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         stack->p = p + getoffset(p);
         stack->s = s;
         stack->caplevel = captop;
+        stack->labenv = labenv; /* labeled failure */
         stack++;
         p += 2;
         continue;
@@ -287,6 +292,8 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
       case IBackCommit: {
         assert(stack > getstackbase(L, ptop) && (stack - 1)->s != NULL);
         s = (--stack)->s;
+        labenv = stack->labenv; /* labeled failure */
+        assert(labenv == 1); /* labeled failure */
         captop = stack->caplevel;
         p += getoffset(p);
         continue;
@@ -296,12 +303,18 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         lua_rawgeti(L, ktableidx(ptop), (p+1)->i.key); 
         printf("IThrow there %s top = %d\n", lua_tostring(L, -1), lua_gettop(L));
         lua_pop(L, 1);*/
-        *labelf = (p+1)->i.key;
-        if (*labelf == LFAIL)
+        if (labenv) {
+          *labelf = (p+1)->i.key;
+          if (*labelf == LFAIL)
             luaL_error(L, "labelf is %d", *labelf);
-				*sfail = s;
-        stack = getstackbase(L, ptop);
-        stack++;
+          stack = getstackbase(L, ptop);
+          stack++;
+          printf("IThrow stack->labenv = %d\n", stack->labenv);
+        }
+        else {
+          labelf = LFAIL;
+        }
+        *sfail = s;
         goto fail;
       }
       case IThrowRec: { /* labeled failure */
@@ -309,18 +322,25 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         lua_rawgeti(L, ktableidx(ptop), (p+2)->i.key); 
         printf("IThrowRec there %s top = %d\n", lua_tostring(L, -1), lua_gettop(L));
         lua_pop(L, 1);*/
-        *labelf = (p+2)->i.key;
-        if (*labelf == LFAIL)
-            luaL_error(L, "labelf is %d", *labelf);
-				*sfail = s;
-        if (stack == stacklimit)
-          stack = doublestack(L, &stacklimit, ptop);
-        stack->s = NULL;
-        stack->p = p + 3;
-        stack->caplevel = captop;
-        stack++;
-        p += getoffset(p);
-        continue;
+        printf("labenv here = %d\n", labenv);
+        if (labenv) {
+          *labelf = (p+2)->i.key;
+          if (*labelf == LFAIL)
+              luaL_error(L, "labelf is %d", *labelf);
+				  *sfail = s;
+          if (stack == stacklimit)
+            stack = doublestack(L, &stacklimit, ptop);
+          stack->s = NULL;
+          stack->p = p + 3;
+          stack->caplevel = captop;
+          stack++;
+          p += getoffset(p);
+          continue;
+        } else {
+          labelf = LFAIL;
+        }
+        *sfail = s;
+        goto fail;
       }
       case IFailTwice:
         assert(stack > getstackbase(L, ptop));
@@ -337,6 +357,8 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         if (ndyncap > 0)  /* is there matchtime captures? */
           ndyncap -= removedyncap(L, capture, stack->caplevel, captop);
         captop = stack->caplevel;
+        labenv = stack->labenv;
+        assert(labenv == 1);
         p = stack->p;
 #if defined(DEBUG)
         printf("**FAIL**\n");
