@@ -147,7 +147,7 @@ static int removedyncap (lua_State *L, Capture *capture,
 ** Opcode interpreter
 */
 const char *match (lua_State *L, const char *o, const char *s, const char *e,
-                   Instruction *op, Capture *capture, int ptop, byte *labelf, const char **sfail) { /* labeled failure */
+                   Instruction *op, Capture *capture, int ptop, short *labelf, const char **sfail) { /* labeled failure */
   Stack stackbase[INITBACK];
   Stack *stacklimit = stackbase + INITBACK;
   Stack *stack = stackbase;  /* point to first empty slot in stack */

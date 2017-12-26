@@ -1196,7 +1196,7 @@ static int lp_match (lua_State *L) {
   const char *s = luaL_checklstring(L, SUBJIDX, &l);
   size_t i = initposition(L, l);
   int ptop = lua_gettop(L);
-  byte labelf; /* labeled failure */
+  short labelf; /* labeled failure */
   const char *sfail = NULL; /* labeled failure */
   lua_pushnil(L);  /* initialize subscache */
   lua_pushlightuserdata(L, capture);  /* initialize caplistidx */
