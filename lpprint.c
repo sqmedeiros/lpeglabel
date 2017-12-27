@@ -58,7 +58,7 @@ void printinst (const Instruction *op, const Instruction *p) {
     "testany", "testchar", "testset",
     "span", "behind",
     "ret", "end",
-    "choice", "jmp", "call", "open_call",
+    "choice", "pred_choice", "jmp", "call", "open_call", /* labeled failure */
     "commit", "partial_commit", "back_commit", "failtwice", "fail", "giveup",
      "fullcapture", "opencapture", "closecapture", "closeruntime",
     "throw", "throw_rec",  /* labeled failure */
@@ -103,7 +103,8 @@ void printinst (const Instruction *op, const Instruction *p) {
       break;
     }
     case IJmp: case ICall: case ICommit: case IChoice:
-    case IPartialCommit: case IBackCommit: case ITestAny: {
+    case IPartialCommit: case IBackCommit: case ITestAny:
+    case IPredChoice: { /* labeled failure */
       printjmp(op, p);
       break;
     }

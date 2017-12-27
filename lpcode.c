@@ -449,7 +449,7 @@ int sizei (const Instruction *i) {
     case ITestChar: case ITestAny: case IChoice: case IJmp: case ICall:
     case IOpenCall: case ICommit: case IPartialCommit: case IBackCommit:
       return 2;
-    case IThrow:  /* labeled failure */ 
+    case IThrow: case IPredChoice: /* labeled failure */ 
 			return 2;
     case IThrowRec:  /* labeled failure */ 
 			return 3;
@@ -747,15 +747,19 @@ static void codechoice (CompileState *compst, TTree *p1, TTree *p2, int opt,
 ** (valid only when 'p' has no captures)
 */
 static void codeand (CompileState *compst, TTree *tree, int tt) {
-  int n = fixedlen(tree);
+  /* labeled failure: optimization disabled bacause in case of a failure it
+     does not report the expected error position (the current subject position
+     when begin the matching of <&p>) */
+  /*int n = fixedlen(tree);
   if (n >= 0 && n <= MAXBEHIND && !hascaptures(tree)) {
     codegen(compst, tree, 0, tt, fullset);
     if (n > 0)
       addinstruction(compst, IBehind, n);
   }
-  else {  /* default: Choice L1; p1; BackCommit L2; L1: Fail; L2: */
+  else */{  /* default: Choice L1; p1; BackCommit L2; L1: Fail; L2: */
     int pcommit;
-    int pchoice = addoffsetinst(compst, IChoice);
+    int pchoice = addoffsetinst(compst, IPredChoice); /* labeled failure */
+    getinstr(compst, pchoice).i.aux = ANDPRED;  
     codegen(compst, tree, 0, tt, fullset);
     pcommit = addoffsetinst(compst, IBackCommit);
     jumptohere(compst, pchoice);
@@ -857,7 +861,8 @@ static void codenot (CompileState *compst, TTree *tree) {
     addinstruction(compst, IFail, 0);
   else {
     /* test(fail(p))-> L1; choice L1; <p>; failtwice; L1:  */
-    int pchoice = addoffsetinst(compst, IChoice);
+    int pchoice = addoffsetinst(compst, IPredChoice); /* labeled failure */
+    getinstr(compst, pchoice).i.aux = NOTPRED;  
     codegen(compst, tree, 0, NOINST, fullset);
     addinstruction(compst, IFailTwice, 0);
     jumptohere(compst, pchoice);

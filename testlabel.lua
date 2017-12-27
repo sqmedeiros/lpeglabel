@@ -194,27 +194,59 @@ assert(p:match("bac") == 3)
 r, l, poserr = p:match("cab")
 assert(r == nil and l == 'fail' and poserr == 1)
 
-
 -- tests related to predicates
+p = #m.T(1)
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 1)
+
 p = #m.T(1) + m.P"a"
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == 2)
+
+p = #m.T(1) * m.P"a"
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 1)
 
 p = ##m.T(1) + m.P"a"
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == 2)
+
+p = -#m.T(1) + m.P"a"
+r, l, poserr = p:match("abc")
+assert(r == 1)
 
 p = -m.T(1) * m.P"a"
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == 2)
 
-p = -m.T(1) * m.P"a"
+p = -m.T(1)
 r, l, poserr = p:match("bbc")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == 1)
 
-p = -(-m.T(1)) * m.P"a"
+p = -#m.T(1)
+r, l, poserr = p:match("bbc")
+assert(r == 1)
+
+p = -(-m.P'a')
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 1 and poserr == 1)
+assert(r == 1)
+
+p = -(-m.P'a')
+r, l, poserr = p:match("bbc")
+assert(r == nil and l == 'fail' and poserr == 1)
+
+p = #(m.P"a" * m.T(1))
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 1)
+
+p = #(m.P"a" * m.P'a')
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 1)
+
+
+p = -(-m.T(1))
+r, l, poserr = p:match("bbc")
+assert(r == nil and l == 'fail' and poserr == 1)
 
 p = m.P{
   "S",
@@ -222,7 +254,7 @@ p = m.P{
   ["22"] = m.P"a" 
 } 
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 'fail' and poserr == 2)
+assert(r == 1)
 
 assert(p:match("bbc") == 1)
 
@@ -231,7 +263,8 @@ p = m.P{
   S = #m.T(22),
   ["22"] = m.P"a" 
 }
-assert(p:match("abc") == 1)
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 1)
 
 p = m.P{
   "S",
@@ -262,7 +295,7 @@ p = m.P{
   ["22"] = m.T(15) 
 }
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 15 and poserr == 2)
+assert(r == nil and l == 'fail' and poserr == 1)
 
 
 -- tests related to repetition
