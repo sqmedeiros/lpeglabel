@@ -237,12 +237,39 @@ assert(r == nil and l == 'fail' and poserr == 1)
 
 p = #(m.P"a" * m.T(1))
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 'fail' and poserr == 1)
+assert(r == nil and l == 'fail' and poserr == 2)
 
 p = #(m.P"a" * m.P'a')
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 'fail' and poserr == 1)
+assert(r == nil and l == 'fail' and poserr == 2)
 
+p = m.P'a' * #m.P('a') 
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 2)
+
+p = m.P'a' * #m.P('ba') 
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 3)
+
+p = m.P'a' * -m.P('b') 
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 2)
+
+p = m.P'a' * -m.P('bc')
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 4)
+
+p = m.P'a' * #m.T('a') 
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 2)
+
+p = m.P'a' * #(m.P'b' * m.T('a')) 
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'fail' and poserr == 3)
+
+p = m.P'a' * (m.P'b' * m.T('a')) 
+r, l, poserr = p:match("abc")
+assert(r == nil and l == 'a' and poserr == 3)
 
 p = -(-m.T(1))
 r, l, poserr = p:match("bbc")
@@ -295,7 +322,7 @@ p = m.P{
   ["22"] = m.T(15) 
 }
 r, l, poserr = p:match("abc")
-assert(r == nil and l == 'fail' and poserr == 1)
+assert(r == nil and l == 'fail' and poserr == 2)
 
 
 -- tests related to repetition

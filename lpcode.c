@@ -759,7 +759,6 @@ static void codeand (CompileState *compst, TTree *tree, int tt) {
   else */{  /* default: Choice L1; p1; BackCommit L2; L1: Fail; L2: */
     int pcommit;
     int pchoice = addoffsetinst(compst, IPredChoice); /* labeled failure */
-    getinstr(compst, pchoice).i.aux = ANDPRED;  
     codegen(compst, tree, 0, tt, fullset);
     pcommit = addoffsetinst(compst, IBackCommit);
     jumptohere(compst, pchoice);
@@ -862,7 +861,6 @@ static void codenot (CompileState *compst, TTree *tree) {
   else {
     /* test(fail(p))-> L1; choice L1; <p>; failtwice; L1:  */
     int pchoice = addoffsetinst(compst, IPredChoice); /* labeled failure */
-    getinstr(compst, pchoice).i.aux = NOTPRED;  
     codegen(compst, tree, 0, NOINST, fullset);
     addinstruction(compst, IFailTwice, 0);
     jumptohere(compst, pchoice);

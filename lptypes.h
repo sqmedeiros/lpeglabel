@@ -150,11 +150,9 @@ typedef struct Charset {
 /* update the farthest failure */
 #define updatefarthest(s1,s2) { if ((s2) > (s1)) s1 = s2; }
 
-/* indicate whether the machine is matching a predicate or not */
 #define OUTPRED 0
-#define NOTPRED 1
-#define ANDPRED 2
 
+#define INPRED 1
 /* labeled failure end */
 
 #endif
