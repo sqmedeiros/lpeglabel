@@ -2,27 +2,16 @@ local m = require"lpeglabel"
 local re = require"relabel"
 
 local labels = {
-  {"ExpTermFirst",  "expected an expression"},
-  {"ExpTermOp",   "expected a term after the operator"},
-  {"MisClose",  "missing a closing ')' after the expression"},
+  ExpTermFirst  =  "expected an expression",
+  ExpTermOp     =  "expected a term after the operator",
+  MisClose      =  "missing a closing ')' after the expression",
 }
-
-local function labelindex(labname)
-  for i, elem in ipairs(labels) do
-    if elem[1] == labname then
-      return i
-    end
-  end
-  error("could not find label: " .. labname)
-end
 
 local errors, subject
 
-local function expect(patt, labname)
-  local i = labelindex(labname)
-  return patt + m.T(i)
+local function expect(patt, lab)
+  return patt + m.T(lab)
 end
-
 
 local num = m.R("09")^1 / tonumber
 local op = m.S("+-")
@@ -41,22 +30,13 @@ local function compute(tokens)
   return result
 end
 
-local g = m.P {
-	"Exp",
-	Exp = m.Ct(m.V"OperandFirst" * (m.C(op) * m.V"Operand")^0) / compute,
-	OperandFirst = expect(m.V"Term", "ExpTermFirst"),
-	Operand = expect(m.V"Term", "ExpTermOp"),
-	Term = num + m.V"Group",
-	Group = "(" * m.V"Exp" * expect(")", "MisClose"),
-}
-
 function recorderror(pos, lab)
 	local line, col = re.calcline(subject, pos)
-	table.insert(errors, { line = line, col = col, msg = labels[lab][2] })
+	table.insert(errors, { line = line, col = col, msg = labels[lab] })
 end
 
-function record (labname)
-	return (m.Cp() * m.Cc(labelindex(labname))) / recorderror
+function record (lab)
+	return (m.Cp() * m.Cc(lab)) / recorderror
 end
 
 function sync (p)
@@ -67,21 +47,23 @@ function defaultValue (p)
 	return p or m.Cc(1000) 
 end
 
-local grec = m.P {
-	"S",
-	S = m.Rec(m.V"A", m.V"ErrExpTermFirst", labelindex("ExpTermFirst")), -- default value is 0
-	A = m.Rec(m.V"Sg", m.V"ErrExpTermOp", labelindex("ExpTermOp")),
-	Sg = m.Rec(g, m.V"ErrMisClose", labelindex("MisClose")),
-	ErrExpTermFirst = record("ExpTermFirst") * sync(op + ")") * defaultValue(),
-	ErrExpTermOp = record("ExpTermOp") * sync(op + ")") * defaultValue(),
-	ErrMisClose = record("MisClose") * sync(m.P")") * defaultValue(m.P""),
+local g = m.P {
+	"Exp",
+	Exp           = m.Ct(m.V"OperandFirst" * (m.C(op) * m.V"Operand")^0) / compute,
+	OperandFirst  = expect(m.V"Term", "ExpTermFirst"),
+	Operand       = expect(m.V"Term", "ExpTermOp"),
+	Term          = num + m.V"Group",
+	Group         = "(" * m.V"Exp" * expect(")", "MisClose"),
+	ExpTermFirst  = record("ExpTermFirst") * sync(op + ")") * defaultValue(),
+	ExpTermOp     = record("ExpTermOp") * sync(op + ")") * defaultValue(),
+	MisClose      = record("MisClose") * sync(m.P")") * defaultValue(m.P""),
 }
-               
+
 local function eval(input)
 	errors = {}
 	io.write("Input: ", input, "\n")
 	subject = input
-  local result, label, suffix = grec:match(input)
+  local result, label, suffix = g:match(input)
   io.write("Syntactic errors found: " .. #errors, "\n")
 	if #errors > 0 then
     local out = {}

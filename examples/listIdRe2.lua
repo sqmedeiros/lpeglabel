@@ -1,46 +1,33 @@
 local re = require 'relabel' 
 
 local errinfo = {
-  {"errUndef",  "undefined"},
-  {"errId",     "expecting an identifier"},
-  {"errComma",  "expecting ','"},
+  ErrId     =  "expecting an identifier",
+  ErrComma  =  "expecting ','",
+  fail      =  "undefined",
 }
 
-local errmsgs = {}
-local labels = {}
-
-for i, err in ipairs(errinfo) do
-  errmsgs[i] = err[2]
-  labels[err[1]] = i
-end
-
-re.setlabels(labels)
-
-local g = re.compile[[
-  S      <- Id List
-  List   <- !.  /  Comma Id List
-  Id     <- Sp {[a-z]+} / %{errId}
-  Comma  <- Sp ',' / %{errComma}
-  Sp     <- %s*
-]]
-
-local errors
-
-function recorderror (subject, pos, label)
-	local line, col = re.calcline(subject, pos)
-	table.insert(errors, { line = line, col = col, msg = errmsgs[labels[label]] })
-	return true 
-end
-
-function sync (p)
+local function sync (p)
 	return '( !(' .. p .. ') .)*'
 end
 
-local grec = re.compile(
-  "S         <- %g //{errComma} ErrComma //{errId} ErrId" .. "\n" ..
-  "ErrComma  <-  ('' -> 'errComma' => recorderror) " .. sync('[a-z]+') .. "\n" ..
-	"ErrId     <-  ('' -> 'errId' => recorderror) " .. sync('","') .. "-> default" 
-	, {g = g, recorderror  = recorderror, default = "NONE"})
+local errors
+
+local function recorderror (subject, pos, label)
+	local line, col = re.calcline(subject, pos)
+	table.insert(errors, { line = line, col = col, msg = errinfo[label] })
+	return true 
+end
+
+local g = re.compile([[
+  S         <- Id List
+  List      <- !.  /  Comma Id List
+  Id        <- (Sp {[a-z]+})^ErrId
+  Comma     <- (Sp ',')^ErrComma
+  Sp        <- %s*]] ..
+  "ErrId    <- ('' -> 'ErrId' => recorderror) " .. sync('","') .. "-> default\n" ..
+  "ErrComma <-  ('' -> 'ErrComma' => recorderror) " .. sync('[a-z]+'),
+  {default = "NONE", recorderror = recorderror})
+
 
 function mymatch (g, s)
 	errors = {}
@@ -65,7 +52,7 @@ function mymatch (g, s)
 	return r
 end
   
-mymatch(grec, "one,two")
-mymatch(grec, "one two three")
-mymatch(grec, "1,\n two, \n3,")
-mymatch(grec, "one\n two123, \nthree,")
+mymatch(g, "one,two")
+mymatch(g, "one two three")
+mymatch(g, "1,\n two, \n3,")
+mymatch(g, "one\n two123, \nthree,")

@@ -3,8 +3,8 @@ local re = require 'relabel'
 local g = re.compile[[
   S      <- Id List
   List   <- !.  /  Comma Id List
-  Id     <- Sp [a-z]+ / %{2}
-  Comma  <- Sp ',' / %{3}
+  Id     <- Sp [a-z]+ / %{ErrId}
+  Comma  <- Sp ',' / %{ErrComma}
   Sp     <- %s*
 ]]
 
@@ -13,9 +13,9 @@ function mymatch (g, s)
   if not r then
     local line, col = re.calcline(s, pos)
     local msg = "Error at line " .. line .. " (col " .. col .. ")"
-    if e == 1 then
+    if e == 'ErrId' then
       return r, msg .. ": expecting an identifier before '" .. s:sub(pos) .. "'"
-    elseif e == 2 then
+    elseif e == 'ErrComma' then
       return r, msg .. ": expecting ',' before '" .. s:sub(pos) .. "'"
     else
       return r, msg

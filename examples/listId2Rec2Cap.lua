@@ -1,26 +1,9 @@
 local m = require'lpeglabel'
 local re = require'relabel'
 
-local terror = {}
-
-local function newError(s)
-  table.insert(terror, s)
-  return #terror
-end
-
-local errUndef = newError("undefined")
-local errId = newError("expecting an identifier")
-local errComma = newError("expecting ','")
-
-local id = m.R'az'^1
-
-local g = m.P{
-  "S",
-  S = m.V"Id" * m.V"List",
-  List = -m.P(1) + m.V"Comma" * m.V"Id" * m.V"List",
-  Id = m.V"Sp" * m.C(id) + m.T(errId),
-  Comma = m.V"Sp" * "," + m.T(errComma),
-  Sp = m.S" \n\t"^0,
+local terror = {
+  ErrId     =  "expecting an identifier",
+  ErrComma  =  "expecting ','"
 }
 
 local subject, errors
@@ -42,11 +25,17 @@ function defaultValue ()
 	return m.Cc"NONE" 
 end
 
-local grec = m.P{
+local id = m.R'az'^1
+
+local g = m.P{
   "S",
-  S = m.Rec(m.Rec(g, m.V"ErrComma", errComma), m.V"ErrId", errId),
-  ErrComma = record(errComma) * sync(id),
-	ErrId = record(errId) * sync(m.P",") * defaultValue(), 
+  S = m.V"Id" * m.V"List",
+  List = -m.P(1) + m.V"Comma" * m.V"Id" * m.V"List",
+  Id = m.V"Sp" * m.C(id) + m.T'ErrId',
+  Comma = m.V"Sp" * "," + m.T'ErrComma',
+  Sp = m.S" \n\t"^0,
+  ErrId = record('ErrId') * sync(m.P",") * defaultValue(), 
+  ErrComma = record('ErrComma') * sync(id),
 }
 
 
@@ -73,7 +62,7 @@ function mymatch (g, s)
 	return r
 end
   
-mymatch(grec, "one,two")
-mymatch(grec, "one two three")
-mymatch(grec, "1,\n two, \n3,")
-mymatch(grec, "one\n two123, \nthree,")
+mymatch(g, "one,two")
+mymatch(g, "one two three")
+mymatch(g, "1,\n two, \n3,")
+mymatch(g, "one\n two123, \nthree,")

@@ -1,16 +1,25 @@
 local m = require'lpeglabel'
 local re = require'relabel'
 
-local terror = {}
+local terror = {
+  ErrId     =  "expecting an identifier",
+  ErrComma  =  "expecting ','"
+}
 
-local function newError(s)
-  table.insert(terror, s)
-  return #terror
+local subject, errors
+
+local function recorderror(pos, lab)
+	local line, col = re.calcline(subject, pos)
+	table.insert(errors, { line = line, col = col, msg = terror[lab] })
 end
 
-local errUndef = newError("undefined")
-local errId = newError("expecting an identifier")
-local errComma = newError("expecting ','")
+local function record (lab)
+	return (m.Cp() * m.Cc(lab)) / recorderror
+end
+
+local function sync (p)
+	return (-p * m.P(1))^0
+end
 
 local id = m.R'az'^1
 
@@ -18,33 +27,12 @@ local g = m.P{
   "S",
   S = m.V"Id" * m.V"List",
   List = -m.P(1) + m.V"Comma" * m.V"Id" * m.V"List",
-  Id = m.V"Sp" * id + m.T(errId),
-  Comma = m.V"Sp" * "," + m.T(errComma),
+  Id = m.V"Sp" * id + m.T'ErrId',
+  Comma = m.V"Sp" * "," + m.T'ErrComma',
   Sp = m.S" \n\t"^0,
+  ErrId = record('ErrId') * sync(m.P","),
+  ErrComma = record('ErrComma') * sync(id),
 }
-
-local subject, errors
-
-function recorderror(pos, lab)
-	local line, col = re.calcline(subject, pos)
-	table.insert(errors, { line = line, col = col, msg = terror[lab] })
-end
-
-function record (lab)
-	return (m.Cp() * m.Cc(lab)) / recorderror
-end
-
-function sync (p)
-	return (-p * m.P(1))^0
-end
-
-local grec = m.P{
-  "S",
-  S = m.Rec(m.Rec(g, m.V"ErrComma", errComma), m.V"ErrId", errId),
-  ErrComma = record(errComma) * sync(id),
-	ErrId = record(errId) * sync(m.P",")
-}
-
 
 function mymatch (g, s)
 	errors = {}
@@ -61,7 +49,7 @@ function mymatch (g, s)
   return r
 end
   
-print(mymatch(grec, "one,two"))
-print(mymatch(grec, "one two three"))
-print(mymatch(grec, "1,\n two, \n3,"))
-print(mymatch(grec, "one\n two123, \nthree,"))
+print(mymatch(g, "one,two"))
+print(mymatch(g, "one two three"))
+print(mymatch(g, "1,\n two, \n3,"))
+print(mymatch(g, "one\n two123, \nthree,"))

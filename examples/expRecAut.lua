@@ -5,13 +5,11 @@ local num = m.R("09")^1 / tonumber
 local op = m.S("+-")
 
 local labels = {}
-local nlabels = 0
 
 local function newError(lab, msg, psync, pcap)
-	nlabels = nlabels + 1
 	psync = psync or m.P(-1)
 	pcap = pcap or m.P""
-	labels[lab] = { id = nlabels, msg = msg, psync = psync, pcap = pcap }
+	labels[lab] = { msg = msg, psync = psync, pcap = pcap }
 end
 
 newError("ExpTermFirst", "expected an expression", op + ")", m.Cc(1000)) 
@@ -21,9 +19,8 @@ newError("Extra", "extra characters found after the expression")
 
 local errors, subject
 
-local function expect(patt, labname)
-  local i = labels[labname].id
-  return patt + m.T(i)
+local function expect(patt, lab)
+  return patt + m.T(lab)
 end
 
 local function compute(tokens)
@@ -39,15 +36,6 @@ local function compute(tokens)
   end
   return result
 end
-
-local g = m.P {
-	"Exp",
-	Exp = m.Ct(m.V"OperandFirst" * (m.C(op) * m.V"Operand")^0) / compute,
-	OperandFirst = expect(m.V"Term", "ExpTermFirst"),
-	Operand = expect(m.V"Term", "ExpTermOp"),
-	Term = num + m.V"Group",
-	Group = "(" * m.V"Exp" * expect(")", "MisClose"),
-}
 
 function recorderror(pos, lab)
 	local line, col = re.calcline(subject, pos)
@@ -66,16 +54,29 @@ function defaultValue (p)
 	return p or m.Cc(1000) 
 end
 
-local grec = g * expect(m.P(-1), "Extra")
+local g = {
+	"Exp",
+	Exp = m.Ct(m.V"OperandFirst" * (m.C(op) * m.V"Operand")^0) / compute,
+	OperandFirst = expect(m.V"Term", "ExpTermFirst"),
+	Operand = expect(m.V"Term", "ExpTermOp"),
+	Term = num + m.V"Group",
+	Group = "(" * m.V"Exp" * expect(")", "MisClose"),
+}
+
+-- set first rule
+g[1] = "S"
+g["S"] = g["Exp"] * expect(m.P(-1), "Extra")
 for k, v in pairs(labels) do
-	grec = m.Rec(grec, record(k) * sync(v.psync) * v.pcap, v.id)
+  g[k] = record(k) * sync(v.psync) * v.pcap 
 end
+
+g = m.P(g)
 
 local function eval(input)
 	errors = {}
 	io.write("Input: ", input, "\n")
 	subject = input
-  local result, label, suffix = grec:match(input)
+  local result, label, suffix = g:match(input)
   io.write("Syntactic errors found: " .. #errors, "\n")
 	if #errors > 0 then
     local out = {}

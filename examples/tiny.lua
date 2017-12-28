@@ -1,92 +1,63 @@
 local re = require 'relabel'
 
-local terror = {}
+local terror = {
+  cmdSeq        =  "Missing ';' in CmdSeq",
+  ifExp         =  "Error in expresion of 'if'",
+  ifThen        =  "Error matching 'then' keyword",
+  ifThenCmdSeq  =  "Error matching CmdSeq of 'then' branch",
+  ifElseCmdSeq  =  "Error matching CmdSeq of 'else' branch",
+  ifEnd         =  "Error matching 'end' keyword of 'if'",
+  repeatCmdSeq  =  "Error matching CmdSeq of 'repeat'",
+  repeatUntil   =  "Error matching 'until' keyword",
+  repeatExp     =  "Error matching expression of 'until'",
+  assignOp      =  "Error matching ':='",
+  assignExp     =  "Error matching expression of assignment",
+  readName      =  "Error matching 'NAME' after 'read'",
+  writeExp      =  "Error matching expression after 'write'",
+  simpleExp     =  "Error matching 'SimpleExp'",
+  term          =  "Error matching 'Term'",
+  factor        =  "Error matching 'Factor'",
+  openParExp    =  "Error matching expression after '('",
+  closePar      =  "Error matching ')'",
+  undefined     =  "Undefined Error"
+}
 
-local function newError(l, msg)
-	table.insert(terror, { l = l, msg = msg} )
-end
-
-newError("errSemi", "Error: missing ';'")  
-newError("errExpIf", "Error: expected expression after 'if'") 
-newError("errThen", "Error: expected 'then' keyword") 
-newError("errCmdSeq1", "Error: expected at least a command after 'then'") 
-newError("errCmdSeq2", "Error: expected at least a command after 'else'") 
-newError("errEnd", "Error: expected 'end' keyword") 
-newError("errCmdSeqRep", "Error: expected at least a command after 'repeat'") 
-newError("errUntil", "Error: expected 'until' keyword") 
-newError("errExpRep", "Error: expected expression after 'until'") 
-newError("errAssignOp", "Error: expected ':=' in assigment") 
-newError("errExpAssign", "Error: expected expression after ':='") 
-newError("errReadName", "Error: expected an identifier after 'read'") 
-newError("errWriteExp", "Error: expected expression after 'write'") 
-newError("errSimpExp", "Error: expected '(', ID, or number after '<' or '='")
-newError("errTerm", "Error: expected '(', ID, or number after '+' or '-'")
-newError("errFactor", "Error: expected '(', ID, or number after '*' or '/'")
-newError("errExpFac", "Error: expected expression after '('")
-newError("errClosePar", "Error: expected ')' after expression")
-
-
-local labelCode = {}
-for k, v in ipairs(terror) do 
-	labelCode[v.l] = k
-end
-
-re.setlabels(labelCode)
-
-local g = re.compile[[
-  Tiny         <- CmdSeq  
-  CmdSeq       <- (Cmd (SEMICOLON / ErrSemi)) (Cmd (SEMICOLON / ErrSemi))*
-  Cmd          <- IfCmd / RepeatCmd / ReadCmd / WriteCmd  / AssignCmd 
-  IfCmd        <- IF (Exp / ErrExpIf)  (THEN / ErrThen)  (CmdSeq / ErrCmdSeq1)  (ELSE (CmdSeq / ErrCmdSeq2)  / '') (END / ErrEnd)
-  RepeatCmd    <- REPEAT  (CmdSeq / ErrCmdSeqRep)  (UNTIL / ErrUntil)  (Exp / ErrExpRep)
-  AssignCmd    <- NAME  (ASSIGNMENT / ErrAssignOp)  (Exp / ErrExpAssign)
-  ReadCmd      <- READ  (NAME / ErrReadName)
-  WriteCmd     <- WRITE  (Exp / ErrWriteExp)
-  Exp          <- SimpleExp  ((LESS / EQUAL) (SimpleExp / ErrSimpExp) / '')
-  SimpleExp    <- Term  ((ADD / SUB)  (Term / ErrTerm))*
-  Term         <- Factor  ((MUL / DIV)  (Factor / ErrFactor))*
-  Factor       <- OPENPAR  (Exp / ErrExpFac)  (CLOSEPAR / ErrClosePar)  / NUMBER  / NAME
-  ErrSemi      <- %{errSemi}
-	ErrExpIf     <- %{errExpIf}
-	ErrThen      <- %{errThen}
-	ErrCmdSeq1   <- %{errCmdSeq1}
-	ErrCmdSeq2   <- %{errCmdSeq2}
-	ErrEnd       <- %{errEnd}
-	ErrCmdSeqRep <- %{errCmdSeqRep}
-	ErrUntil     <- %{errUntil}
-	ErrExpRep    <- %{errExpRep}
-	ErrAssignOp  <- %{errAssignOp}
-	ErrExpAssign <- %{errExpAssign}
-	ErrReadName  <- %{errReadName}
-	ErrWriteExp  <- %{errWriteExp}
-	ErrSimpExp   <- %{errSimpExp}
-	ErrTerm      <- %{errTerm}
-	ErrFactor    <- %{errFactor}
-	ErrExpFac    <- %{errExpFac}
-	ErrClosePar  <- %{errClosePar}
-  ADD          <- Sp '+'
-  ASSIGNMENT   <- Sp ':='
-  CLOSEPAR     <- Sp ')'
-  DIV          <- Sp '/'
-  IF           <- Sp 'if'
-  ELSE         <- Sp 'else'
-  END          <- Sp 'end'
-  EQUAL        <- Sp '='
-  LESS         <- Sp '<'
-  MUL          <- Sp '*'
-  NAME         <- Sp !RESERVED [a-z]+
-  NUMBER       <- Sp [0-9]+
-  OPENPAR      <- Sp '('
-  READ         <- Sp 'read'
-  REPEAT       <- Sp 'repeat'
-  SEMICOLON    <- Sp ';'
-  SUB          <- Sp '-'
-  THEN         <- Sp 'then'
-  UNTIL        <- Sp 'until'
-  WRITE        <- Sp 'write'
-	RESERVED     <- (IF / ELSE / END / READ / REPEAT / THEN / UNTIL / WRITE) ![a-z]+
-  Sp           <- %s*	
-]]
+g = re.compile([[
+  Tiny       <- CmdSeq^undefined 
+  CmdSeq     <- (Cmd SEMICOLON^cmdSeq) (Cmd SEMICOLON^cmdSeq)*
+  Cmd        <- IfCmd / RepeatCmd / ReadCmd / WriteCmd  / AssignCmd 
+  IfCmd      <- IF  Exp^ifExp  THEN^ifThen  CmdSeq^ifThenCmdSeq  (ELSE CmdSeq^ifElseCmdSeq / '')  END^ifEnd
+  RepeatCmd  <- REPEAT  CmdSeq^repeatCmdSeq  UNTIL^repeatUntil  Exp^repeatExp
+  AssignCmd  <- NAME  ASSIGNMENT^assignOp  Exp^assignExp
+  ReadCmd    <- READ  NAME^readName
+  WriteCmd   <- WRITE  Exp^writeExp
+  Exp        <- SimpleExp  ((LESS / EQUAL)  SimpleExp^simpleExp / '')
+  SimpleExp  <- Term  ((ADD / SUB)  Term^term)*
+  Term       <- Factor ((MUL / DIV)  Factor^factor)*
+  Factor     <- OPENPAR  Exp^openParExp  CLOSEPAR^closePar  / NUMBER  / NAME
+  ADD        <- Sp '+'
+  ASSIGNMENT <- Sp ':='
+  CLOSEPAR   <- Sp ')'
+  DIV        <- Sp '/'
+  IF         <- Sp 'if'
+  ELSE       <- Sp 'else'
+  END        <- Sp 'end'
+  EQUAL      <- Sp '='
+  LESS       <- Sp '<'
+  MUL        <- Sp '*'
+  NAME       <- !RESERVED Sp [a-z]+
+  NUMBER     <- Sp [0-9]+
+  OPENPAR    <- Sp '('
+  READ       <- Sp 'read'
+  REPEAT     <- Sp 'repeat'
+  SEMICOLON  <- Sp ';'
+  SUB        <- Sp '-'
+  THEN       <- Sp 'then'
+  UNTIL      <- Sp 'until'
+  WRITE      <- Sp 'write'
+  RESERVED   <- (IF / ELSE / END / READ / REPEAT / THEN / UNTIL / WRITE) ![a-z]+
+  Sp         <- (%s / %nl)*  
+]], terror)
 
 
 local function mymatch(g, s)
@@ -94,7 +65,7 @@ local function mymatch(g, s)
   if not r then
     local line, col = re.calcline(s, pos)
     local msg = "Error at line " .. line .. " (col " .. col .. "): "
-		return r, msg .. terror[e].msg
+		return r, msg .. terror[e]
 	end 
 	return r
 end

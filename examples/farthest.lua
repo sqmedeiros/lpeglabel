@@ -15,13 +15,13 @@ function matchPrint2(p, s)
 end
 
 local p = m.P"a"^0 * m.P"b" + m.P"c"
-matchPrint(p, "abc")  --> r: 3	  lab: nil  errpos: nil
-matchPrint(p, "c")    --> r: 2	  lab: nil  errpos: nil
-matchPrint(p, "aac")  --> r: nil	lab: 0    errpos: 3
-matchPrint(p, "xxc")  --> r: nil	lab: 0    errpos: 1
+matchPrint(p, "abc")  --> r: 3	  lab: nil   errpos: nil
+matchPrint(p, "c")    --> r: 2	  lab: nil   errpos: nil
+matchPrint(p, "aac")  --> r: nil	lab: fail  errpos: 3
+matchPrint(p, "xxc")  --> r: nil	lab: fail  errpos: 1
 
 
-matchPrint2(p, "abc")  --> r: 	3	lab: 	nil	sfail: 	nil
-matchPrint2(p, "c")    --> r: 	2	lab: 	nil	sfail: 	nil
-matchPrint2(p, "aac")  --> r: 	nil	lab: 	0	sfail: 	c
-matchPrint2(p, "xxc")  --> r: 	nil	lab: 	0	sfail: 	xxc
+matchPrint2(p, "abc")  --> r: 3	   lab: nil   sfail: nil
+matchPrint2(p, "c")    --> r: 2	   lab: nil   sfail: nil
+matchPrint2(p, "aac")  --> r: nil	 lab: fail  sfail: c
+matchPrint2(p, "xxc")  --> r: nil	 lab: fail  sfail: xxc

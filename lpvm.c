@@ -351,10 +351,6 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
           while (!(stack-1)->predchoice) {
             --stack;
           } 
-          /*if ((stack-1)->labenv == ANDPRED) {
-            printf("ANDPRED: stack - 1\n");
-            stack--;
-          }*/
           *labelf = LFAIL;
         }
         goto fail;
