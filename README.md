@@ -129,10 +129,10 @@ function matchPrint(p, s)
 end
 
 local p = m.P"a"^0 * m.P"b" + m.P"c"
-matchPrint(p, "abc")  --> r: 3	  lab: nil   errpos: nil
-matchPrint(p, "c")    --> r: 2	  lab: nil   errpos: nil
-matchPrint(p, "aac")  --> r: nil	lab: fail  errpos: 3
-matchPrint(p, "xxc")  --> r: nil	lab: fail  errpos: 1
+matchPrint(p, "abc")  --> r: 3    lab: nil   errpos: nil
+matchPrint(p, "c")    --> r: 2    lab: nil   errpos: nil
+matchPrint(p, "aac")  --> r: nil  lab: fail  errpos: 3
+matchPrint(p, "xxc")  --> r: nil  lab: fail  errpos: 1
 ```
 
 
@@ -149,20 +149,20 @@ local m = require'lpeglabel'
 local re = require'relabel'
 
 local terror = {
-  ErrId =    "expecting an identifier",
-  ErrEnd = "expecting EOF",
-  fail = "undefined"
+  ErrId   =  "expecting an identifier",
+  ErrEnd  =  "expecting EOF",
+  fail    =  "undefined"
 }
 
 local id = m.R'az'^1
 
 local g = m.P{
   'S',
-  S = m.V'List' * (-m.P(1) + m.T'ErrEnd'),
-  List = m.V'Id' * (m.V'Comma' * (m.V'Id' + m.T'ErrId'))^0,
-  Id = m.V'Sp' * id,
-  Comma = m.V'Sp' * ',',
-  Sp = m.S' \n\t'^0,
+  S      =  m.V'List' * (-m.P(1) + m.T'ErrEnd'),
+  List   =  m.V'Id' * (m.V'Comma' * (m.V'Id' + m.T'ErrId'))^0,
+  Id     =  m.V'Sp' * id,
+  Comma  =  m.V'Sp' * ',',
+  Sp     =  m.S' \n\t'^0,
 }
 
 
@@ -176,9 +176,9 @@ function mymatch (g, s)
   return r
 end
   
-print(mymatch(g, "one,two"))
-print(mymatch(g, "one two"))
-print(mymatch(g, "one,\n two,\nthree,4"))
+print(mymatch(g, "one,two"))              --> 8
+print(mymatch(g, "one two"))              --> nil  Error at line 1 (col 4): expecting EOF before ' two'
+print(mymatch(g, "one,\n two,\nthree,4")) --> nil  Error at line 3 (col 7): expecting an identifier before '4'
 ```
 
 In this example we could think about writing rule <em>List</em> as follows:
@@ -199,20 +199,20 @@ local m = require'lpeglabel'
 local re = require'relabel'
 
 local terror = {
-  ErrId =    "expecting an identifier",
-  ErrComma = "expecting ','",
-  fail = "undefined"
+  ErrId     =  "expecting an identifier",
+  ErrComma  =  "expecting ','",
+  fail      =  "undefined"
 }
 
 local id = m.R'az'^1
 
 local g = m.P{
   'S',
-  S = m.V'List',
-  List = m.V'Id' * (#m.P(1) * m.V'Comma' * (m.V'Id' + m.T'ErrId'))^0,
-  Id = m.V'Sp' * id,
-  Comma = m.V'Sp' * ',' + m.T'ErrComma',
-  Sp = m.S' \n\t'^0,
+  S      =  m.V'List',
+  List   =  m.V'Id' * (#m.P(1) * m.V'Comma' * (m.V'Id' + m.T'ErrId'))^0,
+  Id     =  m.V'Sp' * id,
+  Comma  =  m.V'Sp' * ',' + m.T'ErrComma',
+  Sp     =  m.S' \n\t'^0,
 }
 
 
@@ -226,11 +226,10 @@ function mymatch (g, s)
   return r
 end
   
-print(mymatch(g, "one,two"))
-print(mymatch(g, "one two"))
-print(mymatch(g, "one,\n two,\nthree,4"))
-print(mymatch(g, " 1,2"))
-
+print(mymatch(g, "one,two"))               --> 8
+print(mymatch(g, "one two"))               --> nil  Error at line 1 (col 4): expecting ',' before ' two'
+print(mymatch(g, "one,\n two,\nthree,4"))  --> nil  Error at line 3 (col 7): expecting an identifier before '4'
+print(mymatch(g, " 1,2"))                  --> nil  Error at line 1 (col 2): undefined before '1,2'
 ```
 
 
@@ -307,20 +306,20 @@ local terror = {
 local subject, errors
 
 function recorderror(pos, lab)
-	local line, col = re.calcline(subject, pos)
-	table.insert(errors, { line = line, col = col, msg = terror[lab] })
+  local line, col = re.calcline(subject, pos)
+  table.insert(errors, { line = line, col = col, msg = terror[lab] })
 end
 
 function record (lab)
-	return (m.Cp() * m.Cc(lab)) / recorderror
+  return (m.Cp() * m.Cc(lab)) / recorderror
 end
 
 function sync (p)
-	return (-p * m.P(1))^0
+  return (-p * m.P(1))^0
 end
 
 function defaultValue ()
-	return m.Cc"NONE" 
+  return m.Cc"NONE" 
 end
 
 local id = m.R'az'^1
@@ -338,32 +337,50 @@ local g = m.P{
 }
 
 function mymatch (g, s)
-	errors = {}
-	subject = s	
-	io.write("Input: ", s, "\n")
-	local r = { g:match(s) }
-	io.write("Captures (separated by ';'): ")
-	for k, v in pairs(r) do
-		io.write(v .. "; ")
-	end
-	io.write("\nSyntactic errors found: " .. #errors)
-	if #errors > 0 then
-		io.write("\n")
-		local out = {}
+  errors = {}
+  subject = s  
+  io.write("Input: ", s, "\n")
+  local r = { g:match(s) }
+  io.write("Captures (separated by ';'): ")
+  for k, v in pairs(r) do
+    io.write(v .. "; ")
+  end
+  io.write("\nSyntactic errors found: " .. #errors)
+  if #errors > 0 then
+    io.write("\n")
+    local out = {}
     for i, err in ipairs(errors) do
-    	local msg = "Error at line " .. err.line .. " (col " .. err.col .. "): " .. err.msg
+      local msg = "Error at line " .. err.line .. " (col " .. err.col .. "): " .. err.msg
       table.insert(out,  msg)
     end
     io.write(table.concat(out, "\n"))
   end
-	print("\n")
-	return r
+  print("\n")
+  return r
 end
   
-mymatch(g, "one,two")
-mymatch(g, "one two three")
-mymatch(g, "1,\n two, \n3,")
+mymatch(g, "one,two")                 
+--> Captures (separated by ';'): one; two;
+--> Syntactic errors found: 0
+
+mymatch(g, "one two three")           
+--> Captures (separated by ';'): one; two; three;
+--> Syntactic errors found: 2
+--> Error at line 1 (col 4): expecting ','
+--> Error at line 1 (col 8): expecting ','
+
+mymatch(g, "1,\n two, \n3,")          
+--> Captures (separated by ';'): NONE; 
+--> Syntactic errors found: 1
+--> Error at line 1 (col 2): expecting a list of identifiers
+
 mymatch(g, "one\n two123, \nthree,")
+--> Captures (separated by ';'): one; two; three; NONE; 
+--> Syntactic errors found: 3
+--> Error at line 2 (col 1): expecting ','
+--> Error at line 2 (col 5): expecting ','
+--> Error at line 3 (col 6): expecting an identifier
+
 ```
 
 ##### *relabel* syntax
@@ -438,13 +455,13 @@ g = re.compile([[
 
 
 local function mymatch(g, s)
-	local r, e, pos = g:match(s)
+  local r, e, pos = g:match(s)
   if not r then
     local line, col = re.calcline(s, pos)
     local msg = "Error at line " .. line .. " (col " .. col .. "): "
-		return r, msg .. terror[e]
-	end 
-	return r
+    return r, msg .. terror[e]
+  end 
+  return r
 end
 
 local s = [[
@@ -455,10 +472,10 @@ repeat
   n := n - 1
 until (n < 1);
 write f;]]
-print(mymatch(g, s))
+print(mymatch(g, s))            --> nil  Error at line 6 (col 1): Missing ';' in CmdSeq
 
-print(mymatch(g, "a : 2"))
-print(mymatch(g, "a := 2; 6"))
+print(mymatch(g, "a : 2"))      --> nil  Error at line 1 (col 2): Error matching ':='
+print(mymatch(g, "a := 2; 6"))  --> nil  Error at line 1 (col 8): Error, expecting EOF
 ```
 
 ### Caveats

@@ -2,20 +2,20 @@ local m = require'lpeglabel'
 local re = require'relabel'
 
 local terror = {
-  ErrId =    "expecting an identifier",
-  ErrComma = "expecting ','",
-  fail = "undefined"
+  ErrId     =  "expecting an identifier",
+  ErrComma  =  "expecting ','",
+  fail      =  "undefined"
 }
 
 local id = m.R'az'^1
 
 local g = m.P{
   'S',
-  S = m.V'List',
-  List = m.V'Id' * (#m.P(1) * m.V'Comma' * (m.V'Id' + m.T'ErrId'))^0,
-  Id = m.V'Sp' * id,
-  Comma = m.V'Sp' * ',' + m.T'ErrComma',
-  Sp = m.S' \n\t'^0,
+  S      =  m.V'List',
+  List   =  m.V'Id' * (#m.P(1) * m.V'Comma' * (m.V'Id' + m.T'ErrId'))^0,
+  Id     =  m.V'Sp' * id,
+  Comma  =  m.V'Sp' * ',' + m.T'ErrComma',
+  Sp     =  m.S' \n\t'^0,
 }
 
 
