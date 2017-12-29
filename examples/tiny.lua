@@ -19,11 +19,12 @@ local terror = {
   factor        =  "Error matching 'Factor'",
   openParExp    =  "Error matching expression after '('",
   closePar      =  "Error matching ')'",
+  eof           =  "Error, expecting EOF",
   undefined     =  "Undefined Error"
 }
 
 g = re.compile([[
-  Tiny       <- CmdSeq^undefined 
+  Tiny       <- CmdSeq (!. / %{eof})
   CmdSeq     <- (Cmd SEMICOLON^cmdSeq) (Cmd SEMICOLON^cmdSeq)*
   Cmd        <- IfCmd / RepeatCmd / ReadCmd / WriteCmd  / AssignCmd 
   IfCmd      <- IF  Exp^ifExp  THEN^ifThen  CmdSeq^ifThenCmdSeq  (ELSE CmdSeq^ifElseCmdSeq / '')  END^ifEnd
@@ -118,5 +119,5 @@ repeat
 print(mymatch(g, s))
 
 print(mymatch(g, "a : 2"))
-print(mymatch(g, "a := (2"))
+print(mymatch(g, "a := 2; 6"))
 

@@ -3,7 +3,9 @@ local re = require'relabel'
 
 local terror = {
   ErrId     =  "expecting an identifier",
-  ErrComma  =  "expecting ','"
+  ErrComma  =  "expecting ','",
+  ErrList   =  "expecting a list of identifiers",
+  fail      =  "undefined"
 }
 
 local subject, errors
@@ -29,15 +31,15 @@ local id = m.R'az'^1
 
 local g = m.P{
   "S",
-  S = m.V"Id" * m.V"List",
-  List = -m.P(1) + m.V"Comma" * m.V"Id" * m.V"List",
-  Id = m.V"Sp" * m.C(id) + m.T'ErrId',
-  Comma = m.V"Sp" * "," + m.T'ErrComma',
-  Sp = m.S" \n\t"^0,
-  ErrId = record('ErrId') * sync(m.P",") * defaultValue(), 
-  ErrComma = record('ErrComma') * sync(id),
+  S         =  m.V"List" + (m.P(1) * m.T'ErrList'),
+  List      =  m.V'Id' * (#m.P(1) * m.V'Comma' * (m.V'Id' + m.T'ErrId'))^0,
+  Id        =  m.V'Sp' * m.C(id),
+  Comma     =  m.V'Sp' * ',' + m.T'ErrComma',
+  Sp        =  m.S' \n\t'^0,
+  ErrId     =  record'ErrId' * sync(m.P",") * defaultValue(), 
+  ErrComma  =  record'ErrComma' * sync(id),
+  ErrList   =  record'ErrList' * sync(m.P(-1)) * defaultValue()  
 }
-
 
 function mymatch (g, s)
 	errors = {}

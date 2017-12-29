@@ -3,7 +3,7 @@ local re = require'relabel'
 
 local terror = {
   ErrId =    "expecting an identifier",
-  ErrEnd = "expecting EOF",
+  ErrComma = "expecting ','",
   fail = "undefined"
 }
 
@@ -11,10 +11,10 @@ local id = m.R'az'^1
 
 local g = m.P{
   'S',
-  S = m.V'List' * (-m.P(1) + m.T'ErrEnd'),
-  List = m.V'Id' * (m.V'Comma' * (m.V'Id' + m.T'ErrId'))^0,
+  S = m.V'List',
+  List = m.V'Id' * (#m.P(1) * m.V'Comma' * (m.V'Id' + m.T'ErrId'))^0,
   Id = m.V'Sp' * id,
-  Comma = m.V'Sp' * ',',
+  Comma = m.V'Sp' * ',' + m.T'ErrComma',
   Sp = m.S' \n\t'^0,
 }
 
@@ -32,3 +32,4 @@ end
 print(mymatch(g, "one,two"))
 print(mymatch(g, "one two"))
 print(mymatch(g, "one,\n two,\nthree,4"))
+print(mymatch(g, " 1,2"))
