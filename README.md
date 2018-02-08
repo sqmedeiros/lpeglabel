@@ -481,8 +481,8 @@ print(mymatch(g, "a := 2; 6"))  --> nil  Error at line 1 (col 8): Error, expecti
 ### Caveats
 
 Does not use the number **1** to specify a recovery rule,
-since that this index is used to indicate the first rule
-of a grammar.
+since that the entry with index 1 in the grammar table defines
+its initial rule.
 
 In case your grammar has many regular and recovery rules,
 you may get an error message such as grammar: <em>has too many rules</em>.
