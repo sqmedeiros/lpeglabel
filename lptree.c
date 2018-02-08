@@ -1205,13 +1205,12 @@ static int lp_match (lua_State *L) {
   if (r == NULL) { /* labeled failure begin */
     lua_pushnil(L);
     if (labelf) {
-      int isnum;
-      lua_Integer lInt;
+      lua_Integer luaInt;
       lua_rawgeti(L, ktableidx(ptop), labelf);
-      lInt = lua_tointegerx(L, -1, &isnum);
-      if (isnum) {
+      luaInt = lua_tointeger(L, -1);
+      if (luaInt) {
         lua_pop(L, 1);
-        lua_pushinteger(L, lInt);
+        lua_pushinteger(L, luaInt);
       }
     }
     else 
