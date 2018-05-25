@@ -308,7 +308,7 @@ static int getfirst (TTree *tree, const Charset *follow, Charset *firstset) {
       return 0;
     }
     case TThrow: {  /* labeled failure: must always throw the label */
-      loopset(i, firstset->cs[i] = follow->cs[i]); /* follow = fullset(?) */
+      loopset(i, firstset->cs[i] = fullset->cs[i]);
       return 1;
     } 
     case TChoice: { 
