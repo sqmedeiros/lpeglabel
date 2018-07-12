@@ -94,7 +94,7 @@ Label `l` must be a valid identifier name.
 #### <a name="re-pow"></a><code>p^l</code>
 
 Syntax of *relabel* module. The pattern `p^l` is equivalent
-to `p / lpeglabel.T(l)`.
+to `p + lpeglabel.T(l)`.
 
 Label `l` must be a valid identifier name.
 
