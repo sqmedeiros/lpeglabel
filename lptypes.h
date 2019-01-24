@@ -57,7 +57,7 @@
 
 /* maximum number of rules in a grammar (limited by 'unsigned char') */
 #if !defined(MAXRULES)
-#define MAXRULES        250
+#define MAXRULES        UCHAR_MAX
 #endif
 
 
