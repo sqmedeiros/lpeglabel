@@ -1,4 +1,4 @@
--- $Id: re.lua,v 1.44 2013/03/26 20:11:40 roberto Exp $
+-- $Id: re.lua $
 
 -- imported functions and modules
 local tonumber, type, print, error = tonumber, type, print, error
@@ -126,15 +126,6 @@ updatelocale()
 local I = m.P(function (s,i) print(i, s:sub(1, i-1)); return i end)
 
 
-local function getdef (id, defs)
-  local c = defs and defs[id]
-  if not c then
-    error("undefined name: " .. id)
-  end
-  return c
-end
-
-
 local function mult (p, n)
   local np = mm.P(true)
   while n >= 1 do
@@ -161,6 +152,20 @@ local arrow = S * "<-"
 -- a defined name only have meaning in a given environment
 local Def = name * m.Carg(1)
 
+
+local function getdef (id, defs)
+  local c = defs and defs[id]
+  if not c then error("undefined name: " .. id) end
+  return c
+end
+
+-- match a name and return a group of its corresponding definition
+-- and 'f' (to be folded in 'Suffix')
+local function defwithfunc (f)
+  return m.Cg(Def / getdef * m.Cc(f))
+end
+
+
 local num = m.C(m.R"09"^1) * S / tonumber
 
 local String = "'" * m.C((any - "'" - m.P"\n")^0) * expect("'", "MisTerm1")
@@ -177,7 +182,7 @@ end
 
 local Range = m.Cs(any * (m.P"-"/"") * (any - "]")) / mm.R
 
-local item = defined + Range + m.C(any - m.P"\n")
+local item = (defined + Range + m.C(any - m.P"\n")) / m.P
 
 local Class =
     "["
@@ -224,12 +229,13 @@ local exp = m.P{ "Exp",
                           "ExpNumName")
                 + "->" * expect(S * ( m.Cg((String + num) * m.Cc(mt.__div))
                                     + m.P"{}" * m.Cc(nil, m.Ct)
-                                    + m.Cg(Def / getdef * m.Cc(mt.__div))
+                                    + defwithfunc(mt.__div)
                                     ),
                            "ExpCap")
-                + "=>" * expect(S * m.Cg(Def / getdef * m.Cc(m.Cmt)),
+                + "=>" * expect(S * defwithfunc(m.Cmt),
                            "ExpName1")
-                )
+                + "~>" * S * defwithfunc(m.Cf)
+                ) --* S
           )^0, function (a,b,f) if f == "lab" then return a + mm.T(b) else return f(a,b) end end );
   Primary = "(" * expect(m.V"Exp", "ExpPatt4") * expect(S * ")", "MisClose1")
           + String / mm.P
