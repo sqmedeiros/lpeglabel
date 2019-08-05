@@ -18,13 +18,42 @@
 
 /* initial size for call/backtrack stack */
 #if !defined(INITBACK)
-#define INITBACK  MAXBACK
+#define INITBACK	MAXBACK
 #endif
 
 
-#define getoffset(p)  (((p) + 1)->offset)
+#define getoffset(p)	(((p) + 1)->offset)
 
 static const Instruction giveup = {{IGiveup, 0, 0}};
+
+
+/*
+** Decode one UTF-8 sequence, returning NULL if byte sequence is invalid.
+*/
+static const char *utf8_decode (const char *o, int *val) {
+  static const unsigned int limits[] = {0xFF, 0x7F, 0x7FF, 0xFFFFu};
+  const unsigned char *s = (const unsigned char *)o;
+  unsigned int c = s[0];  /* first byte */
+  unsigned int res = 0;  /* final result */
+  if (c < 0x80)  /* ascii? */
+    res = c;
+  else {
+    int count = 0;  /* to count number of continuation bytes */
+    while (c & 0x40) {  /* still have continuation bytes? */
+      int cc = s[++count];  /* read next byte */
+      if ((cc & 0xC0) != 0x80)  /* not a continuation byte? */
+        return NULL;  /* invalid byte sequence */
+      res = (res << 6) | (cc & 0x3F);  /* add lower 6 bits from cont. byte */
+      c <<= 1;  /* to test next bit */
+    }
+    res |= (c & 0x7F) << (count * 5);  /* add first byte */
+    if (count > 3 || res > 0x10FFFFu || res <= limits[count])
+      return NULL;  /* invalid byte sequence */
+    s += count;  /* skip continuation bytes read */
+  }
+  *val = res;
+  return (const char *)s + 1;  /* +1 to include first byte */
+}
 
 
 /*
@@ -43,7 +72,7 @@ typedef struct Stack {
 } Stack;
 
 
-#define getstackbase(L, ptop)  ((Stack *)lua_touserdata(L, stackidx(ptop)))
+#define getstackbase(L, ptop)	((Stack *)lua_touserdata(L, stackidx(ptop)))
 
 
 /*
@@ -207,6 +236,20 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         }
         continue;
       }
+      case IUTFR: {
+        int codepoint;
+        if (s >= e)
+          goto fail;
+        s = utf8_decode (s, &codepoint);
+        if (s && p[1].offset <= codepoint && codepoint <= utf_to(p))
+          p += 2;
+        else {
+          *labelf = LFAIL; /* labeled failure */
+          updatefarthest(*sfail, s); /*labeled failure */
+          goto fail;
+        }
+        continue;
+      }
       case ITestAny: {
         if (s < e) p += 2;
         else p += getoffset(p);
@@ -301,8 +344,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         continue;
       }
       case ICommit: {
-        assert(stack > getstackbase(L, ptop)); 
-        assert((stack - 1)->s != NULL);
+        assert(stack > getstackbase(L, ptop) && (stack - 1)->s != NULL);
         stack--;
         p += getoffset(p);
         continue;
@@ -318,6 +360,8 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         assert(stack > getstackbase(L, ptop) && (stack - 1)->s != NULL);
         s = (--stack)->s;
         insidepred = stack->labenv; /* labeled failure */
+        if (ndyncap > 0)  /* are there matchtime captures? */
+          ndyncap -= removedyncap(L, capture, stack->caplevel, captop);
         captop = stack->caplevel;
         p += getoffset(p);
         continue;

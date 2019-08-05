@@ -15,7 +15,7 @@
 #include "lua.h"
 
 
-#define VERSION         "1.5.2"
+#define VERSION         "1.6.0"
 
 
 #define PATTERN_T	"lpeg-pattern"
@@ -37,6 +37,8 @@
 #define luaL_setfuncs(L,f,n)	luaL_register(L,NULL,f)
 #define luaL_newlib(L,f)	luaL_register(L,"lpeg",f)
 
+typedef size_t lua_Unsigned;
+
 #endif
 
 
@@ -51,9 +53,9 @@
 #endif
 
 
-/* maximum number of rules in a grammar (limited by 'unsigned char') */
+/* maximum number of rules in a grammar (limited by 'unsigned short') */
 #if !defined(MAXRULES)
-#define MAXRULES        UCHAR_MAX
+#define MAXRULES        1000
 #endif
 
 

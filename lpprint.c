@@ -56,21 +56,26 @@ void printinst (const Instruction *op, const Instruction *p) {
   const char *const names[] = {
     "any", "char", "set",
     "testany", "testchar", "testset",
-    "span", "behind",
+    "span", "utf-range", "behind",
     "ret", "end",
     "choice", "pred_choice", "jmp", "call", "open_call", /* labeled failure */
     "commit", "partial_commit", "back_commit", "failtwice", "fail", "giveup",
      "fullcapture", "opencapture", "closecapture", "closeruntime",
     "throw", "throw_rec",  /* labeled failure */
+     "--"
   };
   printf("%02ld: %s ", (long)(p - op), names[p->i.code]);
   switch ((Opcode)p->i.code) {
     case IChar: {
-      printf("'%c'", p->i.aux);
+      printf("'%c' (%02x)", p->i.aux, p->i.aux);
       break;
     }
     case ITestChar: {
-      printf("'%c'", p->i.aux); printjmp(op, p);
+      printf("'%c' (%02x)", p->i.aux, p->i.aux); printjmp(op, p);
+      break;
+    }
+    case IUTFR: {
+      printf("%d - %d", p[1].offset, utf_to(p));
       break;
     }
     case IFullCapture: {
@@ -157,11 +162,11 @@ void printcaplist (Capture *cap, Capture *limit) {
 
 static const char *tagnames[] = {
   "char", "set", "any",
-  "true", "false",
+  "true", "false", "utf8.range",
   "rep",
   "seq", "choice",
   "not", "and",
-  "call", "opencall", "rule", "grammar",
+  "call", "opencall", "rule", "xinfo", "grammar",
   "behind",
   "capture", "run-time",
   "throw"  /* labeled failure */
@@ -170,6 +175,7 @@ static const char *tagnames[] = {
 
 void printtree (TTree *tree, int ident) {
   int i;
+  int sibs = numsiblings[tree->tag];
   for (i = 0; i < ident; i++) printf(" ");
   printf("%s", tagnames[tree->tag]);
   switch (tree->tag) {
@@ -186,25 +192,34 @@ void printtree (TTree *tree, int ident) {
       printf("\n");
       break;
     }
+    case TUTFR: {
+      assert(sib1(tree)->tag == TXInfo);
+      printf(" %d (%02x %d) - %d (%02x %d) \n",
+        tree->u.n, tree->key, tree->cap,
+        sib1(tree)->u.n, sib1(tree)->key, sib1(tree)->cap);
+      break;
+    }
     case TOpenCall: case TCall: {
-      assert(sib2(tree)->tag == TRule);
-      printf(" key: %d  (rule: %d)\n", tree->key, sib2(tree)->cap);
+      assert(sib1(sib2(tree))->tag == TXInfo);
+      printf(" key: %d  (rule: %d)\n", tree->key, sib1(sib2(tree))->u.n);
       break;
     }
     case TBehind: {
       printf(" %d\n", tree->u.n);
-        printtree(sib1(tree), ident + 2);
       break;
     }
     case TCapture: {
       printf(" kind: '%s'  key: %d\n", capkind(tree->cap), tree->key);
-      printtree(sib1(tree), ident + 2);
       break;
     }
     case TRule: {
-      printf(" n: %d  key: %d\n", tree->cap, tree->key);
-      printtree(sib1(tree), ident + 2);
-      break;  /* do not print next rule as a sibling */
+      printf(" key: %d\n", tree->key);
+      sibs = 1;  /* do not print 'sib2' (next rule) as a sibling */
+      break;
+    }
+    case TXInfo: {
+      printf(" n: %d\n", tree->u.n);
+      break;
     }
     case TGrammar: {
       TTree *rule = sib1(tree);
@@ -214,6 +229,7 @@ void printtree (TTree *tree, int ident) {
         rule = sib2(rule);
       }
       assert(rule->tag == TTrue);  /* sentinel */
+      sibs = 0;  /* siblings already handled */
       break;
     }
     case TThrow: { /* labeled failure */
@@ -222,16 +238,14 @@ void printtree (TTree *tree, int ident) {
       printf(" key: %d  (rule: %d)\n", tree->key, sib2(tree)->cap);
       break;
     }
-    default: {
-      int sibs = numsiblings[tree->tag];
+    default:
       printf("\n");
-      if (sibs >= 1) {
-        printtree(sib1(tree), ident + 2);
-        if (sibs >= 2)
-          printtree(sib2(tree), ident + 2);
-      }
       break;
-    }
+  }
+  if (sibs >= 1) {
+    printtree(sib1(tree), ident + 2);
+    if (sibs >= 2)
+      printtree(sib2(tree), ident + 2);
   }
 }
 

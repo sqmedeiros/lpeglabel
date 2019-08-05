@@ -115,7 +115,7 @@ p = m.P{
   "S",
   S = m.T("bola"),
   bolada = m.P"a"
-} 
+}
 r, l, poserr = p:match("abc")
 assert(r == nil and l == 'bola' and poserr == 1)
 
@@ -134,7 +134,7 @@ p = m.P{
   "S",
   S = m.T("bola"),
   bola = m.P"a"
-} 
+}
 r, l, poserr = p:match("abc")
 assert(r == 2)
 
