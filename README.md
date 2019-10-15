@@ -87,7 +87,7 @@ not propagate `l`, or calls its associated recovery rule.
 
 #### <a name="re-t"></a><code>%{l}</code>
 
-Syntax of *relabel* module. Equivalent to `lpeg.T(l)`.
+Syntax of *relabel* module. Equivalent to `lpeglabel.T(l)`.
 
 Label `l` must be a valid identifier name.
 

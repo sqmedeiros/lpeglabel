@@ -1,4 +1,10 @@
-HISTORY for LPegLabel 1.5.0-1
+HISTORY for LPegLabel 1.6.0-1
+
+* Changes from version 1.5.0-1 to 1.6.0-1
+  ---------------------------------
+  + updating LPegLabel to the codebase of LPeg (1.1.0?)
+  + fixing bug related to head fail optimization
+
 
 * Changes from version 1.4.0-1 to 1.5.0-1
   ---------------------------------
