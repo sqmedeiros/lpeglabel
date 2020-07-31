@@ -168,8 +168,8 @@ end
 
 local num = m.C(m.R"09"^1) * S / tonumber
 
-local String = "'" * m.C((any - "'" - m.P"\n")^0) * expect("'", "MisTerm1")
-             + '"' * m.C((any - '"' - m.P"\n")^0) * expect('"', "MisTerm2")
+local String = "'" * m.C((any - "'")^0) * expect("'", "MisTerm1")
+             + '"' * m.C((any - '"')^0) * expect('"', "MisTerm2")
 
 
 local defined = "%" * Def / function (c,Defs)
@@ -182,7 +182,7 @@ end
 
 local Range = m.Cs(any * (m.P"-"/"") * (any - "]")) / mm.R
 
-local item = (defined + Range + m.C(any - m.P"\n")) / m.P
+local item = (defined + Range + m.C(any)) / m.P
 
 local Class =
     "["
