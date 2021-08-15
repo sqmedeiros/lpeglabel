@@ -1,5 +1,5 @@
 /*
-** $Id: lptree.c $
+** $Id: lpltree.c $
 ** Copyright 2013, Lua.org & PUC-Rio  (see 'lpeg.html' for license)
 */
 
@@ -11,11 +11,11 @@
 #include "lua.h"
 #include "lauxlib.h"
 
-#include "lptypes.h"
-#include "lpcap.h"
-#include "lpcode.h"
-#include "lpprint.h"
-#include "lptree.h"
+#include "lpltypes.h"
+#include "lplcap.h"
+#include "lplcode.h"
+#include "lplprint.h"
+#include "lpltree.h"
 
 
 /* number of siblings for each tree */
