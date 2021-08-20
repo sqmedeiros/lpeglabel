@@ -25,7 +25,7 @@ CWARNS = -Wall -Wextra -pedantic \
 CFLAGS = $(CWARNS) $(COPT) -std=c99 -I$(LUADIR) -fPIC
 CC = gcc
 
-FILES = lpvm.o lpcap.o lptree.o lpcode.o lpprint.o
+FILES = lplvm.o lplcap.o lpltree.o lplcode.o lplprint.o
 # For Linux
 linux:
 	make lpeglabel.so "DLLFLAGS = -shared -fPIC"
@@ -54,9 +54,9 @@ clean:
 	rm -f $(FILES) lpeglabel.so
 
 
-lpcap.o: lpcap.c lpcap.h lptypes.h
-lpcode.o: lpcode.c lptypes.h lpcode.h lptree.h lpvm.h lpcap.h
-lpprint.o: lpprint.c lptypes.h lpprint.h lptree.h lpvm.h lpcap.h
-lptree.o: lptree.c lptypes.h lpcap.h lpcode.h lptree.h lpvm.h lpprint.h
-lpvm.o: lpvm.c lpcap.h lptypes.h lpvm.h lpprint.h lptree.h
+lplcap.o: lplcap.c lplcap.h lpltypes.h
+lplcode.o: lplcode.c lpltypes.h lplcode.h lpltree.h lplvm.h lplcap.h
+lplprint.o: lplprint.c lpltypes.h lplprint.h lpltree.h lplvm.h lplcap.h
+lpltree.o: lpltree.c lpltypes.h lplcap.h lplcode.h lpltree.h lplvm.h lplprint.h
+lplvm.o: lplvm.c lplcap.h lpltypes.h lplvm.h lplprint.h lpltree.h
 

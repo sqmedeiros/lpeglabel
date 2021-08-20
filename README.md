@@ -486,5 +486,5 @@ its initial rule.
 
 In case your grammar has many regular and recovery rules,
 you may get an error message such as grammar: <em>has too many rules</em>.
-In this case, we need to change *MAXRULES* in `lptypes.h`.
+In this case, we need to change *MAXRULES* in `lpltypes.h`.
   

@@ -1,12 +1,12 @@
 /*
-** $Id: lptypes.h $
+** $Id: lpltypes.h $
 ** LPeg - PEG pattern matching for Lua
 ** Copyright 2007-2019, Lua.org & PUC-Rio  (see 'lpeg.html' for license)
 ** written by Roberto Ierusalimschy
 */
 
-#if !defined(lptypes_h)
-#define lptypes_h
+#if !defined(lpltypes_h)
+#define lpltypes_h
 
 
 #include <assert.h>
