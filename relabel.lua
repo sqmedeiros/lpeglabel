@@ -285,8 +285,7 @@ end
 local function calcline (s, i)
   if i == 1 then return 1, 1 end
   local rest, line = s:sub(1,i):gsub("[^\n]*\n", "")
-  local col = #rest
-  return 1 + line, col ~= 0 and col or 1
+  return 1 + line, #rest + 1
 end
 
 
