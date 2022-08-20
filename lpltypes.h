@@ -34,6 +34,13 @@
 
 #define lua_rawlen		lua_objlen
 
+#if defined(__GNUC__) && ((__GNUC__*100 + __GNUC_MINOR__) >= 302) && \
+    defined(__ELF__)            /* { */
+#define LUAI_FUNC       __attribute__((visibility("hidden"))) extern
+#else                           /* }{ */
+#define LUAI_FUNC       extern
+#endif                          /* } */
+
 #define luaL_setfuncs(L,f,n)	luaL_register(L,NULL,f)
 #define luaL_newlib(L,f)	luaL_register(L,"lpeglabel",f)
 
