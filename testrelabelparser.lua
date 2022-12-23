@@ -8,14 +8,14 @@ function testerror(repatt, msg)
     -- expecting a syntax error
     err = err:match("^[^\n]*\n(.-)$") -- remove first line (filename)
     err = err:gsub("[ \t]*\n", "\n") -- remove trailing spaces
-    -- if err ~= msg then
-    --   print(#err, #msg)
-    --   print('--')
-    --   print(err)
-    --   print('--')
-    --   print(msg)
-    --   print('--')
-    -- end
+    --if err ~= msg then
+    	--print(#err, #msg)
+    	--print('--')
+    	--print(err)
+    	--print('--')
+    	--print(msg)
+    	--print('--')
+    --end
     assert(err == msg)
   else
     -- expecting a non-syntax error
@@ -366,16 +366,14 @@ L1:C2: expected a name or label after '%' (no space)
  ^
 ]])
 
--- testing ExpItem
+-- testing empty char set (MisClose8, previously MisItem)
 
 testerror([[
-"p" [
-abc
-] "q"  
+"p" [] "q"
 ]], [[
-L1:C6: expected at least one item after '[' or '^'
-"p" [
-     ^
+L2:C1: missing closing ']' or empty char class
+
+^
 ]])
 
 -- testing MisClose1
@@ -451,31 +449,31 @@ L1:C9: missing closing '}'
 -- testing MisClose8
 
 testerror([[[]], [[
-L1:C2: missing closing ']'
+L1:C2: missing closing ']' or empty char class
 [
  ^
 ]])
 
 testerror([[[^]], [[
-L1:C3: missing closing ']'
+L1:C3: missing closing ']' or empty char class
 [^
   ^
 ]])
 
 testerror([[[] ]], [[
-L1:C4: missing closing ']'
+L1:C4: missing closing ']' or empty char class
 []
    ^
 ]])
 
 testerror([[[^] 	]], [[
-L1:C6: missing closing ']'
+L1:C6: missing closing ']' or empty char class
 [^]
      ^
 ]])
 
 testerror([[[_-___-_|]], [[
-L1:C10: missing closing ']'
+L1:C10: missing closing ']' or empty char class
 [_-___-_|
          ^
 ]])

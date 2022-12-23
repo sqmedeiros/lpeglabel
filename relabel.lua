@@ -56,8 +56,6 @@ local errinfo = {
 
   ExpNameOrLab = "expected a name or label after '%' (no space)",
 
-  ExpItem = "expected at least one item after '[' or '^'",
-
   MisClose1 = "missing closing ')'",
   MisClose2 = "missing closing ':}'",
   MisClose3 = "missing closing '~}'",
@@ -67,7 +65,7 @@ local errinfo = {
   MisClose6 = "missing closing '>'",
   MisClose7 = "missing closing '}'",  -- for the labels
 
-  MisClose8 = "missing closing ']'",
+  MisClose8 = "missing closing ']' or empty char class",
 
   MisTerm1 = "missing terminating single quote",
   MisTerm2 = "missing terminating double quote",
@@ -187,7 +185,7 @@ local item = (defined + Range + m.C(any)) / m.P
 local Class =
     "["
   * (m.C(m.P"^"^-1))    -- optional complement symbol
-  * m.Cf(expect(item, "ExpItem") * (item - "]")^0, mt.__add)
+  * m.Cf(item * (item - "]")^0, mt.__add)
     / function (c, p) return c == "^" and any - p or p end
   * expect("]", "MisClose8")
 
