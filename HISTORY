@@ -1,4 +1,12 @@
-HISTORY for LPegLabel 1.6.0-1
+HISTORY for LPegLabel 1.6.1-1
+
+* Changes from version 1.6.0-1 to 1.6.1-1
+  ---------------------------------
+  + fixing buffer overflow (thanks to edubart)
+  + fixing calcline returning the wrong column (thanks to Validark)
+  + fixing name clashing (thanks to edubart and E-Fir)
+  + fixing test related to the relabel parser
+
 
 * Changes from version 1.5.0-1 to 1.6.0-1
   ---------------------------------
