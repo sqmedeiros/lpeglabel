@@ -143,6 +143,10 @@ typedef struct Charset {
 #define testchar(st,c)	(((int)(st)[((c) >> 3)] & (1 << ((c) & 7))))
 
 /* labeled failure begin */
+#if !defined(LUAI_FUNC)
+#define LUAI_FUNC    extern
+#endif
+
 #define LFAIL 0
 
 /* update the farthest failure */
