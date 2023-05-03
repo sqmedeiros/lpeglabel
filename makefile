@@ -43,6 +43,10 @@ lpeglabel.so: $(FILES)
 lpeglabel.dll: $(FILES)
 	$(CC) $(DLLFLAGS) $(FILES) -o lpeglabel.dll $(LUADIR)/bin/lua53.dll
 
+liblpeglabel.a: $(FILES)
+	ar rcs $@ $^
+
+
 $(FILES): makefile
 
 test: test.lua testlabel.lua testrelabelparser.lua relabel.lua lpeglabel.so

@@ -5,6 +5,7 @@
 #if !defined(lplvm_h)
 #define lplvm_h
 
+#include "lpltypes.h"
 #include "lplcap.h"
 
 
